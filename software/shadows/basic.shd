@@ -1,0 +1,7 @@
+# comment
+# shadow is the name of the assembly language
+
+
+A=xff
+M=xf
+D=M-1

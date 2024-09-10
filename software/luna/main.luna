@@ -1,7 +1,9 @@
 from std import printf;
 
-fn main(): int {
+fn main(): i32 {
     let f = factorial(4);
+    let p = Point.new();
+
     printf("Factorial(4)=%d\n", f);
 
     let couldBeNull = getOrNull(false);
@@ -14,8 +16,56 @@ struct Point {
     final iny y;
 
     fn default(): Point {
-        return Point {x:0, y:0};
+        return Point { x:0, y:0 };
     }
+}
+
+enum NodeErrors {
+    AlreadyHasNext,
+}
+
+struct Logger {
+    level: LogLevel;
+
+    fn new() { ... }
+
+    fn i(fmt: std::string, vals: [&unknown]?): void {
+        let msg = eval_format(fmt, vals);
+        std::printf("[INFO]: %s", msg);
+    }
+}
+
+static logger: Logger = Logger.new();
+
+struct Node {
+    mut &Node? next;
+    &unknown data;
+
+    fn new(data: &unknown): Node {
+        return Node {
+            next: null,
+            data: data,
+        };
+    }
+
+    fn insertAfter(next: &Node): !NodeErrors {
+        if self.next != null {
+            throw .AlreadyHasNext;
+        }
+
+        if (self.next == Point { x: 1, y: 0 }) {
+        }
+
+        self.next = next;
+
+        logger.i('added node (with next?: %b) as next.', [next.next != null]);
+    }
+}
+
+fn doStuffWithNodes(): void {
+    let root = Node.new(0);
+
+    printf('root has %d value', [root.data]);
 }
 
 
