@@ -1,0 +1,1 @@
+/Users/christiansmith/dev/logisim/digital_computer/software/shadows/shadow-assembler/target/debug/shadow-assembler: /Users/christiansmith/dev/logisim/digital_computer/software/shadows/shadow-assembler/src/main.rs

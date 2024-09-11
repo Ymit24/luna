@@ -1,0 +1,8 @@
+@100 // address type intsr
+D = A
+A = 0
+M,A = D + 1
+
+
+A,D,C = op ; JMP/JEQ/JGT
+_ = ; JMP

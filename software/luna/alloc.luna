@@ -1,0 +1,43 @@
+// This is a memory allocator
+
+
+// bitfield where bits represent availability of blocks
+// block list
+
+struct Allocator1024 {
+    [bool; 1024] bitfield;
+    [Block; 1024] blocks;
+
+    fn new():Allocator1024 {
+        return Allocator1024 { };
+    }
+
+    fn malloc(size: u16): &unknown {
+        // scan for consecutive free blocks
+        // return first of said block
+    }
+}
+
+enum MemoryBlockError {
+    TakeUsedMemory,
+    FreeFreedMemory,
+}
+
+struct MemoryBlock {
+    bool isFree;
+    [byte; 64] data;
+
+    fn new(): MemoryBlock {
+        return MemoryBlock {isFree: true};
+    }
+
+    fn take(): void!MemoryBlockError {
+        if !isFree { throw .TakeUsedMemory; }
+        isFree=false;
+    }
+
+    fn release(): void {
+        if isFree { throw .FreeFreedMemory; }
+        isFree=true;
+    }
+}
