@@ -5,9 +5,9 @@ fn main(a:u16): void {
 // Performs factorial on n
 fn factorial(n: u16): u16 {
   if n == 0 {
-    return 1;
+    print ("");
+    return 1; // askdalkdjaldkj
   }
-
   return n * factorial(n - 1);
 }
 

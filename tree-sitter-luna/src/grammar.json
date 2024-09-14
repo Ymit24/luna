@@ -85,23 +85,12 @@
           }
         },
         {
-          "type": "STRING",
-          "value": "{"
-        },
-        {
           "type": "FIELD",
           "name": "body",
           "content": {
-            "type": "REPEAT",
-            "content": {
-              "type": "SYMBOL",
-              "name": "statement"
-            }
+            "type": "SYMBOL",
+            "name": "_block_scope"
           }
-        },
-        {
-          "type": "STRING",
-          "value": "}"
         }
       ]
     },
@@ -187,16 +176,8 @@
           "name": "_expression"
         },
         {
-          "type": "STRING",
-          "value": "{"
-        },
-        {
           "type": "SYMBOL",
-          "name": "statement"
-        },
-        {
-          "type": "STRING",
-          "value": "}"
+          "name": "_block_scope"
         }
       ]
     },
@@ -406,6 +387,10 @@
               "value": ";"
             }
           ]
+        },
+        {
+          "type": "SYMBOL",
+          "name": "comment"
         }
       ]
     },
@@ -448,6 +433,26 @@
         {
           "type": "STRING",
           "value": ")"
+        }
+      ]
+    },
+    "_block_scope": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "{"
+        },
+        {
+          "type": "REPEAT",
+          "content": {
+            "type": "SYMBOL",
+            "name": "statement"
+          }
+        },
+        {
+          "type": "STRING",
+          "value": "}"
         }
       ]
     },

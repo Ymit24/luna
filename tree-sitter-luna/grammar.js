@@ -8,9 +8,9 @@ module.exports = grammar({
 
     comment: $ => token(seq('//', /.*/)),
 
-    function: $ => seq('fn', field('name', $.identifier ), '(', field('args', optional($.function_args) ), ')', ':', field('ret_type', $.type ),
-      '{', field('body',repeat($.statement)),
-      '}'),
+    function: $ => seq('fn', field('name', $.identifier), '(', field('args', optional($.function_args)), ')', ':', field('ret_type', $.type),
+      field('body', $._block_scope),
+    ),
 
     function_args: $ => seq($.identifier, ':', $.type),
 
@@ -20,9 +20,9 @@ module.exports = grammar({
       'void',
     ),
 
-    if: $ => seq('if', $._expression, '{', $.statement, '}'),
+    if: $ => seq('if', $._expression, $._block_scope),
 
-    _expression: $ => choice($.unary_expression, $.binary_expression,$.identifier,  $.number, $.string_literal, $.function_call),
+    _expression: $ => choice($.unary_expression, $.binary_expression, $.identifier, $.number, $.string_literal, $.function_call),
 
     unary_expression: $ => prec(3, choice(seq('-', $._expression), seq('!', $._expression))),
     binary_expression: $ => choice(
@@ -33,11 +33,13 @@ module.exports = grammar({
       prec.left(1, seq($._expression, '==', $._expression))
     ),
 
-    statement: $ => choice(seq($.function_call, ';'), $.if, seq( $.return,';' )),
+    statement: $ => choice(seq($.function_call, ';'), $.if, seq($.return, ';'), $.comment),
 
     return: $ => seq('return', $._expression),
 
     function_call: $ => seq($.identifier, '(', optional($._expression), ')'),
+
+    _block_scope: $ => seq('{', repeat($.statement), '}'),
 
     identifier: $ => /[a-z]+/,
 

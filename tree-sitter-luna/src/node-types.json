@@ -50,11 +50,19 @@
       },
       "body": {
         "multiple": true,
-        "required": false,
+        "required": true,
         "types": [
           {
             "type": "statement",
             "named": true
+          },
+          {
+            "type": "{",
+            "named": false
+          },
+          {
+            "type": "}",
+            "named": false
           }
         ]
       },
@@ -235,6 +243,10 @@
       "multiple": false,
       "required": true,
       "types": [
+        {
+          "type": "comment",
+          "named": true
+        },
         {
           "type": "function_call",
           "named": true
