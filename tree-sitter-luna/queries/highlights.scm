@@ -1,0 +1,15 @@
+"fn" @keyword
+"if" @keyword
+"return" @keyword
+"+" @operator
+"*" @operator
+"/" @operator
+"-" @operator
+"!" @operator
+(string_literal) @string
+(comment) @comment
+(function) @function
+(statement) @statement
+(identifier) @tag
+(type) @type
+(number) @number
