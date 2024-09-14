@@ -1,0 +1,13 @@
+fn main(a:u16): void {
+  print("hello world!");
+}
+
+// Performs factorial on n
+fn factorial(n: u16): u16 {
+  if n == 0 {
+    return 1;
+  }
+
+  return n * factorial(n - 1);
+}
+

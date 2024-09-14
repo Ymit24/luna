@@ -1,0 +1,59 @@
+const ADDR = 0x5000;
+
+pub struct Pixel {
+  pub red: int;
+  pub green: int;
+  pub blue: int;
+
+  fn new(red: int, green: int, blue: int): Pixel {
+    return Pixel {
+        red: red,
+        green: green,
+        blue: blue,
+    };
+  }
+}
+
+struct RawVideo {
+  pub pixels: [Pixel; 640x480];
+}
+
+pub enum VideoDriverError {
+  PixelOutOfRange
+}
+
+pub struct VideoDriver {
+  raw: *RawVideo;
+
+  pub width: int;
+  pub height: int;
+
+  pub fn get(): VideoDriver {
+    return VideoDriver { raw: ADDR };
+  }
+
+  pub fn put(*self, int x, int y, pixel: Pixel): void!VideoDriverError {
+    if (!self.check_pixel_bounds(x,y)) {
+      throw .PixelOutOfRange;
+    }
+
+    self.raw.pixels[x + y * self.width] = pixel;
+  }
+
+  pub fn put_rect(*self, int x, int y, int width, int height, pixel: Pixel): void!VideoDriverError {
+    if(!self.check_pixel_bounds(x,y) || !self.check_pixel_bounds(x+width, y+height)) {
+      throw .PixelOutOfRange;
+    }
+
+    for xx in 0..width {
+      for yy in 0..height {
+        self.put(x+xx,y+yy, pixel);
+      }
+    }
+  }
+
+  pub fn check_pixel_bounds(*self, int x, int y): bool {
+    return x < 0 || x > self.width || y < 0 || y > self.height;
+  }
+}
+
