@@ -1,0 +1,20 @@
+# load 100 to D
+@100
+D=A
+
+# set sp=100
+@0
+M=D
+
+$main:
+  # push constant 10
+  ## load constant into D
+  @10
+  D=A
+  ## goto sp addr
+  @0
+  A=M # deref sp
+  M=D # write d into stack pointer
+  ## increment stack pointer
+  @0
+  M=M+1 # inc sp

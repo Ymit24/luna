@@ -25,7 +25,6 @@
     }
   },
   "devDependencies": {
-    "tree-sitter-cli": "^0.23.0",
     "prebuildify": "^6.0.1"
   },
   "files": [
@@ -39,10 +38,10 @@
   ],
   "tree-sitter": [
     {
-      "scope": "source.luna",
-      "injection-regex": "^luna$",
+      "scope": "source.shadow",
+      "injection-regex": "^shadow$",
       "file-types": [
-        "luna"
+        "shadow"
       ],
       "highlights": [
         "queries/highlights.scm"
