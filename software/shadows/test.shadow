@@ -18,3 +18,57 @@ $main:
   ## increment stack pointer
   @0
   M=M+1 # inc sp
+
+# inc sp
+$incSp: # 23
+    @0
+    M=M+1
+# push const 10
+$pushConstTen:
+    # load up our const
+    @10
+    D=A
+    # goto stack tail
+    @0
+    A=M
+    # write our const
+    M=D
+    # inc sp
+    @0
+    M=M+1
+# pop local 0
+# remove current value from stack and write it to local segment 0
+# local segment 0 = %bsp+0
+$popLocalZero:
+    # get value from stack
+    ## goto stack tail
+    @0
+    A=M
+    ## load value
+    D=M
+    @1 #%bsp
+    A=M
+    M=D
+# pop local 2
+# remove current value from stack and write it to local segment 0
+# local segment 2 = %bsp+2
+$popLocalTwo:
+    ## Get bsp
+    @1 #%bsp
+    D=M
+    ## bsp+2
+    @2
+    D=D+A
+    @3 # x reg
+    M=D # store current bsp+2 (local 2) in x
+    # get value from stack
+    ## goto stack tail
+    @0
+    M=M-1 # dec sp
+    A=M
+    ## load value
+    D=M
+    ## Go to local 2
+    @3
+    A=M
+    M=D
