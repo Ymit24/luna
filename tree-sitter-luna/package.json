@@ -1,7 +1,7 @@
 {
   "name": "tree-sitter-shadow",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "bindings/node",
   "types": "bindings/node",
   "scripts": {
     "install": "node-gyp-build",
@@ -13,8 +13,8 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "node-addon-api": "^8.0.0",
-    "node-gyp-build": "^4.8.1"
+    "node-gyp-build": "^4.8.1",
+    "node-addon-api": "^8.0.0"
   },
   "peerDependencies": {
     "tree-sitter": "^0.21.1"
@@ -25,8 +25,8 @@
     }
   },
   "devDependencies": {
-    "tree-sitter-cli": "^0.23.0",
-    "prebuildify": "^6.0.1"
+    "prebuildify": "^6.0.1",
+    "tree-sitter-cli": "^0.23.0"
   },
   "files": [
     "grammar.js",
