@@ -12,6 +12,13 @@ pub struct ComputeInstruction {
     pub alu_flags: AluFlags,
     pub opcode: Opcode,
     pub jump_condition: JumpCondition,
+
+    pub label: Option<Label>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Label {
+    pub label: String,
 }
 
 #[derive(Debug, Clone)]
@@ -39,6 +46,7 @@ pub enum Destination {
 #[derive(Debug, Clone)]
 pub struct AddressInstruction {
     pub addr: u15,
+    pub label: Option<Label>,
 }
 
 #[derive(Debug, Clone)]
