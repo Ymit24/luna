@@ -10,4 +10,3 @@ fn factorial(n: u16): u16 {
   }
   return n * factorial(n - 1);
 }
-
