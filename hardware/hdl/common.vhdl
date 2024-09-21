@@ -5,6 +5,8 @@ use IEEE.numeric_std.all;
 package CommonPkg is
   type opcode_type is (ADD, SUB, AND_OP, OR_OP);
 
+  subtype Word is std_logic_vector(15 downto 0);
+
   function to_opcode(op_vec: std_logic_vector(3 downto 0)) return opcode_type;
 end package Common;
 
