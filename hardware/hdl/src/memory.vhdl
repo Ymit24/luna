@@ -15,7 +15,7 @@ entity Memory is
 
     addr_out: out std_logic_vector(15 downto 0);
     data_out: out std_logic_vector(15 downto 0);
-    ram_out: out std_logic_vector(15 downto 0);
+    ram_out: out std_logic_vector(15 downto 0)
   );
 end entity Memory;
 
@@ -27,11 +27,11 @@ begin
   RAM: entity work.MemoryBank(rtl)
     generic map(ADDR_WIDTH => 15)
     port map(
-      addr => addr_reg;
-      data_in => data_in;
-      data_out => ram_reg;
-      we => destination_ram;
-      clk => clk;
+      addr => addr_reg,
+      data_in => data_in,
+      data_out => ram_reg,
+      we => destination_ram,
+      clk => clk
     );
   main: process(clk)
   begin
