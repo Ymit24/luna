@@ -33,12 +33,12 @@ begin
       we => destination_ram,
       clk => clk
     );
-  main: process(clk)
+  process(clk)
   begin
-    if (clk'event and clk = '1') then
+    if (rising_edge(clk)) then
       addr_out <= addr_reg;
       data_out <= data_reg;
       ram_out <= ram_reg;
     end if;
-  end process main;
+  end process;
 end architecture rtl;
