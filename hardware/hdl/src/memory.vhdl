@@ -22,23 +22,22 @@ end entity Memory;
 architecture rtl of Memory is
   signal addr_reg : Word;
   signal data_reg : Word;
-  signal ram_reg : Word;
 begin
   RAM: entity work.MemoryBank(rtl)
     generic map(ADDR_WIDTH => 15)
     port map(
       addr => addr_reg,
       data_in => data_in,
-      data_out => ram_reg,
+      data_out => ram_out,
       we => destination_ram,
       clk => clk
     );
+
   process(clk)
   begin
     if (rising_edge(clk)) then
       addr_out <= addr_reg;
       data_out <= data_reg;
-      ram_out <= ram_reg;
     end if;
   end process;
 end architecture rtl;
