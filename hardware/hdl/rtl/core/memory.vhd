@@ -2,7 +2,8 @@ library IEEE;
 use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
 
-use work.CommonPkg.all;
+library core;
+use core.CommonPkg.all;
 
 entity Memory is
   port (
@@ -23,7 +24,7 @@ architecture rtl of Memory is
   signal addr_reg : Word;
   signal data_reg : Word;
 begin
-  RAM: entity work.MemoryBank(rtl)
+  RAM: entity core.MemoryBank(rtl)
     generic map(ADDR_WIDTH => 15)
     port map(
       addr => addr_reg,

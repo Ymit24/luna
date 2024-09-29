@@ -1,7 +1,8 @@
 library IEEE;
 use IEEE.std_logic_1164.all;
 
-use work.CommonPkg.all;
+library core;
+use core.CommonPkg.all;
 
 entity ShouldJumpUnit is
   port (

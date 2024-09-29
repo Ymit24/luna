@@ -4,7 +4,7 @@ use IEEE.numeric_std.all;
 
 package CommonPkg is
   type opcode_type is (ADD, SUB, AND_OP, OR_OP);
-  type jump_cond_type is (JMP, JEQ, JNQ, JLT, JLQ, JGT, JGQ, JNO);
+  type jump_cond_type is (JMP, JEQ, JNE, JLT, JLQ, JGT, JGQ, JNO);
 
   subtype Word is std_logic_vector(15 downto 0);
 

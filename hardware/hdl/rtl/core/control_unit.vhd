@@ -2,7 +2,8 @@ library IEEE;
 use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
 
-use work.CommonPkg.all;
+library core;
+use core.CommonPkg.all;
 
 entity ControlUnit is
   port (
@@ -19,6 +20,6 @@ entity ControlUnit is
     destination_data: out std_logic;
     destination_addr: out std_logic;
     destination_ram: out std_logic;
-    opcode: out std_logic_vector(1 downto 0);
+    opcode: out std_logic_vector(1 downto 0)
   );
 end entity ControlUnit;

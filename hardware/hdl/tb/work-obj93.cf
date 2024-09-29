@@ -1,4 +1,0 @@
-v 4
-file . "alu_tb.vhdl" "23307b975a26c410d9774ccc924cfd76af45c6e2" "20240922030121.299":
-  entity alu_tb at 1( 0) + 0 on 13;
-  architecture behavioral of alu_tb at 9( 157) + 0 on 14;

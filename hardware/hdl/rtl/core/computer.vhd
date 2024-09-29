@@ -2,7 +2,8 @@ library IEEE;
 use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
 
-use work.CommonPkg.all;
+library core;
+use core.CommonPkg.all;
 
 entity Computer is
   port (
@@ -22,7 +23,7 @@ architecture rtl of Computer is
 
   signal programCounter: Word;
 begin
-  Alu: entity work.ALU(rtl) port map (
+  Alu: entity core.ALU(rtl) port map (
     X=> X,
     Y=> Y,
     OP=> OP,
@@ -35,7 +36,7 @@ begin
     IsZero => isZero
   );
 
-  Memory: entity work.Memory(rtl)
+  Memory: entity core.Memory(rtl)
     port map (
       destination_addr => '0',
       destination_data => '0',
@@ -47,7 +48,7 @@ begin
       ram_out => memoryDataOut
     );
 
-  ProgramMemory: entity work.MemoryBank(rtl)
+  ProgramMemory: entity core.MemoryBank(rtl)
     generic map (
       ADDR_WIDTH => 16
     )
