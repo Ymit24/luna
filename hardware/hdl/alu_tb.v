@@ -7,6 +7,7 @@ module alu_tb;
     reg clk = 0;
     reg [1:0] opcode;
     wire [15:0] output_result;
+    wire is_zero, is_negative;
 
     alu uut(
         .x(x),
@@ -14,6 +15,8 @@ module alu_tb;
         .zero_x(zero_x),
         .zero_y(zero_y),
         .negate_output(negate_output),
+        .is_zero(is_zero),
+        .is_negative(is_negative),
         .clk(clk),
         .opcode(opcode),
         .output_result(output_result)
@@ -47,6 +50,13 @@ module alu_tb;
 
         #50;
         $display("X= %d, Y=%d, o=%d", x, y, output_result);
+
+        y = 16'h0000;
+        #50;
+        x = 16'h0000;
+        #50;
+        negate_output = 1;
+        #50;
 
         $finish;
     end

@@ -2,7 +2,8 @@ module alu(
     input [15:0] x, y,
     input zero_x, zero_y, negate_output, clk,
     input [1:0] opcode,
-    output wire [15:0] output_result
+    output wire [15:0] output_result,
+    output is_zero, is_negative
 );
 
 wire [15:0] effective_x, effective_y;
@@ -13,6 +14,8 @@ assign effective_x = (zero_x) ? 16'h0000 : x;
 assign effective_y = (zero_y) ? 16'h0000 : y;
 
 assign output_result = (negate_output) ? ~internal_output : internal_output;
+assign is_zero = (internal_output == 16'h0000) ? 1 : 0;
+assign is_negative = output_result[15];
 
 localparam OPCODE_OR  = 2'h0;
 localparam OPCODE_AND = 2'h1;

@@ -1,5 +1,5 @@
 $date
-	Thu Nov 14 12:42:20 2024
+	Thu Nov 14 14:20:52 2024
 $end
 $version
 	Icarus Verilog
@@ -9,113 +9,192 @@ $timescale
 $end
 $scope module alu_tb $end
 $var wire 16 ! output_result [15:0] $end
-$var reg 1 " clk $end
-$var reg 1 # negate_output $end
-$var reg 2 $ opcode [1:0] $end
-$var reg 16 % x [15:0] $end
-$var reg 16 & y [15:0] $end
-$var reg 1 ' zero_x $end
-$var reg 1 ( zero_y $end
+$var wire 1 " is_zero $end
+$var wire 1 # is_negative $end
+$var reg 1 $ clk $end
+$var reg 1 % negate_output $end
+$var reg 2 & opcode [1:0] $end
+$var reg 16 ' x [15:0] $end
+$var reg 16 ( y [15:0] $end
+$var reg 1 ) zero_x $end
+$var reg 1 * zero_y $end
 $scope module uut $end
-$var wire 1 " clk $end
-$var wire 1 # negate_output $end
-$var wire 2 ) opcode [1:0] $end
-$var wire 16 * x [15:0] $end
-$var wire 16 + y [15:0] $end
-$var wire 1 ' zero_x $end
-$var wire 1 ( zero_y $end
-$var wire 16 , output_result [15:0] $end
-$var wire 16 - effective_y [15:0] $end
-$var wire 16 . effective_x [15:0] $end
-$var parameter 2 / OPCODE_ADD $end
-$var parameter 2 0 OPCODE_AND $end
-$var parameter 2 1 OPCODE_OR $end
-$var parameter 2 2 OPCODE_SUB $end
-$var reg 16 3 internal_output [15:0] $end
+$var wire 1 $ clk $end
+$var wire 1 % negate_output $end
+$var wire 2 + opcode [1:0] $end
+$var wire 16 , x [15:0] $end
+$var wire 16 - y [15:0] $end
+$var wire 1 ) zero_x $end
+$var wire 1 * zero_y $end
+$var wire 16 . output_result [15:0] $end
+$var wire 1 " is_zero $end
+$var wire 1 # is_negative $end
+$var wire 16 / effective_y [15:0] $end
+$var wire 16 0 effective_x [15:0] $end
+$var parameter 2 1 OPCODE_ADD $end
+$var parameter 2 2 OPCODE_AND $end
+$var parameter 2 3 OPCODE_OR $end
+$var parameter 2 4 OPCODE_SUB $end
+$var reg 16 5 internal_output [15:0] $end
 $upscope $end
 $upscope $end
 $enddefinitions $end
 $comment Show the parameter values. $end
 $dumpall
-b11 2
-b0 1
-b1 0
-b10 /
+b11 4
+b0 3
+b1 2
+b10 1
 $end
 #0
 $dumpvars
-b111 3
-b10 .
+b111 5
+b10 0
+b101 /
+b111 .
 b101 -
-b111 ,
-b101 +
-b10 *
-b10 )
-0(
-0'
-b101 &
-b10 %
-b10 $
+b10 ,
+b10 +
+0*
+0)
+b101 (
+b10 '
+b10 &
+0%
+1$
 0#
-1"
+0"
 b111 !
 $end
 #5
-0"
+0$
 #10
-1"
+1$
 #15
-0"
+0$
 #20
-1"
+1$
 #25
-0"
+0$
 #30
 b10101 !
-b10101 ,
-b10101 3
-b10000 .
-1"
-b10000 %
-b10000 *
+b10101 .
+b10101 5
+b10000 0
+1$
+b10000 '
+b10000 ,
 #35
-0"
+0$
 #40
-1"
+1$
 #45
-0"
+0$
 #50
-1"
+1$
 #55
-0"
+0$
 #60
-1"
+1$
 #65
-0"
+0$
 #70
 b101 !
-b101 ,
-b101 3
-b0 .
-1"
-1'
+b101 .
+b101 5
+b0 0
+1$
+1)
 #75
-0"
+0$
 #80
-1"
+1$
 #85
-0"
+0$
 #90
-1"
+1$
 #95
-0"
+0$
 #100
-1"
+1$
 #105
-0"
+0$
 #110
-1"
+1$
 #115
-0"
+0$
 #120
 1"
+b0 !
+b0 .
+b0 5
+b0 /
+1$
+b0 (
+b0 -
+#125
+0$
+#130
+1$
+#135
+0$
+#140
+1$
+#145
+0$
+#150
+1$
+#155
+0$
+#160
+1$
+#165
+0$
+#170
+1$
+b0 '
+b0 ,
+#175
+0$
+#180
+1$
+#185
+0$
+#190
+1$
+#195
+0$
+#200
+1$
+#205
+0$
+#210
+1$
+#215
+0$
+#220
+1#
+b1111111111111111 !
+b1111111111111111 .
+1$
+1%
+#225
+0$
+#230
+1$
+#235
+0$
+#240
+1$
+#245
+0$
+#250
+1$
+#255
+0$
+#260
+1$
+#265
+0$
+#270
+1$
