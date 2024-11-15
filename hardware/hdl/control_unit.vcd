@@ -1,0 +1,103 @@
+$date
+	Thu Nov 14 21:04:12 2024
+$end
+$version
+	Icarus Verilog
+$end
+$timescale
+	1ns
+$end
+$scope module control_unit_tb $end
+$var wire 16 ! y [15:0] $end
+$var wire 16 " x [15:0] $end
+$var wire 1 # set_pc $end
+$var wire 1 $ reg_m_en $end
+$var wire 1 % reg_d_en $end
+$var wire 1 & reg_a_en $end
+$var wire 2 ' opcode [1:0] $end
+$var wire 1 ( instr_type $end
+$var wire 16 ) addr_out [15:0] $end
+$var reg 16 * addr_in [15:0] $end
+$var reg 1 + clk $end
+$var reg 16 , instr [15:0] $end
+$var reg 1 - is_negative $end
+$var reg 1 . is_zero $end
+$var reg 16 / reg_a_in [15:0] $end
+$var reg 16 0 reg_d_in [15:0] $end
+$var reg 16 1 reg_m_in [15:0] $end
+$scope module uut $end
+$var wire 16 2 addr_in [15:0] $end
+$var wire 1 + clk $end
+$var wire 16 3 instr [15:0] $end
+$var wire 1 - is_negative $end
+$var wire 1 . is_zero $end
+$var wire 1 & reg_a_en $end
+$var wire 16 4 reg_a_in [15:0] $end
+$var wire 16 5 reg_d_in [15:0] $end
+$var wire 16 6 reg_m_in [15:0] $end
+$var wire 1 # set_pc $end
+$var wire 4 7 reg_selects [3:0] $end
+$var wire 1 $ reg_m_en $end
+$var wire 1 % reg_d_en $end
+$var wire 2 8 opcode [1:0] $end
+$var wire 3 9 jump_condition [2:0] $end
+$var wire 1 ( instr_type $end
+$var wire 3 : flags [2:0] $end
+$var wire 3 ; dest_selects [2:0] $end
+$var wire 16 < addr_out [15:0] $end
+$var reg 16 = x [15:0] $end
+$var reg 16 > y [15:0] $end
+$upscope $end
+$upscope $end
+$enddefinitions $end
+$comment Show the parameter values. $end
+$dumpall
+$end
+#0
+$dumpvars
+bx >
+bx =
+b0 <
+b0 ;
+b0 :
+b0 9
+b0 8
+b0 7
+bx 6
+bx 5
+bx 4
+b0 3
+bx 2
+bx 1
+bx 0
+bx /
+x.
+x-
+b0 ,
+0+
+bx *
+b0 )
+0(
+b0 '
+0&
+0%
+0$
+0#
+bx "
+bx !
+$end
+#5
+1+
+#10
+1&
+b11 9
+1(
+b11 )
+b11 <
+0+
+b1000000000000011 ,
+b1000000000000011 3
+#15
+1+
+#20
+0+
