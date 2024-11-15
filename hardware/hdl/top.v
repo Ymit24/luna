@@ -3,9 +3,11 @@
 `include "memory.v"
 `include "alu.v"
 `include "control_unit.v"
+`include "memory_mapped_io.v"
 
 module top(
-    input clk
+    input clk,
+    output [15:0] leds
 );
 
     wire [15:0] alu_out, addr_const;
@@ -40,7 +42,8 @@ module top(
         ),
         .reg_a_out(reg_a),
         .reg_d_out(reg_d),
-        .reg_m_out(reg_m)
+        .reg_m_out(reg_m),
+        .leds(leds)
     );
 
     control_unit control_unit(

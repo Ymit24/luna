@@ -3,8 +3,12 @@
 
 module top_tb;
     reg clk;
+    wire [15:0] leds;
 
-    top top(.clk(clk));
+    top top(
+        .clk(clk),
+        .leds(leds)
+    );
 
     always
     begin

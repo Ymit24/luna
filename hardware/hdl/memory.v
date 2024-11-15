@@ -6,7 +6,9 @@ module memory(
     input [15:0] data_in,
     output [15:0] reg_a_out,
     output [15:0] reg_d_out,
-    output [15:0] reg_m_out
+    output [15:0] reg_m_out,
+
+    output [15:0] leds
 );
 
 reg [15:0] reg_a=0;
@@ -17,8 +19,10 @@ assign reg_d_out = reg_d;
 assign reg_m_out = mem[reg_a];
 
 // Declare memory array with block RAM style
-//(* ram_style = "block" *) 
+//(* ram_style = "block" *)
 reg [15:0] mem [0:8191];
+
+assign leds = mem[10];
 
 integer i;
 initial begin
