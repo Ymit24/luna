@@ -1,6 +1,5 @@
 module memory(
     input clk,
-    input reset,
     input reg_a_en,
     input reg_d_en,
     input reg_m_en,
@@ -28,28 +27,21 @@ initial begin
     end
 end
 
-always@(posedge clk, posedge reset) begin
-    if (reset)
-    begin
-        reg_a <= 16'h0;
-        reg_d <= 16'h0;
-    end
-    else begin
-        if (reg_a_en)
-            reg_a <= data_in;
-        else
-            reg_a <= reg_a;
+always@(posedge clk) begin
+    if (reg_a_en)
+        reg_a <= data_in;
+    else
+        reg_a <= reg_a;
 
-        if (reg_d_en)
-            reg_d <= data_in;
-        else
-            reg_d <= reg_d;
+    if (reg_d_en)
+        reg_d <= data_in;
+    else
+        reg_d <= reg_d;
 
-        if (reg_m_en)
-            mem[reg_a] <= data_in;
-        else
-            mem[reg_a] <= mem[reg_a];
-    end
+    if (reg_m_en)
+        mem[reg_a] <= data_in;
+    else
+        mem[reg_a] <= mem[reg_a];
 end
 
 endmodule;
