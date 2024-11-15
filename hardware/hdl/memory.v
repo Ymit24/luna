@@ -1,6 +1,5 @@
 module memory(
     input clk,
-    input [12:0] addr,
     input reg_a_en,
     input reg_d_en,
     input reg_m_en,
@@ -15,7 +14,7 @@ reg [15:0] reg_d;
 
 assign reg_a_out = reg_a;
 assign reg_d_out = reg_d;
-assign reg_m_out = mem[addr];
+assign reg_m_out = mem[reg_a];
 
 // Declare memory array with block RAM style
 (* ram_style = "block" *) reg [15:0] mem [0:8191];
@@ -32,9 +31,9 @@ always@(posedge clk) begin
         reg_d <= reg_d;
 
     if (reg_m_en)
-        mem[addr] <= data_in;
+        mem[reg_a] <= data_in;
     else
-        mem[addr] <= mem[addr];
+        mem[reg_a] <= mem[reg_a];
 end
 
 endmodule;

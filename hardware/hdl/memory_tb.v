@@ -5,7 +5,6 @@ module memory_tb;
 
     // Testbench signals
     reg clk;
-    reg [12:0] addr;
     reg reg_a_en;
     reg reg_d_en;
     reg reg_m_en;
@@ -17,7 +16,6 @@ module memory_tb;
     // Instantiate the memory module
     memory uut (
         .clk(clk),
-        .addr(addr),
         .reg_a_en(reg_a_en),
         .reg_d_en(reg_d_en),
         .reg_m_en(reg_m_en),
@@ -39,7 +37,6 @@ module memory_tb;
         $display("Starting");
         // Initialize inputs
         clk = 0;
-        addr = 0;
         reg_a_en = 0;
         reg_d_en = 0;
         reg_m_en = 0;
@@ -71,15 +68,11 @@ module memory_tb;
         data_in = 16'h9ABC;
         reg_m_en = 1;
         #10;
-        addr = 13'h0001;    // Set address to 1
-        #10;
         reg_m_en = 0;
         #10;
         $display("reg_m_out at addr 1 = %h (expected 9ABC)", reg_m_out);
 
         // Test read from memory (mem array) at address 1
-        #10;
-        addr = 13'h0001;
         #10;
         $display("Read reg_m_out at addr 1 = %h (expected 9ABC)", reg_m_out);
 

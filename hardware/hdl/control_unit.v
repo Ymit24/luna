@@ -1,15 +1,14 @@
 module control_unit(
-    input clk,
     input [15:0] instr,
     input [15:0] reg_a_in, reg_d_in, reg_m_in,
     input is_negative, is_zero,
-    input [15:0] addr_in,
     output [15:0] addr_out,
     output instr_type,
     output reg_a_en, reg_d_en, reg_m_en,
     output set_pc,
     output reg [15:0] x, y,
-    output [1:0] opcode
+    output [1:0] opcode,
+    output negate_output, zero_x, zero_y
 );
     wire [3:0] reg_selects;
     wire [2:0] dest_selects;
@@ -23,11 +22,15 @@ module control_unit(
     assign reg_selects = instr[11:8];
     assign dest_selects = instr[14:12];
     assign instr_type = instr[15];
-    assign addr_out = { 0, instr[14:0] };
+    assign addr_out = { 1'b0, instr[14:0] };
 
     assign reg_m_en = dest_selects[0];
     assign reg_d_en = dest_selects[1];
     assign reg_a_en = dest_selects[2] | instr_type;
+
+    assign negate_output = flags[0];
+    assign zero_y = flags[1];
+    assign zero_x = flags[2];
 
     assign set_pc = ~instr_type & (
         (jump_condition == 3'h0) & 0 |
@@ -43,16 +46,16 @@ module control_unit(
     always@(*)
     begin
         case (reg_selects[1:0])
-             4'h0: x = addr_in;
-             4'h1: x = reg_d_in;
-             4'h2: x = reg_m_in;
-             4'h3: x = 1;
+             2'h0: x = reg_a_in;
+             2'h1: x = reg_d_in;
+             2'h2: x = reg_m_in;
+             2'h3: x = 1;
         endcase
         case (reg_selects[3:2])
-             4'h0: y = addr_in;
-             4'h1: y = reg_d_in;
-             4'h2: y = reg_m_in;
-             4'h3: y = 1;
+             2'h0: y = reg_a_in;
+             2'h1: y = reg_d_in;
+             2'h2: y = reg_m_in;
+             2'h3: y = 1;
         endcase
     end
 endmodule;

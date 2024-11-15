@@ -308,11 +308,36 @@ fn parseDestination(destination: String) -> (bool, bool, bool) {
 fn main() {
     println!("Starting assembly...");
     let trials = ["@15", "D=A", "A=D+1", "_ = D ; JMP", "_=D; JEQ"];
+    let mut output: Vec<u16> = Vec::new();
     for trial in trials.into_iter() {
         let result = assembleLine(trial.into());
         println!("Got: {:?}", result);
         let bin: u16 = result.into();
-        println!("Binary: {:#018b}", bin);
+        output.push(bin);
+        println!("Binary:({}) {:#018b}\t{:#06x}", bin, bin, bin);
+    }
+
+    println!("output binary:");
+    for bin in &output {
+        println!("{:#04x}", bin);
+    }
+
+    let input = include_str!("../test.shadow");
+
+    output.clear();
+
+    println!("\n\n\n\n\n\n\n\noutput binary 2:");
+    for line in input.split("\n") {
+        let assembled = assembleLine(line.into());
+        println!("Got: {:?}", assembled);
+        let bin: u16 = assembled.into();
+        output.push(bin);
+        println!("Binary:({}) {:#018b}\t{:#06x}", bin, bin, bin);
+    }
+
+    println!("output binary 2:");
+    for bin in output {
+        println!("{:#04x}", bin);
     }
 }
 
