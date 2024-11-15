@@ -6,7 +6,7 @@ module control_unit(
     output instr_type,
     output reg_a_en, reg_d_en, reg_m_en,
     output set_pc,
-    output reg [15:0] x, y,
+    output [15:0] x, y,
     output [1:0] opcode,
     output negate_output, zero_x, zero_y
 );
@@ -43,19 +43,16 @@ module control_unit(
         (jump_condition == 3'h7) & 1
     );
 
-    always@(*)
-    begin
-        case (reg_selects[1:0])
-             2'h0: x = reg_a_in;
-             2'h1: x = reg_d_in;
-             2'h2: x = reg_m_in;
-             2'h3: x = 1;
-        endcase
-        case (reg_selects[3:2])
-             2'h0: y = reg_a_in;
-             2'h1: y = reg_d_in;
-             2'h2: y = reg_m_in;
-             2'h3: y = 1;
-        endcase
-    end
+    assign x = ( reg_selects[1:0] == 2'h0 ) ? reg_a_in : (
+        (reg_selects[1:0] == 2'h1) ? reg_d_in : (
+            (reg_selects[1:0] == 2'h2) ? reg_m_in : 16'h1
+        )
+    );
+
+    assign y = ( reg_selects[3:2] == 2'h0 ) ? reg_a_in : (
+        (reg_selects[3:2] == 2'h1) ? reg_d_in : (
+            (reg_selects[3:2] == 2'h2) ? reg_m_in : 16'h1
+        )
+    );
+
 endmodule;
