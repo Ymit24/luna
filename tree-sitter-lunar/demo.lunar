@@ -1,0 +1,36 @@
+constant word foo = 123
+
+structure foo
+    word asdf
+    byte other
+    *byte ptr
+end
+
+function factorial byte x returns byte is
+begin
+    if x <= 1 begin
+        return 1
+    end
+
+    return (n * factorial(n-1))
+end
+
+function double
+    word x
+returns
+    word
+is begin
+    return (x + x)
+end
+
+function main
+    word input
+with
+    word x
+is begin
+    print("the stuff")
+    x = 100
+    print("asdf, %d", x + 2)
+
+    print("the stuff")
+end

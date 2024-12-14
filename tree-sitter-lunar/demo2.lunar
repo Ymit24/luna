@@ -1,0 +1,4 @@
+function main
+is begin
+    print ("hello world")
+end

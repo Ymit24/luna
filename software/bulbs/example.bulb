@@ -1,0 +1,63 @@
+# Memory
+push [scope] [value], put value onto stack, inc sp
+pop [scope] [value], take value from stack and store in scope/value, dec sp
+peek [scope] [value], take value from stack and store in scope/value, leave sp
+
+# Alu
+add, add top two things from stack and put result on stack
+sub, sub top two things from stack and put result on stack
+and, and top two things from stack and put result on stack
+or, or top two things from stack and put result on stack
+
+# Branch
+jmp addr, unconditional jump to addr
+jeq addr, jmp to addr if top two stack elements are equal
+jnq addr, jmp to addr if top two stack elements are not equal
+jgt addr, jmp to addr if first stack is greater than second
+jge addr, jmp to addr if first stack is greater or equal to second
+jlt addr, jmp to addr if first stack is less than second
+jle addr, jmp to addr if first stack is less than or equal to sceond
+
+# Functions
+call $label
+ret
+
+:foo
+push arg 0
+push arg 1
+add
+pop ret
+ret
+
+# Example of if
+```
+if a == 3 {
+    return 1
+}
+else {
+    return 2
+}
+
+push local 0
+push const 3
+jeq $_if_body
+jmp $_else_body
+:_if_body
+ret 1
+:_else_body
+ret 2
+```
+
+# if example
+
+```
+if a > 5 {} else {}
+push local 0
+push const 5
+jgt $_if_body
+jmp $_else_body
+:_if_body
+ret 1
+:_else_body
+ret 2
+```

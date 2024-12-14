@@ -1,0 +1,18 @@
+# module Foo
+# constants
+#     *byte LED_ADDR = 10
+# statics
+#     *byte LED = LED_ADDR
+# begin
+#     function start
+#     begin
+#         @write_byte(LED, 1)
+#     end
+# end
+
+constant byte LED_ADDR = 10
+
+function _start
+begin
+    @write_byte(LED_ADDR, 1)
+end

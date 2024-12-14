@@ -1,0 +1,22 @@
+struct String {
+    len: u8;
+    cap: u8;
+    data: *u8;
+}
+
+fn string_from(data: *u8, len: u8): String {
+    return String {
+        data: data,
+        len: len,
+        cap: len
+    };
+}
+
+let my_string: String = @string("hello world!");
+
+fn print(str: String): void {}
+
+print(@string("The thing"));
+
+
+from strings import { String, from_string };

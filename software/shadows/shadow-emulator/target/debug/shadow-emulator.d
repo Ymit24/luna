@@ -1,1 +1,0 @@
-/Users/christiansmith/dev/logisim/digital_computer/software/shadows/shadow-emulator/target/debug/shadow-emulator: /Users/christiansmith/dev/logisim/digital_computer/software/shadows/shadow-emulator/src/main.rs

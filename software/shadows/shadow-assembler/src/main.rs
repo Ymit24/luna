@@ -328,6 +328,9 @@ fn main() {
 
     println!("\n\n\n\n\n\n\n\noutput binary 2:");
     for line in input.split("\n") {
+        if line.is_empty() {
+            continue;
+        }
         let assembled = assembleLine(line.into());
         println!("Got: {:?}", assembled);
         let bin: u16 = assembled.into();

@@ -1,0 +1,172 @@
+function sum
+    word a
+    word b
+returns
+    word
+begin
+    return a + b
+end
+
+function double
+    word n
+returns
+    word
+    is return [sum n,n]
+
+constant WIDTH = 128
+constant HEIGHT = 256
+
+struct VRAM
+#   array word (WIDTH * HEIGHT) data
+    [word; WIDTH * HEIGHT] data
+end
+
+struct Pixel
+    byte red
+    byte green
+    byte blue
+end
+
+function vram_init
+returns
+    *VRAM
+begin
+    return (0x8000) as *VRAM
+end
+
+function vram_draw
+    *VRAM vram
+    word x
+    word y
+    Pixel pixel
+returns
+    word
+is begin
+    if vram_check(x, y) != 0 begin
+        return -1
+    end
+
+    vram.data[x + WIDTH * y] = pixel
+
+    return 0
+end
+
+function vram_check
+    word x
+    word y
+returns
+    byte
+is begin
+    if x < 0 or x > WIDTH or y < 0 or y > HEIGHT begin
+        return -1
+    end
+
+    return 0
+end
+
+function vram_box
+    *VRAM vram
+    word x1
+    word y1
+    word x2
+    word y2
+    Pixel pixel
+returns
+    word
+with
+    word x
+    word y
+is begin
+    x = x1
+    while x < x2 begin
+        y = y1
+        while y < y2 begin
+            if vram_draw(vram,x,y,pixel) != 0 begin
+                return -1
+            end
+            y += 1
+        end
+        x += 1
+    end
+    return 0
+end
+
+with kernel::panic
+
+function start
+with
+    *VRAM vram
+begin
+   vram = vram_init()
+   if vram_draw(vram, 10, 10, make_pixel(255, 255, 255)) != 0 begin
+       panic()
+   end
+
+   if vram_box(vram, 2, 2, 6, 6, make_pixel(5, 10, 255)) != 0 begin
+       panic()
+   end
+end
+
+function factorial
+    word n
+returns
+    word
+is begin
+    if n <= 1 begin
+        return 1
+    end
+    return n * factorial(n-1)
+end
+
+function_pointer interrupt_handler
+    # nothing
+end
+
+structure Interrupt
+    interrupt_handler handler
+    byte raised
+end
+
+constant INTERRUPT_COUNT=8
+
+structure InterruptTable
+    word return_address
+    [Interrupt; INTERRUPT_COUNT] interrupts
+end
+
+function register_interrupt
+    *InterruptTable table
+    byte index
+    interrupt_handler handler
+is begin
+    if index > INTERRUPT_COUNT begin
+        panic()
+    end
+
+    table.interrupts[index] = make_interrupt(
+        handler,
+        false
+    )
+end
+
+function unregister_interrupt
+    *InterruptTable table
+    byte index
+is begin
+    if index > INTERRUPT_COUNT begin
+        panic()
+    end
+    table.interrupts[index].handler = 0
+    table.interrupts[index].active = 0
+end
+
+function raw_timer_interrupt
+is begin
+    assembly begin
+        pop $sp
+    end
+
+    raw_assembly begin
+        @10
+    end
+end
