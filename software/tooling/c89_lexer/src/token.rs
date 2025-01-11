@@ -1,7 +1,7 @@
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Token {
-    Keyword,
-    Identifier,
+    Keyword(String),
+    Identifier(String),
     Constant,
     StringLiteral,
     Operator,

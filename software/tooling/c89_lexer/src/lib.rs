@@ -3,7 +3,7 @@ mod token;
 use chumsky::prelude::*;
 use token::Token;
 
-fn lexer() -> impl Parser<char, Vec<Token>, Error = Simple<char>> {
+pub fn lexer() -> impl Parser<char, Vec<Token>, Error = Simple<char>> {
     let base_keywords = [
         "auto", "double", "int", "struct", "break", "else", "long", "switch", "case", "enum",
         "register", "typedef", "char", "extern", "return", "union", "const", "float", "short",
@@ -20,11 +20,14 @@ fn lexer() -> impl Parser<char, Vec<Token>, Error = Simple<char>> {
         "[", "]", "(", ")", "{", "}", "*", ",", ":", "=", ";", "...", "#",
     ];
 
-    let keyword = choice(base_keywords.map(|keyword| text::keyword(keyword).to(Token::Keyword)));
+    let keyword = choice(
+        base_keywords
+            .map(|keyword| text::keyword(keyword).map(|_| Token::Keyword(keyword.to_string()))),
+    );
     let operator = choice(operators.map(|operator| just(operator).to(Token::Operator)));
     let punctuator = choice(punctuators.map(|punctuator| just(punctuator).to(Token::Punctuator)));
 
-    let identifier = text::ident().to(Token::Identifier);
+    let identifier = text::ident().map(Token::Identifier);
 
     let constant = text::int(10).to(Token::Constant);
     let string_literal = none_of('"')
@@ -37,8 +40,8 @@ fn lexer() -> impl Parser<char, Vec<Token>, Error = Simple<char>> {
         identifier,
         constant,
         string_literal,
-        operator,
         punctuator,
+        operator,
     ))
     .padded()
     .repeated()
@@ -57,11 +60,11 @@ mod test {
         assert_eq!(
             results,
             Ok(vec![
-                Token::Keyword,
-                Token::Keyword,
-                Token::Keyword,
-                Token::Keyword,
-                Token::Keyword
+                Token::Keyword("auto".into()),
+                Token::Keyword("double".into()),
+                Token::Keyword("for".into()),
+                Token::Keyword("signed".into()),
+                Token::Keyword("void".into())
             ])
         );
     }
@@ -73,9 +76,9 @@ mod test {
         assert_eq!(
             results,
             Ok(vec![
-                Token::Identifier,
-                Token::Identifier,
-                Token::Identifier
+                Token::Identifier("abc123".into()),
+                Token::Identifier("the_name".into()),
+                Token::Identifier("hey".into())
             ])
         );
     }
