@@ -1,6 +1,9 @@
 [workspace]
 resolver="2"
 
-members = [ "assembler",
- "common", "emulator",
+members = [
+  "assembler",
+  "common",
+  "emulator",
+  "c89_lexer"
 ]
