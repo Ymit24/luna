@@ -4,12 +4,6 @@ use chumsky::prelude::*;
 use token::Token;
 
 pub fn lexer() -> impl Parser<char, Vec<Token>, Error = Simple<char>> {
-    let operators = [
-        "[", "]", "(", ")", ".", "->", "++", "--", "&", "*", "+", "-", "~", "!", "sizeof", "/",
-        "%", "<<", ">>", "<", ">", "<=", ">=", "==", "!=", "^", "|", "&&", "||", "?", ":", "=",
-        "*=", "/=", "%=", "+=", "-=", "<<=", ">>=", "&=", "^=", "|=", ",", "#", "##",
-    ];
-
     let keyword = choice([
         text::keyword("auto").to(Token::Auto),
         text::keyword("Auto").to(Token::Auto),
