@@ -7,6 +7,27 @@ $__luna_prelude:
   pop %bsp
   jmp $_start # or main or whatever the applications entry point is.
 
+$__static_initializers:
+  push %sp
+  pop %x
+
+  push const %static
+  pop %sp
+  push 100
+
+
+  # NOTE: These are wrong ascii codes
+  push const 0x50 # 'f'
+  push const 0x58 # 'o'
+  push const 0x58 # 'o'
+  push const 0x0  # NULL
+
+  push const 0x58 # 'o'
+  push const 0x0  # NULL
+
+  push %x
+  pop %sp
+
 $example_0:
   push const 5
   pop local 0

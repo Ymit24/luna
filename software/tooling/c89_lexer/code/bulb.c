@@ -24,3 +24,21 @@ void example_4(short n) {
     n--;
   }
 }
+
+typedef struct {
+  short foo;
+  char name[4];
+  char *name2;
+} __luna_statics;
+
+__luna_statics LUNA_STATICS = (__luna_statics){
+    .foo = 100,
+    .name = "foo",
+    .name2 = "o",
+};
+
+void test(void) {
+  static short foo = 100; // -> LUNA_STATICS.foo
+  static char name[] = "foo";
+  static char *name2 = "o";
+}
