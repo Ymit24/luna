@@ -1,0 +1,62 @@
+# setup core registers
+$__luna_prelude:
+  # reset stack pointer
+  push const 0x1000
+  push const 0x1000
+  pop %sp
+  pop %bsp
+  jmp $_start # or main or whatever the applications entry point is.
+
+$example_0:
+  push const 5
+  pop local 0
+
+$example_1:
+  push const 5
+  pop local 0
+  push local 0
+  pop local 1
+
+$example_2:
+  push const 5
+  pop local 0
+  push local 0
+  push const 0xFF
+  add
+  pop local 1
+
+$example_3:
+  push const 1
+  pop local 0
+  push const 0
+  pop local 1
+  push local 0
+  push const 1
+  sub
+  jnq $__if_after
+  # This block will handle 'goto $__if_after if (foo == 1)'
+  # This is the impl of the jnq line above
+  asm {
+    @0 # goto %sp
+    D = M # read current stack addr
+    A = D-1 # goto last used addr (result of the sub)
+    D = M # hold onto the value on stack which we care about
+    A = $__if_after # Set addr to the place to jump to (known at compile time)
+    _ = D; JNQ # if data value was zero, jump to $__if_after, otherwise noop
+  }
+  push const 1
+  pop local 1
+  $__if_after:
+    noop
+
+$example_4:
+  $__while_conditional:
+    push args 0
+    jgt $__while_body
+    jmp $__while_after
+  $__while_body:
+    push args 0
+    push const 1
+    sub
+    jmp $__while_conditional
+  $__while_after:

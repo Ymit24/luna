@@ -20,6 +20,38 @@
           },
           {
             "type": "SYMBOL",
+            "name": "add"
+          },
+          {
+            "type": "SYMBOL",
+            "name": "sub"
+          },
+          {
+            "type": "SYMBOL",
+            "name": "and"
+          },
+          {
+            "type": "SYMBOL",
+            "name": "or"
+          },
+          {
+            "type": "SYMBOL",
+            "name": "call"
+          },
+          {
+            "type": "SYMBOL",
+            "name": "ret"
+          },
+          {
+            "type": "SYMBOL",
+            "name": "asm"
+          },
+          {
+            "type": "SYMBOL",
+            "name": "jmp"
+          },
+          {
+            "type": "SYMBOL",
             "name": "comment"
           }
         ]
@@ -59,6 +91,64 @@
         }
       ]
     },
+    "add": {
+      "type": "STRING",
+      "value": "add"
+    },
+    "sub": {
+      "type": "STRING",
+      "value": "sub"
+    },
+    "and": {
+      "type": "STRING",
+      "value": "and"
+    },
+    "or": {
+      "type": "STRING",
+      "value": "or"
+    },
+    "call": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "call"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "identifier"
+        }
+      ]
+    },
+    "ret": {
+      "type": "STRING",
+      "value": "ret"
+    },
+    "asm": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "asm"
+        },
+        {
+          "type": "STRING",
+          "value": "{"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "asm_raw"
+        },
+        {
+          "type": "STRING",
+          "value": "}"
+        }
+      ]
+    },
+    "asm_raw": {
+      "type": "PATTERN",
+      "value": "[^}]*"
+    },
     "virtual_memory_segment": {
       "type": "CHOICE",
       "members": [
@@ -73,6 +163,48 @@
         {
           "type": "STRING",
           "value": "local"
+        }
+      ]
+    },
+    "jmp": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "STRING",
+              "value": "jmp"
+            },
+            {
+              "type": "STRING",
+              "value": "jeq"
+            },
+            {
+              "type": "STRING",
+              "value": "jnq"
+            },
+            {
+              "type": "STRING",
+              "value": "jlt"
+            },
+            {
+              "type": "STRING",
+              "value": "jlq"
+            },
+            {
+              "type": "STRING",
+              "value": "jgt"
+            },
+            {
+              "type": "STRING",
+              "value": "jgq"
+            }
+          ]
+        },
+        {
+          "type": "SYMBOL",
+          "name": "label_definition"
         }
       ]
     },
@@ -97,8 +229,25 @@
           "value": "%"
         },
         {
-          "type": "STRING",
-          "value": "sp"
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "STRING",
+              "value": "sp"
+            },
+            {
+              "type": "STRING",
+              "value": "bsp"
+            },
+            {
+              "type": "STRING",
+              "value": "x"
+            },
+            {
+              "type": "STRING",
+              "value": "pc"
+            }
+          ]
         }
       ]
     },
@@ -127,7 +276,7 @@
             },
             {
               "type": "PATTERN",
-              "value": "\\d+"
+              "value": "[\\da-fA-F]+"
             }
           ]
         },
@@ -156,7 +305,7 @@
     },
     "identifier": {
       "type": "PATTERN",
-      "value": "[_a-zA-Z]*"
+      "value": "[_a-zA-Z0-9]*"
     }
   },
   "extras": [
