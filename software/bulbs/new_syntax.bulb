@@ -100,8 +100,7 @@ $example_5
   pop local 4
 
   push local 3
-  deref # deref instruction which translates into the below machine code
-
+  read # read instruction which translates into the below machine code
   asm {
     @0
     A = M - 1 # goto head of used stack
@@ -115,3 +114,90 @@ $example_5
     @0
     M = M + 1 # increment stack pointer
   }
+
+  push local 4
+  write # opposite of read
+  asm {
+    @0
+    A = M - 1 # goto last used stack slot
+    A = M - 1 # go back one more stack slot
+    D = M # read the value to write
+    
+    A = M - 1 # goto value holding addr to write
+    A = M # goto that location
+    M = D # write into the stored location
+
+    @0
+    M = M - 1 # decrement stack pointer
+    M = M - 1 # decrement again to use both stack spots
+  }
+
+$memcp2:
+  push args 0
+  pop local 0 # s
+  push args 1
+  pop local 1 # d
+  push const 0
+  pop local 2 # i
+  $for_cond:
+    push local 2
+    push args 2 # len 
+    sub
+    jgt $for_after
+  $for_body:
+    push local 0
+    push local 2
+    add
+    read
+    push local 1
+    push local 2
+    add
+    write
+  $for_inc:
+    push local 2
+    push local 1
+    add
+    pop local 2
+    jmp $for_cond
+  $for_after:
+    ret
+
+$ex
+  push const 1
+  pop local 0
+  push const 2
+  pop local 1
+  push const 0
+  pop local 2
+  push const 0
+  pop local 3
+
+  # &x
+  push %bsp
+  push const 0
+  add
+
+  # &y
+  push %bsp
+  push const 2
+  add
+  
+  # sizeof(struct two)
+  push const 2
+  call $memcpy2
+
+  push local 3
+  push const 1
+  sub
+  jeq $if_a_eq_one
+  push const 0
+  pop local 5 # eq
+  jmp $after_if
+
+  $if_a_eq_one:
+    push const 1
+    pop local 5 # eq
+  $after_if:
+    push local 3
+    push const 1
+    sub

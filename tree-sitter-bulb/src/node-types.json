@@ -1,5 +1,35 @@
 [
   {
+    "type": "asm",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "asm_raw",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "call",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "identifier",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "comment",
     "named": true,
     "fields": {}
@@ -8,6 +38,21 @@
     "type": "constant",
     "named": true,
     "fields": {}
+  },
+  {
+    "type": "jmp",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "label_definition",
+          "named": true
+        }
+      ]
+    }
   },
   {
     "type": "label_definition",
@@ -95,11 +140,39 @@
       "required": false,
       "types": [
         {
+          "type": "add",
+          "named": true
+        },
+        {
+          "type": "and",
+          "named": true
+        },
+        {
+          "type": "asm",
+          "named": true
+        },
+        {
+          "type": "call",
+          "named": true
+        },
+        {
           "type": "comment",
           "named": true
         },
         {
+          "type": "deref",
+          "named": true
+        },
+        {
+          "type": "jmp",
+          "named": true
+        },
+        {
           "type": "label_definition",
+          "named": true
+        },
+        {
+          "type": "or",
           "named": true
         },
         {
@@ -108,6 +181,14 @@
         },
         {
           "type": "push",
+          "named": true
+        },
+        {
+          "type": "ret",
+          "named": true
+        },
+        {
+          "type": "sub",
           "named": true
         }
       ]
@@ -139,7 +220,31 @@
     "named": false
   },
   {
+    "type": "add",
+    "named": true
+  },
+  {
+    "type": "and",
+    "named": true
+  },
+  {
     "type": "args",
+    "named": false
+  },
+  {
+    "type": "asm",
+    "named": false
+  },
+  {
+    "type": "asm_raw",
+    "named": true
+  },
+  {
+    "type": "bsp",
+    "named": false
+  },
+  {
+    "type": "call",
     "named": false
   },
   {
@@ -147,11 +252,51 @@
     "named": false
   },
   {
+    "type": "deref",
+    "named": true
+  },
+  {
     "type": "identifier",
     "named": true
   },
   {
+    "type": "jeq",
+    "named": false
+  },
+  {
+    "type": "jgq",
+    "named": false
+  },
+  {
+    "type": "jgt",
+    "named": false
+  },
+  {
+    "type": "jlq",
+    "named": false
+  },
+  {
+    "type": "jlt",
+    "named": false
+  },
+  {
+    "type": "jmp",
+    "named": false
+  },
+  {
+    "type": "jnq",
+    "named": false
+  },
+  {
     "type": "local",
+    "named": false
+  },
+  {
+    "type": "or",
+    "named": true
+  },
+  {
+    "type": "pc",
     "named": false
   },
   {
@@ -163,7 +308,27 @@
     "named": false
   },
   {
+    "type": "ret",
+    "named": true
+  },
+  {
     "type": "sp",
+    "named": false
+  },
+  {
+    "type": "sub",
+    "named": true
+  },
+  {
+    "type": "x",
+    "named": false
+  },
+  {
+    "type": "{",
+    "named": false
+  },
+  {
+    "type": "}",
     "named": false
   }
 ]
