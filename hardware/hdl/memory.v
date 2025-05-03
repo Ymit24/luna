@@ -1,5 +1,6 @@
 module memory(
     input clk,
+    input rst,
     input reg_a_en,
     input reg_d_en,
     input reg_m_en,
@@ -11,8 +12,8 @@ module memory(
     output [15:0] leds
 );
 
-reg [15:0] reg_a=0;
-reg [15:0] reg_d=0;
+reg [15:0] reg_a;
+reg [15:0] reg_d;
 
 assign reg_a_out = reg_a;
 assign reg_d_out = reg_d;
@@ -24,28 +25,15 @@ reg [15:0] mem [0:8191];
 
 assign leds = mem[10];
 
-integer i;
-initial begin
-    for (i = 0; i < 8192; i++) begin
-        mem[i] = 0;
-    end
-end
-
 always@(posedge clk) begin
-    if (reg_a_en)
-        reg_a <= data_in;
-    else
-        reg_a <= reg_a;
-
-    if (reg_d_en)
-        reg_d <= data_in;
-    else
-        reg_d <= reg_d;
-
-    if (reg_m_en)
-        mem[reg_a] <= data_in;
-    else
-        mem[reg_a] <= mem[reg_a];
+  if (rst) begin
+    reg_a <= 0;
+    reg_d <= 0;
+  end else begin
+    if (reg_a_en) reg_a <= data_in;
+    if (reg_d_en) reg_d <= data_in;
+    if (reg_m_en) mem[reg_a] <= data_in;
+  end
 end
 
 endmodule;
