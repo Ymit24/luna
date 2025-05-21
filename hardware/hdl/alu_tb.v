@@ -5,11 +5,12 @@ module alu_tb;
     reg [15:0] x, y;
     reg zero_x, zero_y, negate_output;
     reg clk = 0;
+    reg rst = 0;
     reg [1:0] opcode;
     wire [15:0] output_result;
     wire is_zero, is_negative;
 
-    alu uut(
+    luna_alu uut(
         .x(x),
         .y(y),
         .zero_x(zero_x),
@@ -18,6 +19,7 @@ module alu_tb;
         .is_zero(is_zero),
         .is_negative(is_negative),
         .clk(clk),
+        .rst(rst),
         .opcode(opcode),
         .output_result(output_result)
     );
@@ -29,7 +31,12 @@ module alu_tb;
 
     initial begin
         $dumpfile("alu_out.vcd");
-        $dumpvars(0, alu_tb);
+        $dumpvars(0, luna_alu_tb);
+
+        rst = 1;
+        #40;
+        rst = 0;
+        #10;
 
         x = 16'h0002;
         y = 16'h0005;
@@ -42,7 +49,7 @@ module alu_tb;
         #30;
 
         $display("X= %d, Y=%d, o=%d", x, y, output_result);
-        x = 16'h0010;
+        x = 16'd10;
         #40;
 
         $display("X= %d, Y=%d, o=%d", x, y, output_result);

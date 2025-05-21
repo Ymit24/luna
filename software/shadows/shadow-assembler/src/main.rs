@@ -307,7 +307,8 @@ fn parseDestination(destination: String) -> (bool, bool, bool) {
 
 fn main() {
     println!("Starting assembly...");
-    let trials = ["@15", "D=A", "A=D+1", "_ = D ; JMP", "_=D; JEQ"];
+    // let trials = ["@1", "D=A", "A=D+1", "_ = D ; JMP", "_=D; JEQ"];
+    let trials = ["@1", "M=1", "M=M+1", "@2", "_=D;JMP"];
     let mut output: Vec<u16> = Vec::new();
     for trial in trials.into_iter() {
         let result = assembleLine(trial.into());
@@ -321,27 +322,27 @@ fn main() {
     for bin in &output {
         println!("{:#04x}", bin);
     }
+    //
+    // let input = include_str!("../test.shadow");
+    //
+    // output.clear();
 
-    let input = include_str!("../test.shadow");
+    // println!("\n\n\n\n\n\n\n\noutput binary 2:");
+    // for line in input.split("\n") {
+    //     if line.is_empty() {
+    //         continue;
+    //     }
+    //     let assembled = assembleLine(line.into());
+    //     println!("Got: {:?}", assembled);
+    //     let bin: u16 = assembled.into();
+    //     output.push(bin);
+    //     println!("Binary:({}) {:#018b}\t{:#06x}", bin, bin, bin);
+    // }
 
-    output.clear();
-
-    println!("\n\n\n\n\n\n\n\noutput binary 2:");
-    for line in input.split("\n") {
-        if line.is_empty() {
-            continue;
-        }
-        let assembled = assembleLine(line.into());
-        println!("Got: {:?}", assembled);
-        let bin: u16 = assembled.into();
-        output.push(bin);
-        println!("Binary:({}) {:#018b}\t{:#06x}", bin, bin, bin);
-    }
-
-    println!("output binary 2:");
-    for bin in output {
-        println!("{:#04x}", bin);
-    }
+    // println!("output binary 2:");
+    // for bin in output {
+    //     println!("{:#04x}", bin);
+    // }
 }
 
 // 1000 0000 0000 1111

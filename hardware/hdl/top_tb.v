@@ -2,12 +2,20 @@
 `include "top.v"
 
 module top_tb;
-    reg clk;
+    reg clk=0, rst=0;
+    wire hsync, vsync;
     wire [15:0] leds;
+    wire [3:0] red, green, blue;
 
     top top(
-        .clk(clk),
-        .leds(leds)
+        .raw_clk(clk),
+        .rst(rst),
+        .leds(leds),
+        .hsync(hsync),
+        .vsync(vsync),
+        .red(red),
+        .green(green),
+        .blue(blue)
     );
 
     always
@@ -19,8 +27,11 @@ module top_tb;
     initial begin
         $dumpfile("top.vcd");
         $dumpvars(0, top_tb);
-        clk = 0;
-        #500
+        $display("test 1");
+        rst = 1;
+        #50
+        rst = 0;
+        #1000
         $finish;
     end
 endmodule;
