@@ -6,7 +6,7 @@ module control_unit_fsm(
 
 always@(posedge clk) begin
   if (rst) begin
-    state <= STATE_FETCH;
+    state <= 1'd0;
   end else begin
     state <= state + 1;
   end

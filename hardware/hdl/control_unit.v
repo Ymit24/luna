@@ -1,3 +1,5 @@
+`include "control_unit_fsm.v"
+
 module control_unit(
     input             clk,
     input             rst,
@@ -5,13 +7,13 @@ module control_unit(
     input [15:0]      reg_a_in, reg_d_in, reg_m_in,
     input             is_negative, is_zero,
 
-    output [15:0]     addr_out,
-    output            instr_type,
-    output            reg_a_en, reg_d_en, reg_m_en,
+    output reg [15:0] addr_out,
+    output reg        instr_type,
+    output reg        reg_a_en, reg_d_en, reg_m_en,
     output reg        set_pc,
     output reg [15:0] x, y,
-    output [1:0]      opcode,
-    output            negate_output, zero_x, zero_y
+    output reg [1:0]  opcode,
+    output reg        negate_output, zero_x, zero_y
 );
   localparam STATE_FETCH  = 2'd0;
   localparam STATE_DECODE  = 2'd1;
@@ -23,38 +25,57 @@ module control_unit(
   wire [2:0] flags          = instr[7:5];
   wire [2:0] jump_condition = instr[2:0];
 
+  wire [1:0] state;
+
+  control_unit_fsm fsm(
+    .clk(clk),
+    .rst(rst),
+    .state(state)
+  );
+
   // instruction decoding
   always@(posedge clk) begin
     if (rst) begin
+      reg_a_en <= 1'd0;
+      reg_d_en <= 1'd0;
+      reg_m_en <= 1'd0;
+
+      instr_type <= 1'd0;
+      opcode <= 2'd0;
+      addr_out <= 16'd0;
+      negate_output <= 1'd0;
+
+      zero_y <= 0;
+      zero_x <= 0;
     end else begin
-      reg_a_en <= dest_selects[2] | instr_type;
+      if (state == STATE_DECODE) begin
+        reg_a_en <= dest_selects[2] | instr[15];
+        reg_d_en <= dest_selects[1];
+        reg_m_en <= dest_selects[0];
+
+        instr_type <= instr[15];
+        opcode <= instr[4:3];
+        addr_out <= { 1'b0, instr[14:0] };
+        negate_output <= flags[0];
+        zero_y <= flags[1];
+        zero_x <= flags[2];
+      end
     end
   end
-  // TODO: Remove these flags as pure combinational
-  //       and instead only set during appropriate fsm state.
-  assign instr_type = instr[15];
-  assign opcode = instr[4:3];
-  assign addr_out = { 1'b0, instr[14:0] };
-
-  assign reg_m_en = dest_selects[0];
-  assign reg_d_en = dest_selects[1];
-  assign reg_a_en = dest_selects[2] | instr_type;
-
-  assign negate_output = flags[0];
-  assign zero_y = flags[1];
-  assign zero_x = flags[2];
 
   // Set X output
   always @ (posedge clk) begin
     if (rst) begin
       x <= 16'h0;
     end else begin
-      case (reg_selects[1:0])
-        2'h0: x <= reg_a_in;
-        2'h1: x <= reg_d_in;
-        2'h2: x <= reg_m_in;
-        default: x <= 16'h0001;
-      endcase
+      if (state == STATE_DECODE) begin
+        case (reg_selects[1:0])
+          2'h0: x <= reg_a_in;
+          2'h1: x <= reg_d_in;
+          2'h2: x <= reg_m_in;
+          default: x <= 16'h0001;
+        endcase
+      end
     end
   end
 
@@ -63,19 +84,21 @@ module control_unit(
     if (rst) begin
         y <= 16'h0;
     end else begin
-      case (reg_selects[3:2])
-        2'h0: y <= reg_a_in;
-        2'h1: y <= reg_d_in;
-        2'h2: y <= reg_m_in;
-        default: y <= 16'h0001;
-      endcase
+      if (state == STATE_DECODE) begin
+        case (reg_selects[3:2])
+          2'h0: y <= reg_a_in;
+          2'h1: y <= reg_d_in;
+          2'h2: y <= reg_m_in;
+          default: y <= 16'h0001;
+        endcase
+      end
     end
   end
 
   // Set should jump
   always @ (posedge clk) begin
     $display("set should jump");
-    if (rst == 1'b1 || instr_type == 1'b1) begin
+    if (rst == 1'b1 || instr_type == 1'b1 || state != STATE_FETCH) begin
       set_pc <= 1'h0;
     end else begin
       case(jump_condition)
