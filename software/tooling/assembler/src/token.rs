@@ -23,7 +23,6 @@ pub enum Register {
     D,
     M,
     Void,
-    One,
 }
 
 #[derive(Debug, PartialEq, Eq)]

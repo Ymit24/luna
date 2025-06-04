@@ -36,20 +36,7 @@ impl Lexer {
                     if other.is_ascii_alphabetic() {
                         return self.read_identifier();
                     } else if other.is_ascii_digit() {
-                        let mut literal = String::new();
-                        loop {
-                            match self.peek() {
-                                Some(c) if c.is_ascii_digit() => {
-                                    literal.push(self.read().expect("Expected an ascii digit"));
-                                }
-                                _ => break,
-                            }
-                        }
-                        return Token::Literal(
-                            literal
-                                .parse::<u16>()
-                                .expect("Failed to parse literal into u16."),
-                        );
+                        return self.read_literal();
                     }
                     return Token::Illegal(other);
                 }
@@ -58,6 +45,24 @@ impl Lexer {
 
         _ = self.read();
         found
+    }
+
+    fn read_literal(&mut self) -> Token {
+        let mut literal = String::new();
+        loop {
+            match self.peek() {
+                Some(c) if c.is_ascii_digit() => {
+                    literal.push(self.read().expect("Expected an ascii digit"));
+                }
+                _ => break,
+            }
+        }
+
+        Token::Literal(
+            literal
+                .parse::<u16>()
+                .expect("Failed to parse literal into u16."),
+        )
     }
 
     fn read_identifier(&mut self) -> Token {
@@ -70,9 +75,11 @@ impl Lexer {
                 _ => break,
             }
         }
+
         if let Some(value) = read_jump(&literal) {
             return value;
         }
+
         Token::LabelIdent(literal)
     }
 
