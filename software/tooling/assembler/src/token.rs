@@ -1,4 +1,4 @@
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Token {
     Dollar,
     LabelIdent(String),
@@ -17,7 +17,7 @@ pub enum Token {
     Illegal(char),
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Register {
     A,
     D,
@@ -25,7 +25,7 @@ pub enum Register {
     Void,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Jump {
     JMP,
     JNE,

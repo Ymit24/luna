@@ -2,6 +2,8 @@ use crate::{lexer::Lexer, token::Token};
 
 mod lexer;
 mod token;
+mod parser;
+mod ast;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let source_code = include_str!("../examples/example.shd");
