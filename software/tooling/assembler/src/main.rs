@@ -1,6 +1,5 @@
 use std::{
     io::{self, Stdin, Stdout, Write},
-    thread::park_timeout,
 };
 
 use crate::{lexer::Lexer, parser::Parser};
@@ -11,12 +10,7 @@ mod parser;
 mod token;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let source_code = include_str!("../examples/example.shd");
-
-    println!("source: {}", source_code);
-
     let mut stdout = &mut io::stdout();
-    parse_and_print(source_code, &mut stdout);
 
     repl(io::stdin(), &mut stdout);
 
