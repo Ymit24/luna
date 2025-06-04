@@ -1,4 +1,9 @@
-use crate::{lexer::Lexer, parser::Parser, token::Token};
+use std::{
+    io::{self, Stdin, Stdout, Write},
+    thread::park_timeout,
+};
+
+use crate::{lexer::Lexer, parser::Parser};
 
 mod ast;
 mod lexer;
@@ -10,14 +15,39 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("source: {}", source_code);
 
-    let mut lexer = Lexer::new(source_code);
-    let mut parser = Parser::new(lexer);
+    let mut stdout = &mut io::stdout();
+    parse_and_print(source_code, &mut stdout);
+
+    repl(io::stdin(), &mut stdout);
+
+    Ok(())
+}
+
+fn parse_and_print<T: Into<String>>(source_code: T, stdout: &mut Stdout) {
+    let mut parser = Parser::new(Lexer::new(source_code));
 
     let instructions = parser.parse();
 
     for instruction in instructions {
-        println!("\t{:?}", instruction);
+        stdout
+            .write(format!("\t{:?}", instruction).as_bytes())
+            .expect("Failed to write instruction out");
     }
+}
 
-    Ok(())
+fn repl(stdin: Stdin, stdout: &mut Stdout) {
+    loop {
+        stdout.write("\n>> ".as_bytes()).expect("Failed to write.");
+        stdout.flush().expect("Failed to flush.");
+
+        let mut input = String::new();
+        stdin
+            .read_line(&mut input)
+            .expect("Failed to read user input.");
+
+        if input == "quit\n" {
+            break;
+        }
+        parse_and_print(input, stdout);
+    }
 }

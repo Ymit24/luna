@@ -53,8 +53,11 @@ impl Parser {
                                 .expect("Literal value doesn't fit into u15!"),
                         }));
                 }
-
-                _ => break,
+                Token::EOF => break,
+                other => {
+                    println!("Unexpected token: {:?}", other);
+                    break;
+                }
             };
         }
         self.instructions.clone()
