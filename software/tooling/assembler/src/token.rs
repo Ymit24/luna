@@ -1,12 +1,39 @@
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Token {
     Dollar,
-    LabelIdent,
-    Register,
+    LabelIdent(String),
+    Register(Register),
     Colon,
     At,
-    Literal,
+    Literal(u16),
     Equal,
     Semicolon,
-    Jump
+    Add,
+    Sub,
+    And,
+    Or,
+    Jump(Jump),
+    EOF,
+    Illegal(char),
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum Register {
+    A,
+    D,
+    M,
+    Void,
+    One,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum Jump {
+    JMP,
+    JNE,
+    JEQ,
+    JNQ,
+    JGT,
+    JLT,
+    JGE,
+    JLE,
 }
