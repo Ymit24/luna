@@ -1,4 +1,5 @@
-use common::instructions::Instruction;
+use common::instructions::{AddressInstruction, Instruction};
+use ux::u15;
 
 use crate::{lexer::Lexer, token::Token};
 
@@ -31,11 +32,26 @@ impl Parser {
     }
 
     pub fn parse(&mut self) -> Vec<Instruction> {
-        println!("Peek: {:?}", self.peek);
         loop {
             match &self.peek {
                 Token::Dollar => {
                     self.parse_label_instruction();
+                }
+                Token::At => {
+                    self.take(Token::At);
+                    let literal = match &self.peek {
+                        Token::Literal(literal) => literal,
+                        _ => panic!("Expected literal!"),
+                    }
+                    .clone();
+
+                    self.take(Token::Literal(literal.clone()));
+
+                    self.instructions
+                        .push(Instruction::Address(AddressInstruction {
+                            addr: u15::try_from(literal)
+                                .expect("Literal value doesn't fit into u15!"),
+                        }));
                 }
 
                 _ => break,
@@ -66,10 +82,11 @@ mod tests {
 
     #[test]
     fn test_parse() {
-        let input = "$main: @10";
+        let input = "$main: @10 @2";
         let expected: Vec<Instruction> = vec![
             Instruction::Label("main".into()),
             Instruction::Address(AddressInstruction { addr: 10.into() }),
+            Instruction::Address(AddressInstruction { addr: 2.into() }),
         ];
 
         let mut parser = Parser::new(Lexer::new(input));
