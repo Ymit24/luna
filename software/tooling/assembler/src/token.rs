@@ -4,6 +4,7 @@ pub enum Token {
     LabelIdent(String),
     Register(Register),
     Colon,
+    Comma,
     At,
     Literal(u16),
     Equal,
@@ -23,6 +24,7 @@ pub enum Register {
     D,
     M,
     Void,
+    One
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

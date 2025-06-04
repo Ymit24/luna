@@ -32,6 +32,7 @@ impl Lexer {
                 '-' => Token::Sub,
                 '&' => Token::And,
                 '|' => Token::Or,
+                ',' => Token::Comma,
                 other => {
                     if other.is_ascii_alphabetic() {
                         return self.read_identifier();
@@ -140,7 +141,7 @@ mod tests {
 
     #[test]
     fn test_next_tokens() {
-        let mut lexer = Lexer::new("$abc: 123 =; A D M _ 1 + - & | JMP JNE");
+        let mut lexer = Lexer::new("$abc: 123 =; A D M _ 1 + - & | JMP JNE ,");
         let expected = [
             Token::Dollar,
             Token::LabelIdent("abc".into()),
@@ -159,6 +160,7 @@ mod tests {
             Token::Or,
             Token::Jump(Jump::JMP),
             Token::Jump(Jump::JNE),
+            Token::Comma,
             Token::EOF,
         ];
 
