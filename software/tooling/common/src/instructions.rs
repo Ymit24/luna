@@ -1,4 +1,4 @@
-use ux::{u15, u3};
+use ux::u15;
 
 pub mod jump_condition;
 use jump_condition::JumpCondition;
