@@ -1,0 +1,228 @@
+let T_COLON = 1;
+
+let tokenize = fn(source) {
+  let toks = [];
+
+  let make_token = fn(type, pos, span) { return { type: type, loc: pos, span: 1 }; }
+  let tokenize_next = fn(source) {
+    if (len(source) == 0) { push(toks, make_token(T_EOF, 0, 0)); return ""; }
+
+    let top = first(source);
+
+    if (top == ":") { return make_token(T_COLON, index); push(toks, tok); }
+    else if (top == ",") { let tok = make_token(T_COMMA, index, 1); push(toks, tok); }
+    else if (top == ";") { let tok = make_token(T_COMMA, index, 1); push(toks, tok); }
+    else if (top == "(") { let tok = make_token(T_COMMA, index, 1); push(toks, tok); }
+    else if (top == ")") { let tok = make_token(T_COMMA, index, 1); push(toks, tok); }
+    else if (top == "{") { let tok = make_token(T_COMMA, index, 1); push(toks, tok); }
+    else if (top == "}") { let tok = make_token(T_COMMA, index, 1); push(toks, tok); }
+    else if (top == "[") { let tok = make_token(T_COMMA, index, 1); push(toks, tok); }
+    else if (top == "]") { let tok = make_token(T_RSB, index, 1); push(toks, tok); }
+    else { push(toks, make_token(T_ILLEGAL, index, 1)); };
+
+    return tokenize_next(substring(source, 0, 1), toks);
+  };
+
+  return tokenize_next(source, toks);
+};
+
+let option = module {
+  let Optional = fn(undertype) {
+    return type {
+      ok: undertype,
+      is_ok: i1,
+    };
+  };
+
+  let make_okay = fn(undertype, value): Optional(undertype) {
+    return Optional(undertype) {
+      ok: value,
+      is_ok: 1,
+    };
+  };
+
+  let make_none = fn(undertype, value): Optional(undertype) {
+    return Optional(undertype) {
+      ok: _,
+      is_ok: 0,
+    };
+  };
+};
+
+let some_foo = fn(x: u16): Optional(u16) {
+  if x < 200 {
+    return option::make_okay(u16, x);
+  } else {
+    return option::make_none(u16, x);
+  }
+};
+
+let shell = module {
+  let consts = module {
+    let TEXT_RAM_LINE_INDEX = 1000;
+    let TEXT_RAM_START = 1001;
+    let LINE_LENGTH = 80;
+    let MAX_LINES = 25;
+  };
+
+  let make_shell = fn() {
+    let line_index = 0;
+    let line_num = 0;
+
+    let scroll = fn() {
+      *(consts::TEXT_RAM_LINE_INDEX) = (*(consts::TEXT_RAM_LINE_INDEX) + 1) % consts::MAX_LINES;
+    };
+
+    let write = fn(char) {
+      *(consts::TEXT_RAM_START + line_index++) = char;
+
+      if line_index > consts::LINE_LENGTH {
+        line_index = 0;
+        line_num++;
+        if line_num > consts::MAX_LINES {
+          scroll();
+        }
+      }
+    };
+
+    let write_chars = fn(chars) { iters::each(strings::toarray(chars), write); };
+
+    return {
+      "write": write,
+      "write_chars": write_chars,
+    };
+  };
+};
+
+let my_shell = shell::make_shell();
+my_shell["write_chars"]("hello world!");
+
+let List = fn(undertype) {
+  return type {
+    items: [undertype],
+  };
+}
+
+let compile_error = fn(msg) {
+  printf("[COMPILE ERROR] %s\n", msg);
+  abort();
+}
+
+let while = fn(condition, body) {
+  if condition() {
+    body();
+    while(condition, body);
+  }
+}
+
+let parser = fn(toks) {
+  let parse_ident = fn() {};
+
+  let expect = fn(tok) {
+    if !match(tok) {
+      compile_error(format_string("Expected '%d' token, found '%d'", tok, first(toks)));
+    }
+    return pop(toks);
+  };
+
+  let make_let = fn(ident, expr) {
+    return {
+      type: "LET",
+      ident: ident,
+      expr: expr
+    };
+  };
+
+  let parse_expr = fn(prec) {
+    let precs = {
+      LOW: 0,
+      T_PLUS: 1,
+      T_MINU: 1,
+      T_MULT: 2,
+      T_DIVI: 2,
+      MAX: 999,
+    };
+
+    let infix_func = fn(token_type) {
+      return fn (left) {
+        return make_infix(token_type, left, parse_expr(precs[token_type]));
+      };
+    }
+
+    let prefix_funcs = {
+      T_NUM: fn (tok) { return tok["value"]; },
+    };
+
+    let infix_funcs = {
+      T_PLUS: infix_func(T_PLUS),
+      T_MINU: infix_func(T_MINU),
+      T_MULT: infix_func(T_MULT),
+      T_DIVI: infix_func(T_DIVI),
+    };
+
+    let tok = pop(toks);
+
+    let left = prefix_funcs[tok["type"]](tok);
+
+    while(fn() {
+      return prec <= precs[first(toks)["type"]];
+    }, fn() {
+      tok = pop(toks);
+      left = infix_funcs[tok["type"]](left);
+    });
+
+    return left;
+  };
+
+  while(fn() { return len(toks) > 0; }, fn() {
+    if match(T_LET) {
+      pop(toks);
+
+      let ident = expect(T_IDENT);
+      expect(T_EQUALS);
+      let expr = parse_expr(0);
+      expect(T_SEMICOLON);
+
+      return make_let(ident, expr);
+    }
+  });
+
+  let parse_next = fn(toks) {
+    let peek = first(toks);
+
+    let match = fn(tok) { if peek["type"] == tok { return true; } else { return false; } };
+
+    if match(T_EOF) { return 0; }
+
+    if match(T_LET) {
+    }
+  };
+};
+
+let main = fn (argc, argv) {
+  if (argc != 2) {
+    print("Wrong number of arguments.");
+  }
+
+  let filepath = argv[0];
+  let contents = read_file(filepath);
+  let toks = tokenize(contents);
+
+  printf("toks: %d\n", toks);
+};
+
+let tests = [
+  fn() {
+    let raw = "let x = 1;";
+    let expected = [
+      T_LET,
+      T_IDENT,
+      T_EQUALS,
+      T_LITERAL,
+      T_SEMICOLON,
+    ];
+
+    let results = tokenize(raw);
+    assert_equal(expected, map(results, fn(x) { return x["type"]; }));
+  }
+];
