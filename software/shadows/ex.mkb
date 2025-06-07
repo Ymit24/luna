@@ -26,37 +26,6 @@ let tokenize = fn(source) {
   return tokenize_next(source, toks);
 };
 
-let option = module {
-  let Optional = fn(undertype) {
-    return type {
-      ok: undertype,
-      is_ok: i1,
-    };
-  };
-
-  let make_okay = fn(undertype, value): Optional(undertype) {
-    return Optional(undertype) {
-      ok: value,
-      is_ok: 1,
-    };
-  };
-
-  let make_none = fn(undertype, value): Optional(undertype) {
-    return Optional(undertype) {
-      ok: _,
-      is_ok: 0,
-    };
-  };
-};
-
-let some_foo = fn(x: u16): Optional(u16) {
-  if x < 200 {
-    return option::make_okay(u16, x);
-  } else {
-    return option::make_none(u16, x);
-  }
-};
-
 let shell = module {
   let consts = module {
     let TEXT_RAM_LINE_INDEX = 1000;
@@ -65,37 +34,41 @@ let shell = module {
     let MAX_LINES = 25;
   };
 
-  let make_shell = fn() {
-    let line_index = 0;
-    let line_num = 0;
-
+  let internal = module {
     let scroll = fn() {
       *(consts::TEXT_RAM_LINE_INDEX) = (*(consts::TEXT_RAM_LINE_INDEX) + 1) % consts::MAX_LINES;
     };
+  };
 
-    let write = fn(char) {
-      *(consts::TEXT_RAM_START + line_index++) = char;
+  let write = fn(shell, char) {
+    *(consts::TEXT_RAM_START + line_index++) = char;
 
-      if line_index > consts::LINE_LENGTH {
-        line_index = 0;
-        line_num++;
-        if line_num > consts::MAX_LINES {
-          scroll();
-        }
+    if shell.line_index > consts::LINE_LENGTH {
+      shell.line_index = 0;
+      shell.line_num++;
+      if shell.line_num > consts::MAX_LINES {
+        internal::scroll();
       }
-    };
+    }
+  };
 
-    let write_chars = fn(chars) { iters::each(strings::toarray(chars), write); };
+  let write_chars = fn(shell, chars) { iters::each(strings::toarray(chars), fn(char) { write(shell, char); }); };
 
-    return {
-      "write": write,
-      "write_chars": write_chars,
+  let Shell = type {
+    line_index: i32;
+    line_num: i32;
+  };
+
+  let make_shell = fn(): Shell {
+    return (Shell) {
+      line_index: 0,
+      line_num: 0,
     };
   };
 };
 
-let my_shell = shell::make_shell();
-my_shell["write_chars"]("hello world!");
+let my_shell: Shell = shell::make_shell();
+shell::write_chars(my_shell, "hello world!");
 
 let List = fn(undertype) {
   return type {
@@ -186,17 +159,6 @@ let parser = fn(toks) {
       return make_let(ident, expr);
     }
   });
-
-  let parse_next = fn(toks) {
-    let peek = first(toks);
-
-    let match = fn(tok) { if peek["type"] == tok { return true; } else { return false; } };
-
-    if match(T_EOF) { return 0; }
-
-    if match(T_LET) {
-    }
-  };
 };
 
 let main = fn (argc, argv) {
@@ -226,3 +188,128 @@ let tests = [
     assert_equal(expected, map(results, fn(x) { return x["type"]; }));
   }
 ];
+
+
+
+# os
+
+let iters_mod = fn() {
+  let for = fn(start, end, inc, body) {
+    if start < end {
+      body(start);
+      for(start+inc, end, inc, body);
+    }
+  };
+
+  let each = fn(array, body) {
+    if $len(array) == 0 { return; }
+    body($first(array));
+    each($tail(array), body);
+  };
+
+  return {
+    "for": for,
+    "each": each,
+  };
+};
+
+let iters = iters_mod();
+
+let leds_mod = fn(BASE_ADDR) {
+  let set = fn (id) {
+    $write(BASE_ADDR + id, 1);
+  };
+
+  let unset = fn (id) {
+    $write(BASE_ADDR + id, 0);
+  };
+
+  let clear_all = fn () {
+    iters["for"](0, 1, 1, fn(i){
+      unset(i);
+    });
+  };
+
+  return {
+    "set": set,
+    "unset": unset,
+    "clear_all": clear_all,
+  };
+};
+
+let text_composite_layer_mod = fn(
+  TEXT_MEM_BASE_ADDR,
+  LINE_COL_ADDR,
+  LINE_ROW_ADDR,
+  ROWS,
+  COLS
+) {
+  let current_row = fn() { $read(LINE_ROW_ADDR); }
+  let current_col = fn() { $read(LINE_COL_ADDR); }
+  let current_index = fn() { return TEXT_MEM_BASE_ADDR + current_col() + COLS * current_row(); };
+
+  let advance_scroll = fn() {
+    # todo
+  };
+
+  let advance_row = fn() {
+    if current_row() < ROWS - 1 {
+      $write(LINE_ROW_ADDR, current_row() + 1);
+    } else {
+      $write(LINE_ROW_ADDR, 0);
+      advance_scroll();
+    }
+  };
+
+  let advance_column = fn() {
+    if current_col() < COLS - 1 {
+      $write(LINE_COL_ADDR, current_col() + 1);
+    } else {
+      $write(LINE_COL_ADDR, 0);
+      advance_row();
+    }
+  };
+
+  let putc = fn(char) {
+    $write(current_index(), char);
+    advance_column();
+  };
+  return {
+    "putc": putc,
+  };
+};
+
+let hw_mod = fn(LEDS_BASE_ADDR,TEXT_MEM_BASE_ADDR,LINE_COL_ADDR,LINE_ROW_ADDR) {
+  return {
+    "leds": leds_mod(LEDS_BASE_ADDR),
+    "text_composite_layer": text_composite_layer_mod(
+      TEXT_MEM_BASE_ADDR,
+      LINE_COL_ADDR,
+      LINE_ROW_ADDR,
+      80,
+      20,
+    ),
+  };
+};
+
+let mmio_map = {
+  "LED_BASE_ADDR": 100,
+  "TEXT_MEM_BASE_ADDR": 1202,
+  "LINE_COL_ADDR": 1201,
+  "LINE_ROW_ADDR": 1202,
+};
+
+let hw = hw_mod(
+  mmio_map["LEDS_BASE_ADDR"],
+  mmio_map["TEXT_MEM_BASE_ADDR"],
+  mmio_map["LINE_COL_ADDR"],
+  mmio_map["LINE_ROW_ADDR"],
+);
+
+let boot = fn() {
+  hw["leds"]["clear_all"]();
+  let putc = hw["text_composite_layer"]["putc"];
+  iters["each"]("Hello world!", fn(c) { putc(c); })
+};
+
+let _start = fn() { boot(); };
