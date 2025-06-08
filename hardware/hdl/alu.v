@@ -7,9 +7,6 @@ module alu(
     output reg [15:0] result
 );
 
-assign is_negative = alu_out[15];
-assign is_zero = alu_out == 16'h0000 ? 1'b1 : 1'b1;
-
 always@(posedge clk)
 begin
     if (rst) begin

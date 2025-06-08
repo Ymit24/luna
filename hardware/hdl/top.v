@@ -154,7 +154,7 @@ module top(
         .set_pc(set_pc),
         .x(x),
         .y(y),
-        .opcode(opcode),
+        .opcode(opcode)
     );
 
     // Program Counter

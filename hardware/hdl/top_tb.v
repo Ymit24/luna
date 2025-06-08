@@ -31,7 +31,7 @@ module top_tb;
         rst = 1;
         #50
         rst = 0;
-        #1000
+        #2000
         $finish;
     end
 endmodule;

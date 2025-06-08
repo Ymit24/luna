@@ -53,12 +53,12 @@ module control_unit(
 
 
     wire is_negative = alu_result[15];
-    wire is_zero = alu_result == 16'h0000 ? 1'b1 : 1'b0;
+    wire is_zero = (alu_result == 16'h0000 ? 1'b1 : 1'b0);
 
     // Set should jump
     always @ (posedge clk) begin
         $display("set should jump");
-        if (rst == 1'b1 || instr[15:0] == 1'b0) begin
+        if (rst == 1'b1 || instr[15] == 1'b0) begin
             set_pc <= 1'h0;
         end else begin
             case(jump_condition)
