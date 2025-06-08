@@ -170,6 +170,8 @@ module top(
 
     // Actual Program
     rom rom (
+        .clk(clk_pc),
+        .rst(rst),
         .address(pc[7:0]),
         .data(instr)
     );

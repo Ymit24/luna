@@ -75,3 +75,14 @@ module control_unit(
         end
     end
 endmodule;
+
+// timing
+// fetch high:
+//  rom sampled to set instr
+// decode high:
+//  instr sampled and control signals set
+// execute high:
+//  alu activates and computes result
+// write back high:
+//  memory write(s)
+//  incr pc
