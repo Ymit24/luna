@@ -1,54 +1,47 @@
-use common::instructions::{AddressInstruction, Instruction, Label};
-use nom::{
-    branch::alt,
-    bytes::complete::tag,
-    character::{
-        complete::{alpha1, alphanumeric1, digit1},
-        streaming::alphanumeric1,
-    },
-    combinator::{map, map_res},
-    multi::many1,
-    sequence::preceded,
-    IResult,
+use std::{
+    io::{self, Stdin, Stdout, Write},
 };
 
-use ux::u15;
+use crate::{lexer::Lexer, parser::Parser};
+
+mod ast;
+mod lexer;
+mod parser;
+mod token;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let source_code = include_str!("../example.shadow");
-    let (_, instructions) = parse_file(source_code)?;
+    let mut stdout = &mut io::stdout();
 
-    println!(
-        "Parsed: {} instructions:\n{:?}",
-        instructions.len(),
-        instructions
-    );
+    repl(io::stdin(), &mut stdout);
 
     Ok(())
 }
 
-pub fn parse_file(input: &str) -> IResult<&str, Vec<Instruction>> {
-    many1(map(parse_address_instruction, |x| Instruction::Address(x)))(input)
+fn parse_and_print<T: Into<String>>(source_code: T, stdout: &mut Stdout) {
+    let mut parser = Parser::new(Lexer::new(source_code));
+
+    let instructions = parser.parse();
+
+    for instruction in instructions {
+        stdout
+            .write(format!("\t{:?}", instruction).as_bytes())
+            .expect("Failed to write instruction out");
+    }
 }
 
-pub fn parse_label_definition(input: &str) -> IResult<&str, Label> {
-    map(preceded(tag("$"), alphanumeric1), |name: &str| Label {
-        label: name.into(),
-    })(input)
-}
+fn repl(stdin: Stdin, stdout: &mut Stdout) {
+    loop {
+        stdout.write("\n>> ".as_bytes()).expect("Failed to write.");
+        stdout.flush().expect("Failed to flush.");
 
-pub fn parse_address_instruction(input: &str) -> IResult<&str, AddressInstruction> {
-    let (remaining, address) = preceded(tag("@"), parse_address)(input)?;
+        let mut input = String::new();
+        stdin
+            .read_line(&mut input)
+            .expect("Failed to read user input.");
 
-    Ok((
-        remaining,
-        AddressInstruction {
-            addr: u15::from(15),
-            label: None,
-        },
-    ))
-}
-
-pub fn parse_address(input: &str) -> IResult<&str, &str> {
-    alt((digit1, preceded(tag("$"), alphanumeric1)))(input)
+        if input == "quit\n" {
+            break;
+        }
+        parse_and_print(input, stdout);
+    }
 }

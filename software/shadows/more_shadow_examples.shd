@@ -1,0 +1,75 @@
+$preamble:
+  @%sp # probably just @0
+  M = 0 # Reset stack pointer
+  @_start
+  0; JMP # GOTO
+
+$_start:
+  @x      # variable x, probably will inline so higher
+  D,M = 1 # level compiler can handle allocation
+
+  $_start_one:
+  # if x == 5, goto _start_two else continue
+  @5
+  D = A - D
+  @_start_two
+  D; JEQ
+
+  # incr x
+  @x
+  D,M = M + 1
+
+  @_start_one
+  0; JMP
+
+  $_start_two:
+  0; JMP # inf loop
+
+# int a = 5;
+# int *b = &a;
+# *b -= 2;
+# int c = 7;
+# int d = 4;
+# a = c + d;
+$pointerex:
+  # int a = 5;
+  @5
+  D = A
+  @a
+  M = D
+  # int *b = &a;
+  @a
+  D = A
+  @b
+  M = D
+  # *b -= 2; -> *b = *b - 2;
+  @b
+  A = M
+  D = M # D = *b
+  @2
+  D = D - A # D = *b - 2
+  @b
+  A = M
+  M = D # *b = ...
+  # int c = 7;
+  @7
+  D = A
+  @c
+  M = D
+  # int d = 4;
+  @4
+  D = A
+  @d
+  M = D
+  # a = c + d;
+  @c
+  D = M
+  @d
+  D = D + M
+  @a
+  M = D
+
+  # inf loop
+  $pointerexend
+  @pointerexend
+  0; JMP

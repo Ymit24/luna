@@ -1,9 +1,9 @@
-use ux::{u15, u3};
+use ux::u15;
 
 pub mod jump_condition;
 use jump_condition::JumpCondition;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ComputeInstruction {
     pub destination: Destination,
 
@@ -12,23 +12,16 @@ pub struct ComputeInstruction {
     pub alu_flags: AluFlags,
     pub opcode: Opcode,
     pub jump_condition: JumpCondition,
-
-    pub label: Option<Label>,
 }
 
-#[derive(Debug, Clone)]
-pub struct Label {
-    pub label: String,
-}
-
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AluFlags {
     pub zero_x: bool,
     pub zero_y: bool,
     pub negate_output: bool,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Opcode {
     Add,
     Sub,
@@ -36,23 +29,23 @@ pub enum Opcode {
     And,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Destination {
     Address,
     Data,
     Memory,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AddressInstruction {
     pub addr: u15,
-    pub label: Option<Label>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Instruction {
     Compute(ComputeInstruction),
     Address(AddressInstruction),
+    Label(String),
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
