@@ -50,8 +50,7 @@ module top(
     wire [15:0] alu_out, addr_const;
     wire instr_type, set_pc; 
     wire [15:0] x, y, instr, reg_a, reg_d, reg_m;
-    wire [1:0] opcode;
-    wire zero_x, zero_y, negate_output, is_negative, is_zero;
+    wire [6:0] opcode;
     wire dest_a, dest_d, dest_m;
 
     wire [15:0] pc;
@@ -76,13 +75,8 @@ module top(
         .rst(rst),
         .x(x),
         .y(y),
-        .zero_x(zero_x),
-        .zero_y(zero_y),
-        .negate_output(negate_output),
         .opcode(opcode),
-        .output_result(alu_out),
-        .is_zero(is_zero),
-        .is_negative(is_negative)
+        .result(alu_out)
     );
 
     wire [15:0] bram_douta;
@@ -151,8 +145,7 @@ module top(
         .reg_a_in(reg_a),
         .reg_d_in(reg_d),
         .reg_m_in(reg_m),
-        .is_negative(is_negative),
-        .is_zero(is_zero),
+        .alu_result(alu_out),
         .addr_out(addr_const),
         .instr_type(instr_type),
         .reg_a_en(dest_a),
@@ -161,10 +154,7 @@ module top(
         .set_pc(set_pc),
         .x(x),
         .y(y),
-        .opcode(opcode),
-        .negate_output(negate_output),
-        .zero_x(zero_x),
-        .zero_y(zero_y)
+        .opcode(opcode)
     );
 
     // Program Counter
