@@ -121,6 +121,7 @@ module top(
         .data_in(
             (instr_type) ? alu_out : addr_const
         ),
+        .program_counter(pc),
         .reg_a_out(reg_a),
         .reg_d_out(reg_d),
         .reg_m_out(reg_m),
@@ -167,7 +168,7 @@ module top(
         .clk(jmp_clk),
         .rst(rst),
         .write_en(set_pc),
-        .data_in(addr_const),
+        .data_in(reg_a),
         .data_out(pc)
     );
 
