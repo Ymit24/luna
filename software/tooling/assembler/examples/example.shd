@@ -3,14 +3,16 @@
 M = 0
 
 @1
-D = M + 1 # load pc + 1 into D
+# load pc + 1 into D
+D = M + 1
 
-@2 # <- should return to here
+# <- should return to here
+@2
 M = M + 1
 
 @1
 A = D # write pc to A
-_=0; JMP # uncon jump to a
+_ = 0; JMP # uncon jump to a
 
 0000 0000 0000 0010 # -> 0002
 1111 1010 1000 1000 # -> FA88
