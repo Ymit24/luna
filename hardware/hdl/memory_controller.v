@@ -6,6 +6,9 @@ module memory_controller(
     input             reg_d_en,
     input             reg_m_en,
     input      [15:0] data_in,
+
+    input [15:0] program_counter,
+
     output     [15:0] reg_a_out,
     output     [15:0] reg_d_out,
     output reg [15:0] reg_m_out,
@@ -45,7 +48,11 @@ always@(posedge clk) begin
     if (rst) begin
         reg_m_out <= 16'h0000;
     end else begin
+      if (bram_addra == 16'h0001) begin
+        reg_m_out <= program_counter;
+      end else begin
         reg_m_out <= bram_douta;
+      end
     end
 end
 

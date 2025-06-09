@@ -1,47 +1,57 @@
-use std::{
-    io::{self, Stdin, Stdout, Write},
+use clap::Parser;
+use std::fs;
+
+use compute_instruction::ComputeInstruction;
+
+use crate::{
+    destination::Destination, instruction::Instruction, jump_condition::JumpCondition,
+    operation::Operation, parse_error::ParseError,
 };
 
-use crate::{lexer::Lexer, parser::Parser};
+mod compute_instruction;
+mod destination;
+mod instruction;
+mod jump_condition;
+mod operation;
+mod parse_error;
 
-mod ast;
-mod lexer;
-mod parser;
-mod token;
-
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut stdout = &mut io::stdout();
-
-    repl(io::stdin(), &mut stdout);
-
-    Ok(())
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    source_filepath: String,
 }
 
-fn parse_and_print<T: Into<String>>(source_code: T, stdout: &mut Stdout) {
-    let mut parser = Parser::new(Lexer::new(source_code));
+fn main() {
+    let args = Args::parse();
 
-    let instructions = parser.parse();
+    let source_filepath = args.source_filepath;
+    println!("name: {}", &source_filepath);
 
-    for instruction in instructions {
-        stdout
-            .write(format!("\t{:?}", instruction).as_bytes())
-            .expect("Failed to write instruction out");
-    }
-}
-
-fn repl(stdin: Stdin, stdout: &mut Stdout) {
-    loop {
-        stdout.write("\n>> ".as_bytes()).expect("Failed to write.");
-        stdout.flush().expect("Failed to flush.");
-
-        let mut input = String::new();
-        stdin
-            .read_line(&mut input)
-            .expect("Failed to read user input.");
-
-        if input == "quit\n" {
-            break;
+    let contents = match fs::read_to_string(source_filepath) {
+        Err(_) => {
+            panic!("Failed to read source file.");
         }
-        parse_and_print(input, stdout);
+        Ok(contents) => contents,
+    };
+
+    let lines: Vec<String> = contents.split_terminator("\n").map(Into::into).collect();
+    println!("has {} lines", lines.len());
+
+    let mut output: Vec<u16> = vec![];
+    for line in lines.iter() {
+        match Instruction::try_from(line.clone()) {
+            Ok(instr) => {
+                let instr = u16::from(instr);
+                println!("{:?} -> {:04X}", line, instr);
+                output.push(instr);
+            }
+            Err(ParseError::SkipComment | ParseError::EndOfInput) => {}
+            Err(e) => eprintln!("skipping '{}', error: '{:?}'", line, e),
+        };
+    }
+
+    println!("Output:");
+    for out in output {
+        println!("{:04X}", out);
     }
 }
