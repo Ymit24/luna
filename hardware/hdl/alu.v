@@ -2,7 +2,7 @@
 module alu(
     input  clk,
     input  rst,
-    input  [6:0] opcode,
+    input  [5:0] opcode,
     input  [15:0] x, y, // x = D, y = A or M depending
     output reg [15:0] result
 );

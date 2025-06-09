@@ -30,7 +30,7 @@ reg [9:0] v_counter = 10'd0;
 
 // Clock divider and counter logic with synchronous reset
 always @(posedge clk) begin
-    bram_addrb <= 16'd1;
+    bram_addrb <= 16'd2;
     if (rst) begin
         h_counter <= 10'd0;
         v_counter <= 10'd0;
@@ -54,8 +54,8 @@ assign vsync = (v_counter >= V_SYNC_START && v_counter < V_SYNC_END) ? 1'b0 : 1'
 
 // Generate RGB signals (white during visible area, off during blanking)
 assign red   = (h_counter < H_VISIBLE && v_counter < V_VISIBLE) ? bram_doutb[3:0] : 4'b0000;
-assign green = (h_counter < H_VISIBLE && v_counter < V_VISIBLE) ? 4'b0110 : 4'b0000;
-assign blue  = (h_counter < H_VISIBLE && v_counter < V_VISIBLE) ? 4'b1111 : 4'b0000;
+assign green = (h_counter < H_VISIBLE && v_counter < V_VISIBLE) ? 4'b0000 : 4'b0000;
+assign blue  = (h_counter < H_VISIBLE && v_counter < V_VISIBLE) ? 4'b0000 : 4'b0000;
 
 endmodule
 

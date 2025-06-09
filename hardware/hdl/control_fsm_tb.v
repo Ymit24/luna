@@ -4,7 +4,7 @@
 module control_fsm_tb;
     reg clk = 0;
     reg rst = 0;
-    wire fetch_clk, decode_clk, exec_clk, wrbk_clk;
+    wire fetch_clk, decode_clk, exec_clk, wrbk_clk, jmp_clk;
 
     control_fsm uut(
         .clk(clk),
@@ -12,7 +12,8 @@ module control_fsm_tb;
         .fetch_clk(fetch_clk),
         .decode_clk(decode_clk),
         .exec_clk(exec_clk),
-        .wrbk_clk(wrbk_clk)
+        .wrbk_clk(wrbk_clk),
+        .jmp_clk(jmp_clk)
     );
 
     always begin

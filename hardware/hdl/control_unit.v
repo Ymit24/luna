@@ -1,5 +1,6 @@
 module control_unit(
-    input             clk,
+    input             decode_clk,
+    input             wrbk_clk,
     input             rst,
     input [15:0]      instr,
     input [15:0]      reg_a_in, reg_d_in, reg_m_in,
@@ -10,15 +11,15 @@ module control_unit(
     output reg        reg_a_en, reg_d_en, reg_m_en,
     output reg        set_pc,
     output reg [15:0] x, y,
-    output reg [6:0]  opcode
+    output reg [5:0]  opcode
 );
     wire       a_or_m = instr[12];
     wire [2:0] dest_selects = instr[5:3];
     wire [2:0] jump_condition = instr[2:0];
 
     // Instruction decoding
-    always @ (posedge clk) begin
-      instr_type <= ~instr[15];
+    always @ (posedge decode_clk) begin
+      instr_type <= instr[15];
       opcode <= instr[11:6];
       if (instr[15] == 1'b0) begin
           addr_out <= { 1'b0, instr[14:0] };
@@ -26,11 +27,11 @@ module control_unit(
 
       reg_m_en <= dest_selects[0];
       reg_d_en <= dest_selects[1];
-      reg_a_en <= dest_selects[2] | instr_type;
+      reg_a_en <= dest_selects[2] | ~instr[15];
     end
 
     // Set X output
-    always @ (posedge clk) begin
+    always @ (posedge decode_clk) begin
         if (rst) begin
             x <= 16'h0;
         end else begin
@@ -39,7 +40,7 @@ module control_unit(
     end
 
     // Set Y output
-    always @ (posedge clk) begin
+    always @ (posedge decode_clk) begin
         if (rst) begin
             y <= 16'h0;
         end else begin
@@ -51,12 +52,11 @@ module control_unit(
         end
     end
 
-
     wire is_negative = alu_result[15];
     wire is_zero = (alu_result == 16'h0000 ? 1'b1 : 1'b0);
 
     // Set should jump
-    always @ (posedge clk) begin
+    always @ (posedge wrbk_clk) begin
         $display("set should jump");
         if (rst == 1'b1 || instr[15] == 1'b0) begin
             set_pc <= 1'h0;
@@ -85,4 +85,6 @@ endmodule;
 //  alu activates and computes result
 // write back high:
 //  memory write(s)
-//  incr pc
+//  determine if we should jump
+// jmp:
+//  incr pc or jump

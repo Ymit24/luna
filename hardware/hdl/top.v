@@ -3,6 +3,7 @@
 `include "memory_controller.v"
 `include "alu.v"
 `include "control_unit.v"
+`include "control_fsm.v"
 `include "memory_mapped_io.v"
 `include "clock_divider.v"
 `include "vga.v"
@@ -18,7 +19,8 @@ module top(
     output [3:0] green,
     output [3:0] blue
 );
-    wire clk, clk_pc, clk25;
+    wire clk, clk25;
+    wire fetch_clk, decode_clk, exec_clk, wrbk_clk, jmp_clk;
     
     // Artificially slow down the processor for debug
     clock_divider #(
@@ -27,15 +29,6 @@ module top(
     ) main_div(
         .clk_in(raw_clk),
         .clk_out(clk)
-    );
-
-    // Make PC only update every other clk
-    clock_divider #(
-        .INPUT_FREQ(50_000_000),
-        .TARGET_FREQ(25_000_000)
-    ) pc_div(
-        .clk_in(clk),
-        .clk_out(clk_pc)
     );
 
     // Pixel clock 25MHz
@@ -50,13 +43,12 @@ module top(
     wire [15:0] alu_out, addr_const;
     wire instr_type, set_pc; 
     wire [15:0] x, y, instr, reg_a, reg_d, reg_m;
-    wire [6:0] opcode;
+    wire [5:0] opcode;
     wire dest_a, dest_d, dest_m;
 
     wire [15:0] pc;
     
     assign leds[15] = clk;
-    assign leds[14] = clk_pc;
     assign leds[13] = rst;
     assign leds[12:9] = x[3:0]; 
     assign leds[8:5] = y[3:0]; 
@@ -71,7 +63,7 @@ module top(
     // );
 
     alu alu(
-        .clk(clk),
+        .clk(exec_clk),
         .rst(rst),
         .x(x),
         .y(y),
@@ -79,11 +71,12 @@ module top(
         .result(alu_out)
     );
 
-    wire [15:0] bram_douta;
     wire bram_wea;
+    wire [15:0] bram_douta;
     wire [15:0] bram_dina;
     wire [15:0] bram_addra;
 
+    wire bram_web = 0;
     wire [15:0] bram_doutb;
     wire [15:0] bram_dinb;
     wire [15:0] bram_addrb;
@@ -120,12 +113,13 @@ module top(
     // Memory Controller
     memory_controller memory(
         .clk(clk),
+        .wrbk_clk(wrbk_clk),
         .rst(rst),
         .reg_a_en(dest_a),
         .reg_d_en(dest_d),
         .reg_m_en(dest_m),
         .data_in(
-            (instr_type) ? addr_const : alu_out
+            (instr_type) ? alu_out : addr_const
         ),
         .reg_a_out(reg_a),
         .reg_d_out(reg_d),
@@ -138,10 +132,21 @@ module top(
         .bram_addra(bram_addra)
     );
 
+    control_fsm control_fsm(
+      .clk(clk),
+      .rst(rst),
+      .fetch_clk(fetch_clk),
+      .decode_clk(decode_clk),
+      .exec_clk(exec_clk),
+      .wrbk_clk(wrbk_clk),
+      .jmp_clk(jmp_clk)
+    );
+
     control_unit control_unit(
         .instr(instr),
         .rst(rst),
-        .clk(clk),
+        .decode_clk(decode_clk),
+        .wrbk_clk(wrbk_clk),
         .reg_a_in(reg_a),
         .reg_d_in(reg_d),
         .reg_m_in(reg_m),
@@ -159,18 +164,16 @@ module top(
 
     // Program Counter
     counter counter(
-        .clk(clk_pc),
+        .clk(jmp_clk),
         .rst(rst),
         .write_en(set_pc),
-        .data_in(
-            (instr_type) ? addr_const : alu_out
-        ),
+        .data_in(addr_const),
         .data_out(pc)
     );
 
     // Actual Program
     rom rom (
-        .clk(clk_pc),
+        .clk(fetch_clk),
         .rst(rst),
         .address(pc[7:0]),
         .data(instr)
