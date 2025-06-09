@@ -6,4 +6,4 @@ members = [
   "common",
   "emulator",
   "c89_lexer"
-]
+, "c89_compiler"]
