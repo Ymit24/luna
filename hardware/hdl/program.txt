@@ -1,7 +1,1 @@
-0002 EA88 0002 FDC8 0002 EA87
-
-123: @1  # goto pc
-124: D=M # load pc, will be 124
-...
-150: A=D # load addr of pc which was 124
-151: _=0; D # goto 124 e.g. "return"
+0002 FA88 0001 FDD0 0002 FDC8 0001 E320 EA87
