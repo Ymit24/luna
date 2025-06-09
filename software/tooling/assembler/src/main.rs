@@ -9,7 +9,7 @@ struct Args {
     source_filepath: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 struct ComputeInstruction {
     destination: Destination, // for now just single destination
     operation: Operation,
@@ -209,7 +209,7 @@ impl From<JumpCondition> for u3 {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 enum Destination {
     Null,
     A,
@@ -217,7 +217,7 @@ enum Destination {
     M,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 enum Operation {
     Zero,
     One,
@@ -249,7 +249,7 @@ enum Operation {
     DOrM,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 enum JumpCondition {
     Null,
     JGT,
@@ -261,7 +261,7 @@ enum JumpCondition {
     JMP,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 enum Instruction {
     Address(u15),
     Compute(ComputeInstruction),
@@ -293,11 +293,19 @@ fn main() {
 
     println!("instr as u16: {:04X}", u16::from(instr));
 
+    let mut output: Vec<u16> = vec![];
     for line in lines.iter() {
         if let Ok(instr) = Instruction::try_from(line.clone()) {
-            println!("{:04X}", u16::from(instr));
+            let instr = u16::from(instr);
+            println!("{:?} -> {:04X}", line, instr);
+            output.push(instr);
         } else {
-            // eprintln!("Parse error, skipping line");
+            eprintln!("skipping '{}'", line);
         }
+    }
+
+    println!("Output:");
+    for out in output {
+        println!("{:04X}", out);
     }
 }
