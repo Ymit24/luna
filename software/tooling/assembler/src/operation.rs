@@ -1,0 +1,68 @@
+use ux::u7;
+
+#[derive(Debug, Clone, Copy)]
+pub enum Operation {
+    Zero,
+    One,
+    NegOne,
+    D,
+    A,
+    NotD,
+    NotA,
+    NegD,
+    NegA,
+    DPlus1,
+    APlus1,
+    DMin1,
+    AMin1,
+    DPlusA,
+    DMinA,
+    AMinD,
+    DAndA,
+    DOrA,
+    M,
+    NotM,
+    NegM,
+    MPlus1,
+    MMin1,
+    DPlusM,
+    DMinM,
+    MMinD,
+    DAndM,
+    DOrM,
+}
+
+impl From<Operation> for u7 {
+    fn from(value: Operation) -> Self {
+        match value {
+            Operation::Zero => u7::new(0b0101010),
+            Operation::One => u7::new(0b0111111),
+            Operation::NegOne => u7::new(0b0111010),
+            Operation::D => u7::new(0b0001100),
+            Operation::A => u7::new(0b0110000),
+            Operation::NotD => u7::new(0b0001101),
+            Operation::NotA => u7::new(0b0110001),
+            Operation::NegD => u7::new(0b0001111),
+            Operation::NegA => u7::new(0b0110011),
+            Operation::DPlus1 => u7::new(0b0011111),
+            Operation::APlus1 => u7::new(0b0110111),
+            Operation::DMin1 => u7::new(0b0001110),
+            Operation::AMin1 => u7::new(0b0110010),
+            Operation::DPlusA => u7::new(0b0000010),
+            Operation::DMinA => u7::new(0b0010011),
+            Operation::AMinD => u7::new(0b0000111),
+            Operation::DAndA => u7::new(0b0000000),
+            Operation::DOrA => u7::new(0b0010101),
+            Operation::M => u7::new(0b1110000),
+            Operation::NotM => u7::new(0b1110001),
+            Operation::NegM => u7::new(0b1110011),
+            Operation::MPlus1 => u7::new(0b1110111),
+            Operation::MMin1 => u7::new(0b1110010),
+            Operation::DPlusM => u7::new(0b1000010),
+            Operation::DMinM => u7::new(0b1010011),
+            Operation::MMinD => u7::new(0b1000111),
+            Operation::DAndM => u7::new(0b1000000),
+            Operation::DOrM => u7::new(0b1010101),
+        }
+    }
+}
