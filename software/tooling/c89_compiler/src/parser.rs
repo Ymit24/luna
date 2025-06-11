@@ -26,7 +26,42 @@ impl Parser {
     }
 
     pub fn parse(&mut self) -> Option<Expr> {
-        self.parse_expression(0)
+        let mut statements = Vec::new();
+        loop {
+            match self.current_token {
+                Some(Token::Int) => {
+                    self.next_token();
+                    if let Some(Token::Ident(name)) = &self.current_token {
+                        let name = name.clone();
+                        self.next_token();
+                        if let Some(Token::Assign) = &self.current_token {
+                            self.next_token();
+                            let value = self.parse_expression(0)?;
+                            statements.push(Expr::VarDecl {
+                                name,
+                                value: Box::new(value),
+                            });
+                        } else {
+                            return None;
+                        }
+                    } else {
+                        return None;
+                    }
+                }
+                Some(Token::Ident(_)) | Some(Token::Literal(_)) | Some(Token::LeftParen) => {
+                    let expr = self.parse_expression(0)?;
+                    statements.push(expr);
+                }
+                _ => break,
+            }
+        }
+        if statements.is_empty() {
+            None
+        } else if statements.len() == 1 {
+            Some(statements.remove(0))
+        } else {
+            Some(Expr::Statements(statements))
+        }
     }
 
     fn parse_expression(&mut self, precedence: u8) -> Option<Expr> {
@@ -75,6 +110,10 @@ impl Parser {
                 } else {
                     None // Missing closing parenthesis
                 }
+            }
+            Token::Ident(name) => {
+                self.next_token();
+                Some(Expr::VarUsage(name))
             }
             _ => None,
         }
@@ -176,6 +215,35 @@ mod tests {
                 }
                 assert_eq!(operator, Operator::Plus);
                 assert!(matches!(*right, Expr::Literal(4)));
+            }
+            _ => panic!("Expected binary expression"),
+        }
+    }
+
+    #[test]
+    fn test_parse_var_decl() {
+        let lexer = Lexer::new("int a = 5");
+        let mut parser = Parser::new(lexer);
+        let expr = parser.parse().expect("Expected to parse var decl");
+        match expr {
+            Expr::VarDecl { name, value } => {
+                assert_eq!(name, "a");
+                assert!(matches!(*value, Expr::Literal(5)));
+            }
+            _ => panic!("Expected VarDecl"),
+        }
+    }
+
+    #[test]
+    fn test_parse_var_usage() {
+        let lexer = Lexer::new("a + b");
+        let mut parser = Parser::new(lexer);
+        let expr = parser.parse().expect("Expected to parse var usage");
+        match expr {
+            Expr::Binary { left, operator, right } => {
+                assert!(matches!(*left, Expr::VarUsage(ref name) if name == "a"));
+                assert_eq!(operator, Operator::Plus);
+                assert!(matches!(*right, Expr::VarUsage(ref name) if name == "b"));
             }
             _ => panic!("Expected binary expression"),
         }

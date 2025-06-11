@@ -5,6 +5,9 @@ pub enum Token {
     Minus,
     LeftParen,
     RightParen,
+    Int,
+    Ident(String),
+    Assign,
     Illegal,
     EOF,
 }

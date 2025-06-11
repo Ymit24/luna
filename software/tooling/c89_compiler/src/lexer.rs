@@ -45,6 +45,21 @@ impl Iterator for Lexer {
             '-' => Token::Minus,
             '(' => Token::LeftParen,
             ')' => Token::RightParen,
+            '=' => Token::Assign,
+            'a'..='z' | 'A'..='Z' | '_' => {
+                let mut ident = String::new();
+                while let Some(curr) = self.curr() {
+                    if !curr.is_ascii_alphanumeric() && curr != '_' {
+                        break;
+                    }
+                    ident.push(curr);
+                    self.bump();
+                }
+                return Some(match ident.as_str() {
+                    "int" => Token::Int,
+                    _ => Token::Ident(ident),
+                });
+            }
             '0'..='9' => {
                 let mut literal = String::new();
                 while let Some(curr) = self.curr() {
@@ -118,5 +133,26 @@ mod tests {
         assert_eq!(lexer.curr(), Some('+'));
         lexer.bump();
         assert_eq!(lexer.curr(), None);
+    }
+
+    #[test]
+    fn test_next_int_keyword() {
+        let mut lexer = Lexer::new("int");
+        let next = lexer.next().expect("Expected to get a token");
+        assert_eq!(Token::Int, next);
+    }
+
+    #[test]
+    fn test_next_identifier() {
+        let mut lexer = Lexer::new("abc");
+        let next = lexer.next().expect("Expected to get a token");
+        assert_eq!(Token::Ident("abc".to_string()), next);
+    }
+
+    #[test]
+    fn test_next_assign() {
+        let mut lexer = Lexer::new("=");
+        let next = lexer.next().expect("Expected to get a token");
+        assert_eq!(Token::Assign, next);
     }
 }

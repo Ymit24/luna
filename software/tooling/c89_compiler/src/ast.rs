@@ -6,6 +6,12 @@ pub enum Expr {
         operator: Operator,
         right: Box<Expr>,
     },
+    VarDecl {
+        name: String,
+        value: Box<Expr>,
+    },
+    VarUsage(String),
+    Statements(Vec<Expr>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
