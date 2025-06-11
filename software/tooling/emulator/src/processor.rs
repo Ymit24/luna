@@ -51,6 +51,10 @@ impl Processor {
                     self.store_result(destination, result);
                     self.pc = self.handle_jump(jump_condition, result);
                 }
+                Instruction::Label(_) => {
+                    // Labels are just markers and don't need to be executed
+                    self.pc += 1;
+                }
             }
 
             cycle += 1;
