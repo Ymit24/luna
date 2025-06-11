@@ -1,34 +1,63 @@
 use ux::u7;
 
-#[derive(Debug, Clone, Copy)]
+/// Represents the operation to perform in a compute instruction
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Operation {
+    /// Set to 0
     Zero,
+    /// Set to 1
     One,
+    /// Set to -1
     NegOne,
+    /// Use D register
     D,
+    /// Use A register
     A,
+    /// Bitwise NOT of D
     NotD,
+    /// Bitwise NOT of A
     NotA,
+    /// Negate D
     NegD,
+    /// Negate A
     NegA,
+    /// D + 1
     DPlus1,
+    /// A + 1
     APlus1,
+    /// D - 1
     DMin1,
+    /// A - 1
     AMin1,
+    /// D + A
     DPlusA,
+    /// D - A
     DMinA,
+    /// A - D
     AMinD,
+    /// D & A (bitwise AND)
     DAndA,
+    /// D | A (bitwise OR)
     DOrA,
+    /// Use M register
     M,
+    /// Bitwise NOT of M
     NotM,
+    /// Negate M
     NegM,
+    /// M + 1
     MPlus1,
+    /// M - 1
     MMin1,
+    /// D + M
     DPlusM,
+    /// D - M
     DMinM,
+    /// M - D
     MMinD,
+    /// D & M (bitwise AND)
     DAndM,
+    /// D | M (bitwise OR)
     DOrM,
 }
 
@@ -63,6 +92,44 @@ impl From<Operation> for u7 {
             Operation::MMinD => u7::new(0b1000111),
             Operation::DAndM => u7::new(0b1000000),
             Operation::DOrM => u7::new(0b1010101),
+        }
+    }
+}
+
+impl TryFrom<&str> for Operation {
+    type Error = crate::parse_error::ParseError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        match value {
+            "0" => Ok(Operation::Zero),
+            "1" => Ok(Operation::One),
+            "-1" => Ok(Operation::NegOne),
+            "D" => Ok(Operation::D),
+            "A" => Ok(Operation::A),
+            "!D" => Ok(Operation::NotD),
+            "!A" => Ok(Operation::NotA),
+            "-D" => Ok(Operation::NegD),
+            "-A" => Ok(Operation::NegA),
+            "D+1" => Ok(Operation::DPlus1),
+            "A+1" => Ok(Operation::APlus1),
+            "D-1" => Ok(Operation::DMin1),
+            "A-1" => Ok(Operation::AMin1),
+            "D+A" => Ok(Operation::DPlusA),
+            "D-A" => Ok(Operation::DMinA),
+            "A-D" => Ok(Operation::AMinD),
+            "D&A" => Ok(Operation::DAndA),
+            "D|A" => Ok(Operation::DOrA),
+            "M" => Ok(Operation::M),
+            "!M" => Ok(Operation::NotM),
+            "-M" => Ok(Operation::NegM),
+            "M+1" => Ok(Operation::MPlus1),
+            "M-1" => Ok(Operation::MMin1),
+            "D+M" => Ok(Operation::DPlusM),
+            "D-M" => Ok(Operation::DMinM),
+            "M-D" => Ok(Operation::MMinD),
+            "D&M" => Ok(Operation::DAndM),
+            "D|M" => Ok(Operation::DOrM),
+            _ => Err(crate::parse_error::ParseError::IllegalOperation),
         }
     }
 }

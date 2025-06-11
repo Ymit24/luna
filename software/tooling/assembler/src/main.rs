@@ -1,11 +1,10 @@
 use clap::Parser;
-use std::fs;
-
-use compute_instruction::ComputeInstruction;
+use std::{fs, path::PathBuf};
+use thiserror::Error;
 
 use crate::{
-    destination::Destination, instruction::Instruction, jump_condition::JumpCondition,
-    operation::Operation, parse_error::ParseError,
+    instruction::Instruction,
+    parse_error::ParseError,
 };
 
 mod compute_instruction;
@@ -15,30 +14,34 @@ mod jump_condition;
 mod operation;
 mod parse_error;
 
+/// Command line arguments for the assembler
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
-    source_filepath: String,
+    /// Path to the source file to assemble
+    source_filepath: PathBuf,
 }
 
-fn main() {
-    let args = Args::parse();
+/// Custom error type for the assembler
+#[derive(Error, Debug)]
+pub enum AssemblerError {
+    #[error("Failed to read source file: {0}")]
+    FileReadError(#[from] std::io::Error),
+    
+    #[error("Failed to parse instruction: {0}")]
+    ParseError(#[from] ParseError),
+}
 
-    let source_filepath = args.source_filepath;
-    println!("name: {}", &source_filepath);
+/// Result type for the assembler
+type Result<T> = std::result::Result<T, AssemblerError>;
 
-    let contents = match fs::read_to_string(source_filepath) {
-        Err(_) => {
-            panic!("Failed to read source file.");
-        }
-        Ok(contents) => contents,
-    };
-
-    let lines: Vec<String> = contents.split_terminator("\n").map(Into::into).collect();
-    println!("has {} lines", lines.len());
-
-    let mut output: Vec<u16> = vec![];
-    for line in lines.iter() {
+/// Main assembler function that processes a source file and returns the assembled instructions
+fn assemble_file(source_path: &PathBuf) -> Result<Vec<u16>> {
+    let contents = fs::read_to_string(source_path)?;
+    let lines: Vec<String> = contents.lines().map(String::from).collect();
+    
+    let mut output = Vec::new();
+    for line in lines {
         match Instruction::try_from(line.clone()) {
             Ok(instr) => {
                 let instr = u16::from(instr);
@@ -47,11 +50,23 @@ fn main() {
             }
             Err(ParseError::SkipComment | ParseError::EndOfInput) => {}
             Err(e) => eprintln!("skipping '{}', error: '{:?}'", line, e),
-        };
+        }
     }
+    
+    Ok(output)
+}
 
-    println!("Output:");
+fn main() -> Result<()> {
+    let args = Args::parse();
+    
+    println!("Processing file: {}", args.source_filepath.display());
+    
+    let output = assemble_file(&args.source_filepath)?;
+    
+    println!("\nOutput:");
     for out in output {
         println!("{:04X}", out);
     }
+    
+    Ok(())
 }

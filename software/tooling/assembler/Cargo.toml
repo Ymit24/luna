@@ -7,3 +7,4 @@ edition = "2021"
 clap = { version = "4.5.39", features = ["derive"] }
 common = { path="../common"}
 ux = "0.1.6"
+thiserror = "1.0"

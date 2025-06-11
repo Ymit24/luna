@@ -2,16 +2,22 @@ use ux::{u3, u7};
 
 use crate::operation::Operation;
 use crate::parse_error::ParseError;
-use crate::{jump_condition::JumpCondition, Destination};
+use crate::jump_condition::JumpCondition;
+use crate::destination::Destination;
 
-#[derive(Debug, Clone, Copy)]
+/// Represents a compute instruction in the assembly language
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ComputeInstruction {
-    destination: Destination, // for now just single destination
-    operation: Operation,
-    jump_condition: JumpCondition,
+    /// The destination register(s) for the computation result
+    pub destination: Destination,
+    /// The operation to perform
+    pub operation: Operation,
+    /// The jump condition (if any)
+    pub jump_condition: JumpCondition,
 }
 
 impl ComputeInstruction {
+    /// Creates a new compute instruction
     pub fn new(
         destination: Destination,
         operation: Operation,
@@ -39,78 +45,36 @@ impl TryFrom<String> for ComputeInstruction {
     type Error = ParseError;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
-        if value.len() == 0 {
+        if value.is_empty() {
             return Err(ParseError::NotInstruction);
         }
-        let (reg_str, rem) = match value.split_once('=') {
-            None => return Err(ParseError::ComputeMissingEquals),
-            Some(reg) => reg,
-        };
 
-        let dest = match reg_str.trim().to_uppercase().as_str() {
-            "A" => Destination::A,
-            "D" => Destination::D,
-            "M" => Destination::M,
-            "_" => Destination::Null,
-            _ => return Err(ParseError::IllegalDestination),
-        };
+        // Split into destination and operation/jump parts
+        let (dest_str, rem) = value.split_once('=')
+            .ok_or(ParseError::ComputeMissingEquals)?;
 
-        let (op_str, rem) = match rem.split_once(';') {
+        // Parse destination
+        let dest = Destination::try_from(dest_str.trim())?;
+
+        // Split into operation and jump parts
+        let (op_str, jump_str) = match rem.split_once(';') {
             None => (rem, ""),
             Some(x) => x,
         };
 
-        let opcode = match remove_all_whitespace(op_str.trim().to_uppercase()).as_str() {
-            "0" => Operation::Zero,
-            "1" => Operation::One,
-            "-1" => Operation::NegOne,
-            "D" => Operation::D,
-            "A" => Operation::A,
-            "!D" => Operation::NotD,
-            "!A" => Operation::NotA,
-            "D+1" => Operation::DPlus1,
-            "A+1" => Operation::APlus1,
-            "D-1" => Operation::DMin1,
-            "A-1" => Operation::AMin1,
-            "D+A" => Operation::DPlusA,
-            "D-A" => Operation::DMinA,
-            "A-D" => Operation::AMinD,
-            "D&A" => Operation::DAndA,
-            "D|A" => Operation::DOrA,
+        // Parse operation
+        let op_str = remove_all_whitespace(op_str.trim());
+        let opcode = Operation::try_from(op_str.as_str())?;
 
-            "M" => Operation::M,
-            "!M" => Operation::NotM,
-            "-M" => Operation::NegM,
-            "M+1" => Operation::MPlus1,
-            "M-1" => Operation::MMin1,
-            "D+M" => Operation::DPlusM,
-            "D-M" => Operation::DMinM,
-            "M-D" => Operation::MMinD,
-            "D&M" => Operation::DAndM,
-            "D|M" => Operation::DOrM,
-            _ => return Err(ParseError::IllegalOperation),
-        };
+        // Parse jump condition
+        let jump_str = remove_all_whitespace(jump_str);
+        let jmp = JumpCondition::try_from(jump_str.as_str())?;
 
-        let jmp = match remove_all_whitespace(rem.to_uppercase()).as_str() {
-            "" => JumpCondition::Null,
-            "JGT" => JumpCondition::JGT,
-            "JEQ" => JumpCondition::JEQ,
-            "JGE" => JumpCondition::JGE,
-            "JLT" => JumpCondition::JLT,
-            "JNE" => JumpCondition::JNE,
-            "JLE" => JumpCondition::JLE,
-            "JMP" => JumpCondition::JMP,
-            _ => return Err(ParseError::IllegalJump),
-        };
-
-        Ok(ComputeInstruction {
-            destination: dest,
-            operation: opcode,
-            jump_condition: jmp,
-        })
+        Ok(ComputeInstruction::new(dest, opcode, jmp))
     }
 }
 
+/// Removes all whitespace characters from a string
 fn remove_all_whitespace<T: Into<String>>(s: T) -> String {
     s.into().chars().filter(|c| !c.is_whitespace()).collect()
 }

@@ -15,9 +15,6 @@ impl TryFrom<String> for Instruction {
         if value.len() == 0 {
             return Err(ParseError::EndOfInput);
         }
-        if let Ok(ci) = ComputeInstruction::try_from(value.clone()) {
-            return Ok(Instruction::Compute(ci));
-        }
         if value.starts_with("#") {
             return Err(ParseError::SkipComment);
         }
@@ -32,6 +29,14 @@ impl TryFrom<String> for Instruction {
                 Ok(i) => i,
             };
             return Ok(Instruction::Address(imm));
+        }
+        match ComputeInstruction::try_from(value.clone()) {
+            Ok(ci) => return Ok(Instruction::Compute(ci)),
+            Err(e @ ParseError::IllegalDestination)
+            | Err(e @ ParseError::IllegalOperation)
+            | Err(e @ ParseError::IllegalJump)
+            | Err(e @ ParseError::ComputeMissingEquals) => return Err(e),
+            Err(_) => {}
         }
         Err(ParseError::NotInstruction)
     }
