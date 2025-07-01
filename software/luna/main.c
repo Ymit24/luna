@@ -64,8 +64,7 @@ void print_expression(struct ExpressionNode *node) {
 }
 
 int main(void) {
-  printf("hello world from c 2\n");
-
+  puts("Luna Compiler");
   struct Lexer lexer = lexer_make(string_make("5 - (2 + 1); 10;"));
 
   struct Token toks[1024];
