@@ -1,0 +1,38 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wall",
+      "-Wextra",
+      "-Wpedantic",
+      "-Werror",
+      "-std=c99",
+      "-Iinclude",
+      "-o",
+      "lunac",
+      "main.c"
+    ],
+    "directory": "/Users/christiansmith/dev/logisim/digital_computer/software/luna",
+    "file": "/Users/christiansmith/dev/logisim/digital_computer/software/luna/main.c",
+    "output": "/Users/christiansmith/dev/logisim/digital_computer/software/luna/lunac"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wall",
+      "-Wextra",
+      "-Wpedantic",
+      "-Werror",
+      "-std=c99",
+      "-Iinclude",
+      "-o",
+      "lunac",
+      "src/luna_string.c"
+    ],
+    "directory": "/Users/christiansmith/dev/logisim/digital_computer/software/luna",
+    "file": "/Users/christiansmith/dev/logisim/digital_computer/software/luna/src/luna_string.c",
+    "output": "/Users/christiansmith/dev/logisim/digital_computer/software/luna/lunac"
+  }
+]
