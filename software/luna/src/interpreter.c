@@ -1,5 +1,5 @@
-#include "interpretor.h"
 #include "ast.h"
+#include "interpreter.h"
 
 uint16_t evaluate_binary_expression(struct BinaryExpressionNode *node) {
   switch (node->type) {

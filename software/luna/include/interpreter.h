@@ -1,5 +1,5 @@
-#ifndef INTERPRETOR_H
-#define INTERPRETOR_H
+#ifndef INTERPRETER_H
+#define INTERPRETER_H
 
 #include "ast.h"
 
