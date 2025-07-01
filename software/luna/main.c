@@ -4,6 +4,7 @@
 
 #include "arena_allocator.h"
 #include "ast.h"
+#include "interpretor.h"
 #include "lexer.h"
 #include "luna_string.h"
 #include "parser.h"
@@ -80,6 +81,8 @@ int main(void) {
     break;
   }
   }
+
+  printf("Evaluation: %d\n", evaluate_expression(&node));
 
   return 0;
 }
