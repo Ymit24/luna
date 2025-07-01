@@ -11,11 +11,16 @@ int main(void) {
 
   struct Lexer lexer = lexer_make(string_make("123 + 5"));
 
-  struct Token token;
-  while (lexer_next(&lexer, &token)) {
+  struct Token toks[1024];
+  uint16_t tok_index = 0;
+
+  while (lexer_next(&lexer, &toks[tok_index++])) {
+    struct Token token = toks[tok_index - 1];
     printf("Found token of type: %d (%d)\n", token.type, token.value.integer);
     token.value.integer = 0;
   }
+
+  printf("Found a total of %d tokens.\n", tok_index - 1);
 
   return 0;
 }
