@@ -27,9 +27,13 @@ struct Token parser_peek(struct Parser *parser) {
 uint8_t precedence_for_token(enum TokenType type) {
   switch (type) {
   case T_PLUS:
-    return 2;
+    return 1;
   case T_MINUS:
     return 1;
+  case T_STAR:
+    return 2;
+  case T_SLASH:
+    return 2;
   default:
     return 99;
   }
@@ -48,44 +52,47 @@ struct ExpressionNode parse_nud(struct Parser *parser, struct Token token) {
   }
 }
 
-struct ExpressionNode parse_minus(struct Parser *parser,
-                                  struct ExpressionNode left) {
-  struct ExpressionNode right =
-      parse_expression(parser, precedence_for_token(T_MINUS));
-  return (struct ExpressionNode){
-      .type = EXPR_BINARY,
-      .node.binary = ast_make_binary_expression(parser->allocator, BIN_EXPR_SUB,
-                                                left, right)};
-}
-
-struct ExpressionNode parse_plus(struct Parser *parser,
-                                 struct ExpressionNode left) {
-  struct ExpressionNode right =
-      parse_expression(parser, precedence_for_token(T_PLUS));
-  return (struct ExpressionNode){
-      .type = EXPR_BINARY,
-      .node.binary = ast_make_binary_expression(parser->allocator, BIN_EXPR_ADD,
-                                                left, right)};
-}
-
 struct ExpressionNode parse_expression(struct Parser *parser,
                                        uint8_t precendence) {
   struct Token token = parser_peek(parser);
 
   struct ExpressionNode left = parse_nud(parser, token);
 
-  while (precedence_for_token(parser_peek(parser).type) < precendence) {
+  while (precendence < precedence_for_token(parser_peek(parser).type)) {
     token = parser_peek(parser);
+    if (token.type == T_EOF) {
+      return left;
+    }
     parser->position++;
 
     switch (token.type) {
     case T_PLUS:
-      left = parse_plus(parser, left);
+      left = (struct ExpressionNode){
+          .type = EXPR_BINARY,
+          .node.binary = ast_make_binary_expression(
+              parser->allocator, BIN_EXPR_ADD, left,
+              parse_expression(parser, precedence_for_token(T_PLUS)))};
       break;
     case T_MINUS:
-      left = parse_minus(parser, left);
+      left = (struct ExpressionNode){
+          .type = EXPR_BINARY,
+          .node.binary = ast_make_binary_expression(
+              parser->allocator, BIN_EXPR_SUB, left,
+              parse_expression(parser, precedence_for_token(T_MINUS)))};
       break;
-    case T_EOF:
+    case T_STAR:
+      left = (struct ExpressionNode){
+          .type = EXPR_BINARY,
+          .node.binary = ast_make_binary_expression(
+              parser->allocator, BIN_EXPR_MUL, left,
+              parse_expression(parser, precedence_for_token(T_STAR)))};
+      break;
+    case T_SLASH:
+      left = (struct ExpressionNode){
+          .type = EXPR_BINARY,
+          .node.binary = ast_make_binary_expression(
+              parser->allocator, BIN_EXPR_DIV, left,
+              parse_expression(parser, precedence_for_token(T_SLASH)))};
       break;
     default:
       assert(false);

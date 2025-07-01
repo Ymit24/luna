@@ -29,6 +29,20 @@ void print_binary_expression(struct BinaryExpressionNode *node) {
     print_expression(&node->right);
     printf(")");
     break;
+  case BIN_EXPR_MUL:
+    printf("(BinaryExpressionNode type=mul, left=");
+    print_expression(&node->left);
+    printf(", right=");
+    print_expression(&node->right);
+    printf(")");
+    break;
+  case BIN_EXPR_DIV:
+    printf("(BinaryExpressionNode type=div, left=");
+    print_expression(&node->left);
+    printf(", right=");
+    print_expression(&node->right);
+    printf(")");
+    break;
   }
 }
 
@@ -51,7 +65,7 @@ void print_expression(struct ExpressionNode *node) {
 int main(void) {
   printf("hello world from c 2\n");
 
-  struct Lexer lexer = lexer_make(string_make("10 - 5 + 2"));
+  struct Lexer lexer = lexer_make(string_make("10 - 5 + 2 * 2"));
 
   struct Token toks[1024];
   uint16_t tok_index = 0;
@@ -71,22 +85,11 @@ int main(void) {
   struct Parser parser = parser_make(&allocator, toks, tok_index);
   printf("Created a parser.\n");
 
-  struct ExpressionNode node = parse_expression(&parser, 9);
+  struct ExpressionNode node = parse_expression(&parser, 0);
 
   printf("Parsed expression node of type %d\n", node.type);
 
   print_expression(&node);
-
-  switch (node.type) {
-  case EXPR_INTEGER_LITERAL: {
-    printf("\tinteger value: %d\n", node.node.integer->value);
-    break;
-  }
-  case EXPR_BINARY: {
-    puts("Found binary node.");
-    break;
-  }
-  }
 
   printf("Evaluation: %d\n", evaluate_expression(&node));
 
