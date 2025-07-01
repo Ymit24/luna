@@ -4,13 +4,13 @@
 uint16_t evaluate_binary_expression(struct BinaryExpressionNode *node) {
   switch (node->type) {
   case BIN_EXPR_ADD:
-    return evaluate_expression(&node->left) + evaluate_expression(&node->right);
+    return evaluate_expression(node->left) + evaluate_expression(node->right);
   case BIN_EXPR_SUB:
-    return evaluate_expression(&node->left) - evaluate_expression(&node->right);
+    return evaluate_expression(node->left) - evaluate_expression(node->right);
   case BIN_EXPR_MUL:
-    return evaluate_expression(&node->left) * evaluate_expression(&node->right);
+    return evaluate_expression(node->left) * evaluate_expression(node->right);
   case BIN_EXPR_DIV:
-    return evaluate_expression(&node->left) / evaluate_expression(&node->right);
+    return evaluate_expression(node->left) / evaluate_expression(node->right);
   }
 }
 

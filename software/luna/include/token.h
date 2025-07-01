@@ -12,7 +12,8 @@ enum TokenType {
   T_STAR,
   T_SLASH,
   T_LPAREN,
-  T_RPAREN
+  T_RPAREN,
+  T_SEMICOLON,
 };
 
 struct Token {

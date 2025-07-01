@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <inttypes.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -17,30 +18,30 @@ void print_binary_expression(struct BinaryExpressionNode *node) {
   switch (node->type) {
   case BIN_EXPR_ADD:
     printf("(BinaryExpressionNode type=add, left=");
-    print_expression(&node->left);
+    print_expression(node->left);
     printf(", right=");
-    print_expression(&node->right);
+    print_expression(node->right);
     printf(")");
     break;
   case BIN_EXPR_SUB:
     printf("(BinaryExpressionNode type=sub, left=");
-    print_expression(&node->left);
+    print_expression(node->left);
     printf(", right=");
-    print_expression(&node->right);
+    print_expression(node->right);
     printf(")");
     break;
   case BIN_EXPR_MUL:
     printf("(BinaryExpressionNode type=mul, left=");
-    print_expression(&node->left);
+    print_expression(node->left);
     printf(", right=");
-    print_expression(&node->right);
+    print_expression(node->right);
     printf(")");
     break;
   case BIN_EXPR_DIV:
     printf("(BinaryExpressionNode type=div, left=");
-    print_expression(&node->left);
+    print_expression(node->left);
     printf(", right=");
-    print_expression(&node->right);
+    print_expression(node->right);
     printf(")");
     break;
   }
@@ -65,7 +66,7 @@ void print_expression(struct ExpressionNode *node) {
 int main(void) {
   printf("hello world from c 2\n");
 
-  struct Lexer lexer = lexer_make(string_make("5 - (2 + 1)"));
+  struct Lexer lexer = lexer_make(string_make("5 - (2 + 1); 10;"));
 
   struct Token toks[1024];
   uint16_t tok_index = 0;
@@ -85,13 +86,20 @@ int main(void) {
   struct Parser parser = parser_make(&allocator, toks, tok_index);
   printf("Created a parser.\n");
 
-  struct ExpressionNode node = parse_expression(&parser, 0);
+  struct StatementNode *stmt = parse_statements(&parser);
 
-  printf("Parsed expression node of type %d\n", node.type);
+  assert(stmt->type == STMT_EXPR);
 
-  print_expression(&node);
+  printf("Statement has next: %d\n", stmt->next != NULL);
 
-  printf("Evaluation: %d\n", evaluate_expression(&node));
+  while (stmt != NULL) {
+    puts("\n\n-----------\n");
+    printf("Printing expression: %d\n", stmt->type);
+    print_expression(stmt->node.expr);
+    printf("\nEvaluation: %d\n", evaluate_expression(stmt->node.expr));
+    puts("\n+++++++++++\n\n");
+    stmt = stmt->next;
+  }
 
   return 0;
 }
