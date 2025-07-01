@@ -1,7 +1,9 @@
 #include "lexer.h"
 
 #include <ctype.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 struct Lexer lexer_make(struct String source) {
   return (struct Lexer){.source = source, .position = 0};
@@ -68,11 +70,21 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
   case ';':
     out_token->type = T_SEMICOLON;
     break;
+  case '=':
+    out_token->type = T_EQUALS;
+    break;
   default: {
     if (isdigit(current)) {
       out_token->type = T_INTEGER;
       out_token->value.integer = lexer_read_integer(lexer);
       return true;
+    } else {
+      if (lexer->source.length - lexer->position >= 3 &&
+          strncmp("let", &lexer->source.data[lexer->position], 3) == 0) {
+        out_token->type = T_LET;
+        lexer->position += 3;
+        return true;
+      }
     }
   }
   }
