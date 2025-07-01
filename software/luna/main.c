@@ -65,7 +65,13 @@ void print_expression(struct ExpressionNode *node) {
 
 int main(void) {
   puts("Luna Compiler");
-  struct Lexer lexer = lexer_make(string_make("5 - (2 + 1); 10; let"));
+
+  uint8_t arena[1024];
+
+  struct ArenaAllocator allocator = arena_make(&arena, 1024);
+
+  struct Lexer lexer =
+      lexer_make(&allocator, string_make("5 - (2 + 1); 10; let x = 10;"));
 
   struct Token toks[1024];
   uint16_t tok_index = 0;
@@ -77,10 +83,6 @@ int main(void) {
   }
 
   printf("Found a total of %d tokens.\n", tok_index - 1);
-
-  uint8_t arena[1024];
-
-  struct ArenaAllocator allocator = arena_make(&arena, 1024);
 
   struct Parser parser = parser_make(&allocator, toks, tok_index);
   printf("Created a parser.\n");

@@ -1,12 +1,15 @@
 #include "lexer.h"
+#include "arena_allocator.h"
+#include "luna_string.h"
 
 #include <ctype.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-struct Lexer lexer_make(struct String source) {
-  return (struct Lexer){.source = source, .position = 0};
+struct Lexer lexer_make(struct ArenaAllocator *allocator,
+                        struct LunaString source) {
+  return (struct Lexer){
+      .allocator = allocator, .source = source, .position = 0};
 }
 
 char lexer_peek(struct Lexer *lexer) {
@@ -29,6 +32,19 @@ uint16_t lexer_read_integer(struct Lexer *lexer) {
   buf[index] = 0;
 
   return atoi(buf);
+}
+
+struct LunaString lexer_read_symbol(struct Lexer *lexer) {
+  char *buf = arena_alloc(lexer->allocator, 64 * sizeof(char));
+  uint8_t index = 0;
+
+  while (isalpha(lexer_peek(lexer)) && index < 64) {
+    buf[index++] = lexer_peek(lexer);
+    lexer->position++;
+  }
+
+  buf[index] = 0;
+  return (struct LunaString){.data = &buf[0], .length = index};
 }
 
 void lexer_skip_whitespace(struct Lexer *lexer) {
@@ -83,6 +99,10 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
           strncmp("let", &lexer->source.data[lexer->position], 3) == 0) {
         out_token->type = T_LET;
         lexer->position += 3;
+        return true;
+      } else {
+        out_token->type = T_SYMBOL;
+        out_token->value.symbol = lexer_read_symbol(lexer);
         return true;
       }
     }

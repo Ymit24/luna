@@ -1,6 +1,7 @@
 #include "parser.h"
 #include "arena_allocator.h"
 #include "ast.h"
+#include "luna_string.h"
 #include "token.h"
 #include <assert.h>
 #include <stdbool.h>
@@ -145,17 +146,57 @@ struct StatementNode *parse_statements(struct Parser *parser) {
   return head;
 }
 
-struct StatementNode *parse_statement(struct Parser *parser) {
+struct LetStatementNode *parse_let_statement(struct Parser *parser) {
+  assert(parser_peek(parser).type == T_LET);
+  parser->position++;
+
+  assert(parser_peek(parser).type == T_SYMBOL);
+  struct LunaString symbol = parser_peek(parser).value.symbol;
+  parser->position++;
+
+  assert(parser_peek(parser).type == T_EQUALS);
+  parser->position++;
+
   struct ExpressionNode *expr = parse_expression(parser, 0);
 
   assert(parser_peek(parser).type == T_SEMICOLON);
   parser->position++;
 
   return ast_promote(parser->allocator,
-                     &(struct StatementNode){
-                         .type = STMT_EXPR,
-                         .node.expr = expr,
-                         .next = NULL,
+                     &(struct LetStatementNode){
+                         .symbol = symbol,
+                         .expression = expr,
                      },
-                     sizeof(struct StatementNode));
+                     sizeof(struct LetStatementNode));
+}
+
+struct StatementNode *parse_statement(struct Parser *parser) {
+  switch (parser_peek(parser).type) {
+  case T_LET: {
+    struct LetStatementNode *let = parse_let_statement(parser);
+    return ast_promote(parser->allocator,
+                       &(struct StatementNode){
+                           .type = STMT_LET,
+                           .node.let = let,
+                           .next = NULL,
+                       },
+                       sizeof(struct StatementNode));
+  }
+  default: {
+    struct ExpressionNode *expr = parse_expression(parser, 0);
+
+    assert(parser_peek(parser).type == T_SEMICOLON);
+    parser->position++;
+
+    return ast_promote(parser->allocator,
+                       &(struct StatementNode){
+                           .type = STMT_EXPR,
+                           .node.expr = expr,
+                           .next = NULL,
+                       },
+                       sizeof(struct StatementNode));
+  }
+  }
+  assert(false);
+  return NULL;
 }

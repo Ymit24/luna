@@ -4,15 +4,23 @@
 #include <stdint.h>
 
 #include "arena_allocator.h"
+#include "luna_string.h"
 
 enum StatementType {
   STMT_EXPR,
+  STMT_LET,
+};
+
+struct LetStatementNode {
+  struct LunaString symbol;
+  struct ExpressionNode *expression;
 };
 
 struct StatementNode {
   enum StatementType type;
   union {
     struct ExpressionNode *expr;
+    struct LetStatementNode *let;
   } node;
   struct StatementNode *next;
 };

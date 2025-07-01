@@ -3,12 +3,11 @@
 
 #include <stdint.h>
 
-struct String {
+struct LunaString {
   char *data;
   uint16_t length;
 };
 
-struct String string_make(char *source);
+struct LunaString string_make(char *source);
 
 #endif
-

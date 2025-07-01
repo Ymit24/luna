@@ -1,6 +1,7 @@
 #ifndef TOKEN_H
 #define TOKEN_H
 
+#include "luna_string.h"
 #include <stdint.h>
 
 enum TokenType {
@@ -16,12 +17,14 @@ enum TokenType {
   T_SEMICOLON,
   T_LET,
   T_EQUALS,
+  T_SYMBOL,
 };
 
 struct Token {
   enum TokenType type;
   union {
     uint16_t integer;
+    struct LunaString symbol;
   } value;
 };
 
