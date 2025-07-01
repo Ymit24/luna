@@ -2,8 +2,11 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+#include "arena_allocator.h"
+#include "ast.h"
 #include "lexer.h"
 #include "luna_string.h"
+#include "parser.h"
 #include "token.h"
 
 int main(void) {
@@ -21,6 +24,28 @@ int main(void) {
   }
 
   printf("Found a total of %d tokens.\n", tok_index - 1);
+
+  uint8_t arena[1024];
+
+  struct ArenaAllocator allocator = arena_make(&arena, 1024);
+
+  struct Parser parser = parser_make(&allocator, toks, tok_index - 1);
+  printf("Created a parser.\n");
+
+  struct ExpressionNode node = parse_expression(&parser);
+
+  printf("Parsed expression node of type %d\n", node.type);
+
+  switch (node.type) {
+  case EXPR_INTEGER_LITERAL: {
+    printf("\tinteger value: %d\n", node.node.integer->value);
+    break;
+  }
+  case EXPR_BINARY: {
+    puts("Found binary node.");
+    break;
+  }
+  }
 
   return 0;
 }

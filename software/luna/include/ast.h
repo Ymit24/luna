@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#include "arena_allocator.h"
+
 enum ExpressionType {
   EXPR_BINARY,
   EXPR_INTEGER_LITERAL,
@@ -26,5 +28,8 @@ struct BinaryExpressionNode {
   enum BinaryExpressionType type;
   struct ExpressionNode left, right;
 };
+
+struct IntegerLiteralNode *
+ast_make_integer_literal(struct ArenaAllocator *allocator, uint16_t value);
 
 #endif
