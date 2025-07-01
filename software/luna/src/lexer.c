@@ -59,6 +59,12 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
   case '/':
     out_token->type = T_SLASH;
     break;
+  case '(':
+    out_token->type = T_LPAREN;
+    break;
+  case ')':
+    out_token->type = T_RPAREN;
+    break;
   default: {
     if (isdigit(current)) {
       out_token->type = T_INTEGER;

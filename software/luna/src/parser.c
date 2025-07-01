@@ -34,6 +34,8 @@ uint8_t precedence_for_token(enum TokenType type) {
     return 2;
   case T_SLASH:
     return 2;
+  case T_RPAREN:
+    return 0;
   default:
     return 99;
   }
@@ -41,11 +43,18 @@ uint8_t precedence_for_token(enum TokenType type) {
 
 struct ExpressionNode parse_nud(struct Parser *parser, struct Token token) {
   switch (token.type) {
-  case T_INTEGER: {
+  case T_INTEGER:
     return (struct ExpressionNode){.type = EXPR_INTEGER_LITERAL,
                                    .node.integer =
                                        parse_integer_literal(parser)};
-  }
+  case T_LPAREN:
+    assert(parser_peek(parser).type == T_LPAREN);
+    parser->position++;
+    struct ExpressionNode result = parse_expression(parser, 0);
+    assert(parser_peek(parser).type == T_RPAREN);
+    parser->position++; // consume the close paren.
+
+    return result;
   default:
     printf("Found type: %d\n", token.type);
     assert(false);
@@ -95,6 +104,7 @@ struct ExpressionNode parse_expression(struct Parser *parser,
               parse_expression(parser, precedence_for_token(T_SLASH)))};
       break;
     default:
+      printf("Found unexpected token of type %d\n", token.type);
       assert(false);
     }
   }

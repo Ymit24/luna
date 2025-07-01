@@ -65,7 +65,7 @@ void print_expression(struct ExpressionNode *node) {
 int main(void) {
   printf("hello world from c 2\n");
 
-  struct Lexer lexer = lexer_make(string_make("10 - 5 + 2 * 2"));
+  struct Lexer lexer = lexer_make(string_make("5 - (2 + 1)"));
 
   struct Token toks[1024];
   uint16_t tok_index = 0;
