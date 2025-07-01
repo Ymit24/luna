@@ -1,18 +1,17 @@
 #include <ctype.h>
 #include <inttypes.h>
-#include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-enum TokenType { T_ILLEGAL, T_EOF, T_INTEGER };
+enum TokenType { T_ILLEGAL, T_EOF, T_INTEGER, T_PLUS };
 
 struct Token {
   enum TokenType type;
   union {
     uint16_t integer;
-  };
+  } value;
 };
 
 struct String {
@@ -73,10 +72,13 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
   out_token->type = T_ILLEGAL;
 
   switch (current) {
+  case '+': {
+    out_token->type = T_PLUS;
+  }
   default: {
     if (isdigit(current)) {
       out_token->type = T_INTEGER;
-      out_token->integer = lexer_read_integer(lexer);
+      out_token->value.integer = lexer_read_integer(lexer);
       return true;
     }
   }
@@ -87,15 +89,15 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
   return true;
 }
 
-int main() {
+int main(void) {
   printf("hello world from c 2\n");
 
-  struct Lexer lexer = lexer_make(string_make("123 5"));
+  struct Lexer lexer = lexer_make(string_make("123 + 5"));
 
   struct Token token;
-
   while (lexer_next(&lexer, &token)) {
-    printf("Found token of type: %d (%d)\n", token.type, token.integer);
+    printf("Found token of type: %d (%d)\n", token.type, token.value.integer);
+    token.value.integer = 0;
   }
 
   return 0;
