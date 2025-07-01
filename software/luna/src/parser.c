@@ -27,6 +27,8 @@ struct Token parser_peek(struct Parser *parser) {
 uint8_t precedence_for_token(enum TokenType type) {
   switch (type) {
   case T_PLUS:
+    return 2;
+  case T_MINUS:
     return 1;
   default:
     return 99;
@@ -44,6 +46,16 @@ struct ExpressionNode parse_nud(struct Parser *parser, struct Token token) {
     printf("Found type: %d\n", token.type);
     assert(false);
   }
+}
+
+struct ExpressionNode parse_minus(struct Parser *parser,
+                                  struct ExpressionNode left) {
+  struct ExpressionNode right =
+      parse_expression(parser, precedence_for_token(T_MINUS));
+  return (struct ExpressionNode){
+      .type = EXPR_BINARY,
+      .node.binary = ast_make_binary_expression(parser->allocator, BIN_EXPR_SUB,
+                                                left, right)};
 }
 
 struct ExpressionNode parse_plus(struct Parser *parser,
@@ -67,16 +79,16 @@ struct ExpressionNode parse_expression(struct Parser *parser,
     parser->position++;
 
     switch (token.type) {
-    case T_PLUS: {
+    case T_PLUS:
       left = parse_plus(parser, left);
-    }
-    case T_EOF: {
-      puts("Found eof.");
       break;
-    }
-    default: {
+    case T_MINUS:
+      left = parse_minus(parser, left);
+      break;
+    case T_EOF:
+      break;
+    default:
       assert(false);
-    }
     }
   }
 

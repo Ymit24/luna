@@ -22,7 +22,7 @@ struct IntegerLiteralNode {
   uint16_t value;
 };
 
-enum BinaryExpressionType { BIN_EXPR_ADD };
+enum BinaryExpressionType { BIN_EXPR_ADD, BIN_EXPR_SUB };
 
 struct BinaryExpressionNode {
   enum BinaryExpressionType type;

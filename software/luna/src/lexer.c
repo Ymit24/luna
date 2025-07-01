@@ -47,9 +47,12 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
   out_token->type = T_ILLEGAL;
 
   switch (current) {
-  case '+': {
+  case '+':
     out_token->type = T_PLUS;
-  }
+    break;
+  case '-':
+    out_token->type = T_MINUS;
+    break;
   default: {
     if (isdigit(current)) {
       out_token->type = T_INTEGER;

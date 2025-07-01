@@ -15,14 +15,20 @@ void print_expression(struct ExpressionNode *node);
 void print_binary_expression(struct BinaryExpressionNode *node) {
 
   switch (node->type) {
-  case BIN_EXPR_ADD: {
+  case BIN_EXPR_ADD:
     printf("(BinaryExpressionNode type=add, left=");
     print_expression(&node->left);
     printf(", right=");
     print_expression(&node->right);
     printf(")");
     break;
-  }
+  case BIN_EXPR_SUB:
+    printf("(BinaryExpressionNode type=sub, left=");
+    print_expression(&node->left);
+    printf(", right=");
+    print_expression(&node->right);
+    printf(")");
+    break;
   }
 }
 
@@ -45,7 +51,7 @@ void print_expression(struct ExpressionNode *node) {
 int main(void) {
   printf("hello world from c 2\n");
 
-  struct Lexer lexer = lexer_make(string_make("123 + 5 + 11"));
+  struct Lexer lexer = lexer_make(string_make("10 - 5 + 2"));
 
   struct Token toks[1024];
   uint16_t tok_index = 0;

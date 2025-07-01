@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-enum TokenType { T_ILLEGAL, T_EOF, T_INTEGER, T_PLUS };
+enum TokenType { T_ILLEGAL, T_EOF, T_INTEGER, T_PLUS, T_MINUS };
 
 struct Token {
   enum TokenType type;
