@@ -20,6 +20,7 @@ struct Parser parser_make(struct ArenaAllocator *allocator,
 
 struct Token parser_peek(struct Parser *parser);
 
-struct ExpressionNode parse_expression(struct Parser *parser);
+struct ExpressionNode parse_expression(struct Parser *parser,
+                                       uint8_t precendence);
 
 #endif

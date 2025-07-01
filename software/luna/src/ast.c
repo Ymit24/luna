@@ -9,3 +9,14 @@ ast_make_integer_literal(struct ArenaAllocator *allocator, uint16_t value) {
   node->value = value;
   return node;
 }
+
+struct BinaryExpressionNode *ast_make_binary_expression(
+    struct ArenaAllocator *allocator, enum BinaryExpressionType type,
+    struct ExpressionNode left, struct ExpressionNode right) {
+  struct BinaryExpressionNode *node =
+      arena_alloc(allocator, sizeof(struct BinaryExpressionNode));
+  node->type = type;
+  node->left = left;
+  node->right = right;
+  return node;
+}
