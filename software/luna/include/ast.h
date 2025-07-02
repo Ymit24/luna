@@ -9,9 +9,15 @@
 enum StatementType {
   STMT_EXPR,
   STMT_LET,
+  STMT_ASSIGN,
 };
 
 struct LetStatementNode {
+  struct LunaString symbol;
+  struct ExpressionNode *expression;
+};
+
+struct AssignStatementNode {
   struct LunaString symbol;
   struct ExpressionNode *expression;
 };
@@ -21,6 +27,7 @@ struct StatementNode {
   union {
     struct ExpressionNode *expr;
     struct LetStatementNode *let;
+    struct AssignStatementNode *assign;
   } node;
   struct StatementNode *next;
 };

@@ -6,6 +6,17 @@
 #include <stdio.h>
 #include <string.h>
 
+struct Variable *lookup(struct Environment *environment,
+                        struct LunaString symbol) {
+  struct Variable *var = environment->variable;
+  while (var != NULL &&
+         strncmp(var->symbol.data, symbol.data, var->symbol.length) != 0) {
+    var = var->next;
+  }
+  assert(var != NULL);
+  return var;
+}
+
 void evaluate_statement(struct Environment *environment,
                         struct StatementNode *stmt) {
   switch (stmt->type) {
@@ -13,15 +24,21 @@ void evaluate_statement(struct Environment *environment,
     printf("expr: %d\n", evaluate_expression(environment, stmt->node.expr));
     break;
   case STMT_LET: {
-    struct Variable var = (struct Variable){
+    struct Variable variable = (struct Variable){
         .symbol = stmt->node.let->symbol,
         .value = evaluate_expression(environment, stmt->node.let->expression),
         .next = environment->variable,
     };
     environment->variable =
-        ast_promote(environment->allocator, &var, sizeof(struct Variable));
-    printf("let %s = %d\n", stmt->node.let->symbol.data,
-           evaluate_expression(environment, stmt->node.let->expression));
+        ast_promote(environment->allocator, &variable, sizeof(struct Variable));
+    printf("let %s = %d\n", variable.symbol.data, variable.value);
+    break;
+  }
+  case STMT_ASSIGN: {
+    struct Variable *variable = lookup(environment, stmt->node.assign->symbol);
+    variable->value =
+        evaluate_expression(environment, stmt->node.assign->expression);
+    printf("assign %s = %d\n", variable->symbol.data, variable->value);
     break;
   }
   }
@@ -61,14 +78,7 @@ uint16_t evaluate_expression(struct Environment *environment,
   case EXPR_INTEGER_LITERAL:
     return expr->node.integer->value;
   case EXPR_SYMBOL_LITERAL: {
-    struct Variable *var = environment->variable;
-    while (var != NULL &&
-           strncmp(var->symbol.data, expr->node.symbol->value.data,
-                   var->symbol.length) != 0) {
-      var = var->next;
-    }
-    assert(var != NULL);
-    return var->value;
+    return lookup(environment, expr->node.symbol->value)->value;
   }
   case EXPR_BINARY:
     return evaluate_binary_expression(environment, expr->node.binary);

@@ -200,18 +200,35 @@ struct StatementNode *parse_statement(struct Parser *parser) {
                        sizeof(struct StatementNode));
   }
   default: {
-    struct ExpressionNode *expr = parse_expression(parser, 0);
-
-    assert(parser_peek(parser).type == T_SEMICOLON);
+    assert(parser_peek(parser).type == T_SYMBOL);
+    struct LunaString symbol = parser_peek(parser).value.symbol;
     parser->position++;
 
-    return ast_promote(parser->allocator,
-                       &(struct StatementNode){
-                           .type = STMT_EXPR,
-                           .node.expr = expr,
-                           .next = NULL,
-                       },
-                       sizeof(struct StatementNode));
+    switch (parser_peek(parser).type) {
+    case T_EQUALS: {
+      parser->position++;
+      struct ExpressionNode *expr = parse_expression(parser, 0);
+
+      assert(parser_peek(parser).type == T_SEMICOLON);
+      parser->position++;
+
+      return ast_promote(parser->allocator,
+                         &(struct StatementNode){
+                             .type = STMT_ASSIGN,
+                             .node.assign = ast_promote(
+                                 parser->allocator,
+                                 &(struct AssignStatementNode){
+                                     .symbol = symbol, .expression = expr},
+                                 sizeof(struct AssignStatementNode)),
+                             .next = NULL,
+                         },
+                         sizeof(struct StatementNode));
+      break;
+    }
+    default:
+      assert(0);
+      break;
+    };
   }
   }
   assert(false);
