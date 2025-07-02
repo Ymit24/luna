@@ -13,7 +13,6 @@ struct Variable *lookup(struct Environment *environment,
          strncmp(var->symbol.data, symbol.data, var->symbol.length) != 0) {
     var = var->next;
   }
-  assert(var != NULL);
   return var;
 }
 
@@ -34,10 +33,24 @@ void evaluate_statement(struct Environment *environment,
     printf("expr: %d\n", evaluate_expression(environment, stmt->node.expr));
     break;
   case STMT_LET: {
+    assert(lookup(environment, stmt->node.decl->symbol) == NULL);
     struct Variable variable = (struct Variable){
-        .symbol = stmt->node.let->symbol,
-        .value = evaluate_expression(environment, stmt->node.let->expression),
+        .symbol = stmt->node.decl->symbol,
+        .value = evaluate_expression(environment, stmt->node.decl->expression),
         .next = environment->variable,
+        .is_const = false,
+    };
+    environment->variable =
+        ast_promote(environment->allocator, &variable, sizeof(struct Variable));
+    printf("let %s = %d\n", variable.symbol.data, variable.value);
+    break;
+  }
+  case STMT_CONST: {
+    struct Variable variable = (struct Variable){
+        .symbol = stmt->node.decl->symbol,
+        .value = evaluate_expression(environment, stmt->node.decl->expression),
+        .next = environment->variable,
+        .is_const = true,
     };
     environment->variable =
         ast_promote(environment->allocator, &variable, sizeof(struct Variable));
@@ -46,6 +59,9 @@ void evaluate_statement(struct Environment *environment,
   }
   case STMT_ASSIGN: {
     struct Variable *variable = lookup(environment, stmt->node.assign->symbol);
+
+    assert(variable != NULL);
+    assert(!variable->is_const);
     variable->value =
         evaluate_expression(environment, stmt->node.assign->expression);
     printf("assign %s = %d\n", variable->symbol.data, variable->value);
@@ -90,7 +106,9 @@ uint16_t evaluate_expression(struct Environment *environment,
   case EXPR_INTEGER_LITERAL:
     return expr->node.integer->value;
   case EXPR_SYMBOL_LITERAL: {
-    return lookup(environment, expr->node.symbol->value)->value;
+    struct Variable *variable = lookup(environment, expr->node.symbol->value);
+    assert(variable != NULL);
+    return variable->value;
   }
   case EXPR_BINARY:
     return evaluate_binary_expression(environment, expr->node.binary);

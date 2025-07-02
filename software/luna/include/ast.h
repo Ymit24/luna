@@ -1,6 +1,7 @@
 #ifndef AST_H
 #define AST_H
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include "arena_allocator.h"
@@ -9,12 +10,14 @@
 enum StatementType {
   STMT_EXPR,
   STMT_LET,
+  STMT_CONST,
   STMT_ASSIGN,
 };
 
-struct LetStatementNode {
+struct DeclarationStatementNode {
   struct LunaString symbol;
   struct ExpressionNode *expression;
+  bool is_const;
 };
 
 struct AssignStatementNode {
@@ -26,7 +29,7 @@ struct StatementNode {
   enum StatementType type;
   union {
     struct ExpressionNode *expr;
-    struct LetStatementNode *let;
+    struct DeclarationStatementNode *decl;
     struct AssignStatementNode *assign;
   } node;
   struct StatementNode *next;

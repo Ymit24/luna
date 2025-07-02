@@ -75,15 +75,19 @@ int main(void) {
   struct ArenaAllocator allocator = arena_make(&arena, 10024);
 
   struct Lexer lexer = lexer_make(
-      &allocator,
-      string_make(
-          "let a = 5 - (2 + 1); a = 10; let x = 10; let y = 5 + x; a = 10;"));
+      &allocator, string_make("let a = 5 - (2 + 1); const c = 7; a = 10; let x "
+                              "= 10; let y = 5 + x; a = 10; let g = 5;"));
 
   struct Token toks[1024];
   uint16_t tok_index = 0;
 
+  puts("tokens:");
   while (lexer_next(&lexer, &toks[tok_index++])) {
+    if (false) {
+      printf("\t%d\n", toks[tok_index - 1].type);
+    }
   }
+  puts("");
 
   printf("Found a total of %d tokens.\n", tok_index - 1);
 

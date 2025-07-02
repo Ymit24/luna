@@ -163,7 +163,7 @@ struct StatementNode *parse_statements(struct Parser *parser) {
   return head;
 }
 
-struct LetStatementNode *parse_let_statement(struct Parser *parser) {
+struct DeclarationStatementNode *parse_let_statement(struct Parser *parser) {
   assert(parser_peek(parser).type == T_LET);
   parser->position++;
 
@@ -180,21 +180,57 @@ struct LetStatementNode *parse_let_statement(struct Parser *parser) {
   parser->position++;
 
   return ast_promote(parser->allocator,
-                     &(struct LetStatementNode){
+                     &(struct DeclarationStatementNode){
                          .symbol = symbol,
                          .expression = expr,
+                         .is_const = false,
                      },
-                     sizeof(struct LetStatementNode));
+                     sizeof(struct DeclarationStatementNode));
+}
+
+struct DeclarationStatementNode *parse_const_statement(struct Parser *parser) {
+  assert(parser_peek(parser).type == T_CONST);
+  parser->position++;
+
+  assert(parser_peek(parser).type == T_SYMBOL);
+  struct LunaString symbol = parser_peek(parser).value.symbol;
+  parser->position++;
+
+  assert(parser_peek(parser).type == T_EQUALS);
+  parser->position++;
+
+  struct ExpressionNode *expr = parse_expression(parser, 0);
+
+  assert(parser_peek(parser).type == T_SEMICOLON);
+  parser->position++;
+
+  return ast_promote(parser->allocator,
+                     &(struct DeclarationStatementNode){
+                         .symbol = symbol,
+                         .expression = expr,
+                         .is_const = true,
+                     },
+                     sizeof(struct DeclarationStatementNode));
 }
 
 struct StatementNode *parse_statement(struct Parser *parser) {
   switch (parser_peek(parser).type) {
   case T_LET: {
-    struct LetStatementNode *let = parse_let_statement(parser);
+    struct DeclarationStatementNode *decl = parse_let_statement(parser);
     return ast_promote(parser->allocator,
                        &(struct StatementNode){
                            .type = STMT_LET,
-                           .node.let = let,
+                           .node.decl = decl,
+                           .next = NULL,
+                       },
+                       sizeof(struct StatementNode));
+  }
+  case T_CONST: {
+    struct DeclarationStatementNode *decl = parse_const_statement(parser);
+    return ast_promote(parser->allocator,
+                       &(struct StatementNode){
+                           .type = STMT_CONST,
+                           .node.decl = decl,
                            .next = NULL,
                        },
                        sizeof(struct StatementNode));

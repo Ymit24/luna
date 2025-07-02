@@ -100,6 +100,12 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
         out_token->type = T_LET;
         lexer->position += 3;
         return true;
+      } else if (lexer->source.length - lexer->position >= 5 &&
+                 strncmp("const", &lexer->source.data[lexer->position], 5) ==
+                     0) {
+        out_token->type = T_CONST;
+        lexer->position += 5;
+        return true;
       } else {
         out_token->type = T_SYMBOL;
         out_token->value.symbol = lexer_read_symbol(lexer);

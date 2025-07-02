@@ -7,6 +7,7 @@ struct Variable {
   struct LunaString symbol;
   uint16_t value;
   struct Variable *next;
+  bool is_const;
 };
 
 struct Environment {
