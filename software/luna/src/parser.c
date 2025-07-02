@@ -8,6 +8,7 @@
 #include <stdio.h>
 
 struct IntegerLiteralNode *parse_integer_literal(struct Parser *parser);
+struct SymbolLiteralNode *parse_symbol_literal(struct Parser *parser);
 
 struct Parser parser_make(struct ArenaAllocator *allocator,
                           struct Token *tokens, uint16_t token_count) {
@@ -50,6 +51,11 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
         parser->allocator,
         (struct ExpressionNode){.type = EXPR_INTEGER_LITERAL,
                                 .node.integer = parse_integer_literal(parser)});
+  case T_SYMBOL:
+    return ast_promote_expression_node(
+        parser->allocator,
+        (struct ExpressionNode){.type = EXPR_SYMBOL_LITERAL,
+                                .node.symbol = parse_symbol_literal(parser)});
   case T_LPAREN:
     assert(parser_peek(parser).type == T_LPAREN);
     parser->position++;
@@ -130,6 +136,18 @@ struct IntegerLiteralNode *parse_integer_literal(struct Parser *parser) {
   parser->position++;
 
   return ast_make_integer_literal(parser->allocator, token.value.integer);
+}
+
+struct SymbolLiteralNode *parse_symbol_literal(struct Parser *parser) {
+
+  struct Token token = parser_peek(parser);
+  assert(token.type == T_SYMBOL);
+
+  parser->position++;
+
+  return ast_promote(parser->allocator,
+                     &(struct SymbolLiteralNode){.value = token.value.symbol},
+                     sizeof(struct SymbolLiteralNode));
 }
 
 struct StatementNode *parse_statements(struct Parser *parser) {

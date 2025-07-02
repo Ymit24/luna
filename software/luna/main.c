@@ -54,6 +54,11 @@ void print_expression(struct ExpressionNode *node) {
            node->node.integer->value);
     break;
   }
+  case EXPR_SYMBOL_LITERAL: {
+    printf("(ExpressionNode type=symbol_literal, value=%s)",
+           node->node.symbol->value.data);
+    break;
+  }
   case EXPR_BINARY: {
     printf("(ExpressionNode type=binary, node=");
     print_binary_expression(node->node.binary);
@@ -70,8 +75,8 @@ int main(void) {
 
   struct ArenaAllocator allocator = arena_make(&arena, 1024);
 
-  struct Lexer lexer =
-      lexer_make(&allocator, string_make("5 - (2 + 1); 10; let x = 10;"));
+  struct Lexer lexer = lexer_make(
+      &allocator, string_make("5 - (2 + 1); 10; let x = 10; let y = 5 + x;"));
 
   struct Token toks[1024];
   uint16_t tok_index = 0;

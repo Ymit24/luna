@@ -28,18 +28,24 @@ struct StatementNode {
 enum ExpressionType {
   EXPR_BINARY,
   EXPR_INTEGER_LITERAL,
+  EXPR_SYMBOL_LITERAL,
 };
 
 struct ExpressionNode {
   enum ExpressionType type;
   union {
     struct IntegerLiteralNode *integer;
+    struct SymbolLiteralNode *symbol;
     struct BinaryExpressionNode *binary;
   } node;
 };
 
 struct IntegerLiteralNode {
   uint16_t value;
+};
+
+struct SymbolLiteralNode {
+  struct LunaString value;
 };
 
 enum BinaryExpressionType {

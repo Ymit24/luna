@@ -18,6 +18,8 @@ uint16_t evaluate_expression(struct ExpressionNode *expr) {
   switch (expr->type) {
   case EXPR_INTEGER_LITERAL:
     return expr->node.integer->value;
+  case EXPR_SYMBOL_LITERAL:
+    return 0;
   case EXPR_BINARY:
     return evaluate_binary_expression(expr->node.binary);
   }
