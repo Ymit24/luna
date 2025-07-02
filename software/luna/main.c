@@ -75,9 +75,13 @@ int main(void) {
 
   struct ArenaAllocator allocator = arena_make(&arena, 10024);
 
-  struct Lexer lexer = lexer_make(
-      &allocator, string_make("let a = 5 - (2 + 1); const c = 7; a = 10; let x "
-                              "= 10; let y = 5 + x; a = 10; let g: int = 5;"));
+  struct Lexer lexer = lexer_make(&allocator, string_make("let a = 5 - (2 + 1);"
+                                                          "const c = true;"
+                                                          "a = 10;"
+                                                          "let x = 10;"
+                                                          "let y = 5 + x;"
+                                                          "a = 10;"
+                                                          "let g: int = 5;"));
 
   struct Token toks[1024];
   uint16_t tok_index = 0;
@@ -101,12 +105,7 @@ int main(void) {
   annotator_initialize_primitives(&annotator);
   annotator_visit_statements(&annotator, stmt);
 
-  struct Environment environment = (struct Environment){
-      .allocator = &allocator,
-      .variable = NULL,
-  };
-
-  evaluate_statements(&environment, stmt);
+  evaluate_statements(environment_make(&allocator), stmt);
 
   printf("Arena Allocator used %d/%d (%0.2f%%) memory\n", allocator.length,
          allocator.capacity,

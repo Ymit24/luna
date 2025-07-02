@@ -6,6 +6,33 @@
 #include <stdio.h>
 #include <string.h>
 
+struct Environment *environment_make(struct ArenaAllocator *allocator) {
+  struct Environment environment = (struct Environment){
+      .allocator = allocator,
+      .variable = NULL,
+  };
+
+  environment.variable = ast_promote(environment.allocator,
+                                     &(struct Variable){
+                                         .symbol = string_make("true"),
+                                         .value = 1,
+                                         .next = environment.variable,
+                                         .is_const = false,
+                                     },
+                                     sizeof(struct Variable));
+
+  environment.variable = ast_promote(environment.allocator,
+                                     &(struct Variable){
+                                         .symbol = string_make("false"),
+                                         .value = 0,
+                                         .next = environment.variable,
+                                         .is_const = false,
+                                     },
+                                     sizeof(struct Variable));
+
+  return ast_promote(allocator, &environment, sizeof(struct Environment));
+}
+
 struct Variable *lookup(struct Environment *environment,
                         struct LunaString symbol) {
   struct Variable *var = environment->variable;

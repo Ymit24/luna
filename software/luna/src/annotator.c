@@ -2,9 +2,13 @@
 #include "arena_allocator.h"
 #include "ast.h"
 #include "luna_string.h"
+#include <alloca.h>
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
+
+void insert_symbol_entry(struct Annotator *annotator,
+                         struct SymbolTableEntry entry);
 
 struct Annotator annotator_make(struct ArenaAllocator *allocator) {
   return (struct Annotator){
@@ -16,9 +20,13 @@ struct Annotator annotator_make(struct ArenaAllocator *allocator) {
 
 void annotator_initialize_primitives(struct Annotator *annotator) {
   annotator->data_type_table.head = NULL;
-  struct DataType *primitives[] = {ast_promote(
-      annotator->allocator, &(struct DataType){.symbol = string_make("int")},
-      sizeof(struct DataType))
+  struct DataType *primitives[] = {
+      ast_promote(annotator->allocator,
+                  &(struct DataType){.symbol = string_make("int")},
+                  sizeof(struct DataType)),
+      ast_promote(annotator->allocator,
+                  &(struct DataType){.symbol = string_make("bool")},
+                  sizeof(struct DataType))
 
   };
 
@@ -26,6 +34,17 @@ void annotator_initialize_primitives(struct Annotator *annotator) {
     primitives[i]->next = annotator->data_type_table.head;
     annotator->data_type_table.head = primitives[i];
   }
+
+  insert_symbol_entry(annotator, (struct SymbolTableEntry){
+                                     .symbol = string_make("true"),
+                                     .type = primitives[1],
+                                     .next = NULL,
+                                 });
+  insert_symbol_entry(annotator, (struct SymbolTableEntry){
+                                     .symbol = string_make("false"),
+                                     .type = primitives[1],
+                                     .next = NULL,
+                                 });
 }
 
 void print_symbols(struct Annotator *annotator) {
@@ -93,6 +112,7 @@ struct DataType *infer_type(struct Annotator *annotator,
     puts("Infering on binary..");
     struct DataType *left = infer_type(annotator, expr->node.binary->left);
     struct DataType *right = infer_type(annotator, expr->node.binary->right);
+    printf("Left: %s, Right: %s\n", left->symbol.data, right->symbol.data);
     assert(left == right);
     return left;
   }
@@ -118,6 +138,11 @@ void annotator_visit_statement(struct Annotator *annotator,
     assert(lookup_symbol(annotator, statement->node.decl->symbol) == NULL);
     struct DataType *type =
         infer_type(annotator, statement->node.decl->expression);
+    if (statement->node.decl->has_type) {
+      struct DataType *decl_type =
+          lookup_data_type(annotator, statement->node.decl->data_type);
+      assert(type == decl_type);
+    }
     insert_symbol_entry(annotator, (struct SymbolTableEntry){
                                        .symbol = statement->node.decl->symbol,
                                        .type = type,

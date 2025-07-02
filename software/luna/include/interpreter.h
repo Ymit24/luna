@@ -16,6 +16,8 @@ struct Environment {
   struct ArenaAllocator *allocator;
 };
 
+struct Environment *environment_make(struct ArenaAllocator *allocator);
+
 void evaluate_statements(struct Environment *environment,
                          struct StatementNode *stmt);
 
