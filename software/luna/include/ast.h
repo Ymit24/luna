@@ -1,9 +1,11 @@
 #ifndef AST_H
 #define AST_H
+#pragma once
 
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "annotator.h"
 #include "arena_allocator.h"
 #include "luna_string.h"
 
@@ -16,7 +18,7 @@ enum StatementType {
 
 struct DeclarationStatementNode {
   struct LunaString symbol;
-  struct LunaString data_type; // NOTE: May be unused (e.g. uninitialized)
+  struct DataType *data_type; // NOTE: May be unused (e.g. uninitialized)
   struct ExpressionNode *expression;
   bool has_type;
   bool is_const;
@@ -41,6 +43,7 @@ enum ExpressionType {
   EXPR_BINARY,
   EXPR_INTEGER_LITERAL,
   EXPR_SYMBOL_LITERAL,
+  EXPR_FN_DEF,
 };
 
 struct ExpressionNode {
@@ -49,6 +52,7 @@ struct ExpressionNode {
     struct IntegerLiteralNode *integer;
     struct SymbolLiteralNode *symbol;
     struct BinaryExpressionNode *binary;
+    struct FunctionDefinitionExpressionNode *fn_def;
   } node;
 };
 
@@ -58,6 +62,10 @@ struct IntegerLiteralNode {
 
 struct SymbolLiteralNode {
   struct LunaString value;
+};
+
+struct FunctionDefinitionExpressionNode {
+  struct StatementNode *body;
 };
 
 enum BinaryExpressionType {

@@ -7,6 +7,19 @@
 #include <stdio.h>
 #include <string.h>
 
+
+struct DataType DT_INT = (struct DataType){
+    .kind = DTK_PRIMITIVE,
+    .value.primitive = P_INT,
+    .next = NULL,
+};
+
+struct DataType DT_BOOL = (struct DataType){
+    .kind = DTK_PRIMITIVE,
+    .value.primitive = P_BOOL,
+    .next = NULL,
+};
+
 void insert_symbol_entry(struct Annotator *annotator,
                          struct SymbolTableEntry entry);
 
@@ -18,15 +31,25 @@ struct Annotator annotator_make(struct ArenaAllocator *allocator) {
   };
 }
 
+struct DataType *make_primitive(struct Annotator *annotator,
+                                enum PrimitiveType type) {
+  return ast_promote(
+      annotator->allocator,
+      &(struct DataType){.kind = DTK_PRIMITIVE, .value.primitive = type},
+      sizeof(struct DataType));
+}
+
 void annotator_initialize_primitives(struct Annotator *annotator) {
   annotator->data_type_table.head = NULL;
   struct DataType *primitives[] = {
-      ast_promote(annotator->allocator,
-                  &(struct DataType){.symbol = string_make("int")},
-                  sizeof(struct DataType)),
-      ast_promote(annotator->allocator,
-                  &(struct DataType){.symbol = string_make("bool")},
-                  sizeof(struct DataType))
+      ast_promote(
+          annotator->allocator,
+          &(struct DataType){.kind = DTK_PRIMITIVE, .value.primitive = P_INT},
+          sizeof(struct DataType)),
+      ast_promote(
+          annotator->allocator,
+          &(struct DataType){.kind = DTK_PRIMITIVE, .value.primitive = P_BOOL},
+          sizeof(struct DataType))
 
   };
 
@@ -52,8 +75,15 @@ void print_symbols(struct Annotator *annotator) {
   puts("Symbol Table:");
   while (symbol_table_entry != NULL) {
     if (symbol_table_entry->type != NULL) {
-      printf("\t%s: %s\n", symbol_table_entry->symbol.data,
-             symbol_table_entry->type->symbol.data);
+      switch (symbol_table_entry->type->kind) {
+      case DTK_PRIMITIVE:
+        printf("\t%s: %d\n", symbol_table_entry->symbol.data,
+               symbol_table_entry->type->value.primitive);
+        break;
+      case DTK_FUNCTION:
+        printf("\t%s: fn\n", symbol_table_entry->symbol.data);
+        break;
+      }
     } else {
 
       printf("\t%s: unknown\n", symbol_table_entry->symbol.data);
@@ -66,7 +96,14 @@ void print_data_types(struct Annotator *annotator) {
   struct DataType *data_type = annotator->data_type_table.head;
   puts("Type Table:");
   while (data_type != NULL) {
-    printf("\t%s\n", data_type->symbol.data);
+    switch (data_type->kind) {
+    case DTK_PRIMITIVE:
+      printf("\t%d\n", data_type->value.primitive);
+      break;
+    case DTK_FUNCTION:
+      printf("\tfn\n");
+      break;
+    }
     data_type = data_type->next;
   }
 }
@@ -83,39 +120,27 @@ struct SymbolTableEntry *lookup_symbol(struct Annotator *annotator,
   return entry;
 }
 
-struct DataType *lookup_data_type(struct Annotator *annotator,
-                                  struct LunaString symbol) {
-  struct DataType *entry = annotator->data_type_table.head;
-
-  while (entry != NULL &&
-         strncmp(entry->symbol.data, symbol.data, entry->symbol.length) != 0) {
-    entry = entry->next;
-  }
-
-  return entry;
-}
-
 struct DataType *infer_type(struct Annotator *annotator,
                             struct ExpressionNode *expr) {
   switch (expr->type) {
   case EXPR_INTEGER_LITERAL:
     puts("infered int");
-    return lookup_data_type(annotator, string_make("int"));
+    return make_primitive(annotator, P_INT);
   case EXPR_SYMBOL_LITERAL: {
     struct SymbolTableEntry *entry =
         lookup_symbol(annotator, expr->node.symbol->value);
     assert(entry != NULL);
-    printf("infered %s\n", entry->type->symbol.data);
     return entry->type;
   }
   case EXPR_BINARY: {
     puts("Infering on binary..");
     struct DataType *left = infer_type(annotator, expr->node.binary->left);
     struct DataType *right = infer_type(annotator, expr->node.binary->right);
-    printf("Left: %s, Right: %s\n", left->symbol.data, right->symbol.data);
     assert(left == right);
     return left;
   }
+  case EXPR_FN_DEF:
+    break;
   }
 
   puts("Failed to infer type.");
@@ -139,9 +164,7 @@ void annotator_visit_statement(struct Annotator *annotator,
     struct DataType *type =
         infer_type(annotator, statement->node.decl->expression);
     if (statement->node.decl->has_type) {
-      struct DataType *decl_type =
-          lookup_data_type(annotator, statement->node.decl->data_type);
-      assert(type == decl_type);
+      assert(type == statement->node.decl->data_type);
     }
     insert_symbol_entry(annotator, (struct SymbolTableEntry){
                                        .symbol = statement->node.decl->symbol,

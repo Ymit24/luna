@@ -69,12 +69,9 @@ void evaluate_statement(struct Environment *environment,
     };
     environment->variable =
         ast_promote(environment->allocator, &variable, sizeof(struct Variable));
-    if (stmt->node.decl->has_type) {
-      printf("let %s: %s = %d\n", variable.symbol.data,
-             stmt->node.decl->data_type.data, variable.value);
-    } else {
-      printf("let %s = %d\n", variable.symbol.data, variable.value);
-    }
+    assert(stmt->node.decl->has_type);
+    printf("let %s: %d = %d\n", variable.symbol.data,
+           stmt->node.decl->data_type->kind, variable.value);
     break;
   }
   case STMT_CONST: {
@@ -144,5 +141,9 @@ uint16_t evaluate_expression(struct Environment *environment,
   }
   case EXPR_BINARY:
     return evaluate_binary_expression(environment, expr->node.binary);
+  case EXPR_FN_DEF:
+    puts("TODO");
+    assert(0);
+    break;
   }
 }

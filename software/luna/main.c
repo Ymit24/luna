@@ -12,62 +12,6 @@
 #include "parser.h"
 #include "token.h"
 
-void print_expression(struct ExpressionNode *node);
-
-void print_binary_expression(struct BinaryExpressionNode *node) {
-  switch (node->type) {
-  case BIN_EXPR_ADD:
-    printf("(BinaryExpressionNode type=add, left=");
-    print_expression(node->left);
-    printf(", right=");
-    print_expression(node->right);
-    printf(")");
-    break;
-  case BIN_EXPR_SUB:
-    printf("(BinaryExpressionNode type=sub, left=");
-    print_expression(node->left);
-    printf(", right=");
-    print_expression(node->right);
-    printf(")");
-    break;
-  case BIN_EXPR_MUL:
-    printf("(BinaryExpressionNode type=mul, left=");
-    print_expression(node->left);
-    printf(", right=");
-    print_expression(node->right);
-    printf(")");
-    break;
-  case BIN_EXPR_DIV:
-    printf("(BinaryExpressionNode type=div, left=");
-    print_expression(node->left);
-    printf(", right=");
-    print_expression(node->right);
-    printf(")");
-    break;
-  }
-}
-
-void print_expression(struct ExpressionNode *node) {
-  switch (node->type) {
-  case EXPR_INTEGER_LITERAL: {
-    printf("(ExpressionNode type=integeral_literal, value=%d)",
-           node->node.integer->value);
-    break;
-  }
-  case EXPR_SYMBOL_LITERAL: {
-    printf("(ExpressionNode type=symbol_literal, value=%s)",
-           node->node.symbol->value.data);
-    break;
-  }
-  case EXPR_BINARY: {
-    printf("(ExpressionNode type=binary, node=");
-    print_binary_expression(node->node.binary);
-    printf(")");
-    break;
-  }
-  }
-}
-
 int main(void) {
   puts("Luna Compiler");
 
@@ -75,16 +19,18 @@ int main(void) {
 
   struct ArenaAllocator allocator = arena_make(&arena, 10024);
 
-  struct Lexer lexer = lexer_make(&allocator, string_make("let a = 5 - (2 + 1);"
-                                                          "const c = true;"
-                                                          "a = 10;"
-                                                          "let x = 10;"
-                                                          "let y = 5 + x;"
-                                                          "a = 10;"
-                                                          "let g: int = 5;"
-                                                          "const main = fn {"
-                                                          "  const abc = 123;"
-                                                          "}"));
+  struct Lexer lexer =
+      lexer_make(&allocator, string_make("let a = 5 - (2 + 1);"
+                                         "const c = true;"
+                                         "a = 10;"
+                                         "let x = 10;"
+                                         "let y = 5 + x;"
+                                         "a = 10;"
+                                         "let g: int = 5;"
+                                         "const main = fn(): int {"
+                                         "  const abc = 123;"
+                                         "  return 123;"
+                                         "}"));
 
   struct Token toks[1024];
   uint16_t tok_index = 0;

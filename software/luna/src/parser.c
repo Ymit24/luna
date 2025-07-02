@@ -6,6 +6,7 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 
 struct IntegerLiteralNode *parse_integer_literal(struct Parser *parser);
 struct SymbolLiteralNode *parse_symbol_literal(struct Parser *parser);
@@ -38,6 +39,8 @@ uint8_t precedence_for_token(enum TokenType type) {
     return 2;
   case T_RPAREN:
     return 0;
+  case T_RBRACE:
+    return 0;
   default:
     return 0;
   }
@@ -55,13 +58,32 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
         parser->allocator,
         (struct ExpressionNode){.type = EXPR_SYMBOL_LITERAL,
                                 .node.symbol = parse_symbol_literal(parser)});
-  case T_LPAREN:
+  case T_LPAREN: {
     assert(parser_peek(parser).type == T_LPAREN);
     parser->position++;
     struct ExpressionNode *result = parse_expression(parser, 0);
     assert(parser_peek(parser).type == T_RPAREN);
     parser->position++; // consume the close paren.
     return result;
+  }
+  case T_FN: {
+    assert(parser_peek(parser).type == T_LBRACE);
+    parser->position++;
+    struct StatementNode *result = parse_statements(parser);
+    assert(parser_peek(parser).type == T_RBRACE);
+    parser->position++; // consume the close brace.
+    return ast_promote(parser->allocator,
+                       &(struct ExpressionNode){
+                           .type = EXPR_FN_DEF,
+                           .node.fn_def = ast_promote(
+                               parser->allocator,
+                               &(struct FunctionDefinitionExpressionNode){
+                                   .body = result,
+                               },
+                               sizeof(struct FunctionDefinitionExpressionNode)),
+                       },
+                       sizeof(struct ExpressionNode));
+  }
   default:
     printf("Found type: %d\n", token.type);
     assert(false);
@@ -163,6 +185,32 @@ struct StatementNode *parse_statements(struct Parser *parser) {
   return head;
 }
 
+struct DataType *parse_data_type(struct Parser *parser) {
+  struct Token token = parser_peek(parser);
+  switch (token.type) {
+  case T_SYMBOL: {
+    if (strncmp("int", token.value.symbol.data, 3) == 0) {
+      parser->position++;
+      return &DT_INT;
+    } else if (strncmp("bool", token.value.symbol.data, 4) == 0) {
+      parser->position++;
+      return &DT_BOOL;
+    } else {
+      printf("Unknown primitive data type: %s\n", token.value.symbol.data);
+      assert(0);
+    }
+    break;
+  }
+  case T_FN: {
+    break;
+  }
+  default:
+    assert(0);
+  }
+
+  return NULL;
+}
+
 struct DeclarationStatementNode *parse_decl_statement(struct Parser *parser,
                                                       bool is_const) {
   assert(parser_peek(parser).type == (is_const ? T_CONST : T_LET));
@@ -172,15 +220,12 @@ struct DeclarationStatementNode *parse_decl_statement(struct Parser *parser,
   struct LunaString symbol = parser_peek(parser).value.symbol;
   parser->position++;
 
-  struct LunaString data_type;
+  struct DataType *data_type = NULL;
   bool has_type = false;
   if (parser_peek(parser).type == T_COLON) {
     parser->position++;
-    assert(parser_peek(parser).type == T_SYMBOL);
-    data_type = parser_peek(parser).value.symbol;
-    parser->position++;
-    printf("Found type annotation on decl: %s\n", data_type.data);
 
+    data_type = parse_data_type(parser);
     has_type = true;
   }
 
