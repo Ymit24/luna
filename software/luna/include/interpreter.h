@@ -2,6 +2,7 @@
 #define INTERPRETER_H
 
 #include "ast.h"
+#include "luna_string.h"
 
 struct Variable {
   struct LunaString symbol;

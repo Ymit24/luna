@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+#include "annotator.h"
 #include "arena_allocator.h"
 #include "ast.h"
 #include "interpreter.h"
@@ -94,6 +95,11 @@ int main(void) {
   struct Parser parser = parser_make(&allocator, toks, tok_index);
 
   struct StatementNode *stmt = parse_statements(&parser);
+
+  struct Annotator annotator = annotator_make(&allocator);
+
+
+  annotator_initialize_primitives(&annotator);
 
   struct Environment environment = (struct Environment){
       .allocator = &allocator,
