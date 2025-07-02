@@ -3,6 +3,21 @@
 
 #include "ast.h"
 
-uint16_t evaluate_expression(struct ExpressionNode *expr);
+struct Variable {
+  struct LunaString symbol;
+  uint16_t value;
+  struct Variable *next;
+};
+
+struct Environment {
+  struct Variable *variable;
+  struct ArenaAllocator *allocator;
+};
+
+void evaluate_statements(struct Environment *environment,
+                         struct StatementNode *stmt);
+
+uint16_t evaluate_expression(struct Environment *environment,
+                             struct ExpressionNode *expr);
 
 #endif

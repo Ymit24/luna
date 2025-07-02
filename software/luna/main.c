@@ -5,7 +5,7 @@
 
 #include "arena_allocator.h"
 #include "ast.h"
-#include "interpretor.h"
+#include "interpreter.h"
 #include "lexer.h"
 #include "luna_string.h"
 #include "parser.h"
@@ -14,7 +14,6 @@
 void print_expression(struct ExpressionNode *node);
 
 void print_binary_expression(struct BinaryExpressionNode *node) {
-
   switch (node->type) {
   case BIN_EXPR_ADD:
     printf("(BinaryExpressionNode type=add, left=");
@@ -94,18 +93,23 @@ int main(void) {
 
   struct StatementNode *stmt = parse_statements(&parser);
 
-  assert(stmt->type == STMT_EXPR);
+  struct Environment environment = (struct Environment){
+      .allocator = &allocator,
+      .variable = NULL,
+  };
 
-  printf("Statement has next: %d\n", stmt->next != NULL);
+  evaluate_statements(&environment, stmt);
 
-  while (stmt != NULL) {
-    puts("\n\n-----------\n");
-    printf("Printing expression: %d\n", stmt->type);
-    print_expression(stmt->node.expr);
-    printf("\nEvaluation: %d\n", evaluate_expression(stmt->node.expr));
-    puts("\n+++++++++++\n\n");
-    stmt = stmt->next;
-  }
+  // printf("Statement has next: %d\n", stmt->next != NULL);
+  //
+  // while (stmt != NULL) {
+  //   puts("\n\n-----------\n");
+  //   printf("Printing expression: %d\n", stmt->type);
+  //   print_expression(stmt->node.expr);
+  //   printf("\nEvaluation: %d\n", evaluate_expression(stmt->node.expr));
+  //   puts("\n+++++++++++\n\n");
+  //   stmt = stmt->next;
+  // }
 
   return 0;
 }
