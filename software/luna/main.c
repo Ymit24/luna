@@ -75,21 +75,18 @@ int main(void) {
   struct ArenaAllocator allocator = arena_make(&arena, 1024);
 
   struct Lexer lexer = lexer_make(
-      &allocator, string_make("5 - (2 + 1); 10; let x = 10; let y = 5 + x;"));
+      &allocator,
+      string_make("let a = 5 - (2 + 1); 10; let x = 10; let y = 5 + x; a;"));
 
   struct Token toks[1024];
   uint16_t tok_index = 0;
 
   while (lexer_next(&lexer, &toks[tok_index++])) {
-    struct Token token = toks[tok_index - 1];
-    printf("Found token of type: %d (%d)\n", token.type, token.value.integer);
-    token.value.integer = 0;
   }
 
   printf("Found a total of %d tokens.\n", tok_index - 1);
 
   struct Parser parser = parser_make(&allocator, toks, tok_index);
-  printf("Created a parser.\n");
 
   struct StatementNode *stmt = parse_statements(&parser);
 
@@ -99,17 +96,6 @@ int main(void) {
   };
 
   evaluate_statements(&environment, stmt);
-
-  // printf("Statement has next: %d\n", stmt->next != NULL);
-  //
-  // while (stmt != NULL) {
-  //   puts("\n\n-----------\n");
-  //   printf("Printing expression: %d\n", stmt->type);
-  //   print_expression(stmt->node.expr);
-  //   printf("\nEvaluation: %d\n", evaluate_expression(stmt->node.expr));
-  //   puts("\n+++++++++++\n\n");
-  //   stmt = stmt->next;
-  // }
 
   return 0;
 }

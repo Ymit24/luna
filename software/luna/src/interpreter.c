@@ -61,7 +61,6 @@ uint16_t evaluate_expression(struct Environment *environment,
   case EXPR_INTEGER_LITERAL:
     return expr->node.integer->value;
   case EXPR_SYMBOL_LITERAL: {
-    printf("Searching for variable: %s\n", expr->node.symbol->value.data);
     struct Variable *var = environment->variable;
     while (var != NULL &&
            strncmp(var->symbol.data, expr->node.symbol->value.data,

@@ -39,7 +39,6 @@ uint8_t precedence_for_token(enum TokenType type) {
   case T_RPAREN:
     return 0;
   default:
-    printf("Unexpected token of type: %d\n", type);
     return 0;
   }
 }
