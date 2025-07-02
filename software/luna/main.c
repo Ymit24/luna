@@ -81,7 +81,10 @@ int main(void) {
                                                           "let x = 10;"
                                                           "let y = 5 + x;"
                                                           "a = 10;"
-                                                          "let g: int = 5;"));
+                                                          "let g: int = 5;"
+                                                          "const main = fn {"
+                                                          "  const abc = 123;"
+                                                          "}"));
 
   struct Token toks[1024];
   uint16_t tok_index = 0;

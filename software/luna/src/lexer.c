@@ -83,6 +83,12 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
   case ')':
     out_token->type = T_RPAREN;
     break;
+  case '{':
+    out_token->type = T_LBRACE;
+    break;
+  case '}':
+    out_token->type = T_RBRACE;
+    break;
   case ';':
     out_token->type = T_SEMICOLON;
     break;
@@ -108,6 +114,11 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
                      0) {
         out_token->type = T_CONST;
         lexer->position += 5;
+        return true;
+      } else if (lexer->source.length - lexer->position >= 2 &&
+                 strncmp("fn", &lexer->source.data[lexer->position], 2) == 0) {
+        out_token->type = T_FN;
+        lexer->position += 2;
         return true;
       } else {
         out_token->type = T_SYMBOL;

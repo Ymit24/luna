@@ -14,12 +14,15 @@ enum TokenType {
   T_SLASH,
   T_LPAREN,
   T_RPAREN,
+  T_LBRACE,
+  T_RBRACE,
   T_SEMICOLON,
   T_COLON,
   T_LET,
   T_CONST,
   T_EQUALS,
   T_SYMBOL,
+  T_FN,
 };
 
 struct Token {
