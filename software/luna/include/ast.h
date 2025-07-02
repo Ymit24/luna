@@ -16,7 +16,9 @@ enum StatementType {
 
 struct DeclarationStatementNode {
   struct LunaString symbol;
+  struct LunaString data_type; // NOTE: May be unused (e.g. uninitialized)
   struct ExpressionNode *expression;
+  bool has_type;
   bool is_const;
 };
 

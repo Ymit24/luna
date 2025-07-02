@@ -163,13 +163,26 @@ struct StatementNode *parse_statements(struct Parser *parser) {
   return head;
 }
 
-struct DeclarationStatementNode *parse_let_statement(struct Parser *parser) {
-  assert(parser_peek(parser).type == T_LET);
+struct DeclarationStatementNode *parse_decl_statement(struct Parser *parser,
+                                                      bool is_const) {
+  assert(parser_peek(parser).type == (is_const ? T_CONST : T_LET));
   parser->position++;
 
   assert(parser_peek(parser).type == T_SYMBOL);
   struct LunaString symbol = parser_peek(parser).value.symbol;
   parser->position++;
+
+  struct LunaString data_type;
+  bool has_type = false;
+  if (parser_peek(parser).type == T_COLON) {
+    parser->position++;
+    assert(parser_peek(parser).type == T_SYMBOL);
+    data_type = parser_peek(parser).value.symbol;
+    parser->position++;
+    printf("Found type annotation on decl: %s\n", data_type.data);
+
+    has_type = true;
+  }
 
   assert(parser_peek(parser).type == T_EQUALS);
   parser->position++;
@@ -180,43 +193,18 @@ struct DeclarationStatementNode *parse_let_statement(struct Parser *parser) {
   parser->position++;
 
   return ast_promote(parser->allocator,
-                     &(struct DeclarationStatementNode){
-                         .symbol = symbol,
-                         .expression = expr,
-                         .is_const = false,
-                     },
-                     sizeof(struct DeclarationStatementNode));
-}
-
-struct DeclarationStatementNode *parse_const_statement(struct Parser *parser) {
-  assert(parser_peek(parser).type == T_CONST);
-  parser->position++;
-
-  assert(parser_peek(parser).type == T_SYMBOL);
-  struct LunaString symbol = parser_peek(parser).value.symbol;
-  parser->position++;
-
-  assert(parser_peek(parser).type == T_EQUALS);
-  parser->position++;
-
-  struct ExpressionNode *expr = parse_expression(parser, 0);
-
-  assert(parser_peek(parser).type == T_SEMICOLON);
-  parser->position++;
-
-  return ast_promote(parser->allocator,
-                     &(struct DeclarationStatementNode){
-                         .symbol = symbol,
-                         .expression = expr,
-                         .is_const = true,
-                     },
+                     &(struct DeclarationStatementNode){.symbol = symbol,
+                                                        .expression = expr,
+                                                        .is_const = is_const,
+                                                        .has_type = has_type,
+                                                        .data_type = data_type},
                      sizeof(struct DeclarationStatementNode));
 }
 
 struct StatementNode *parse_statement(struct Parser *parser) {
   switch (parser_peek(parser).type) {
   case T_LET: {
-    struct DeclarationStatementNode *decl = parse_let_statement(parser);
+    struct DeclarationStatementNode *decl = parse_decl_statement(parser, false);
     return ast_promote(parser->allocator,
                        &(struct StatementNode){
                            .type = STMT_LET,
@@ -226,7 +214,7 @@ struct StatementNode *parse_statement(struct Parser *parser) {
                        sizeof(struct StatementNode));
   }
   case T_CONST: {
-    struct DeclarationStatementNode *decl = parse_const_statement(parser);
+    struct DeclarationStatementNode *decl = parse_decl_statement(parser, true);
     return ast_promote(parser->allocator,
                        &(struct StatementNode){
                            .type = STMT_CONST,

@@ -86,6 +86,9 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
   case ';':
     out_token->type = T_SEMICOLON;
     break;
+  case ':':
+    out_token->type = T_COLON;
+    break;
   case '=':
     out_token->type = T_EQUALS;
     break;

@@ -42,7 +42,12 @@ void evaluate_statement(struct Environment *environment,
     };
     environment->variable =
         ast_promote(environment->allocator, &variable, sizeof(struct Variable));
-    printf("let %s = %d\n", variable.symbol.data, variable.value);
+    if (stmt->node.decl->has_type) {
+      printf("let %s: %s = %d\n", variable.symbol.data,
+             stmt->node.decl->data_type.data, variable.value);
+    } else {
+      printf("let %s = %d\n", variable.symbol.data, variable.value);
+    }
     break;
   }
   case STMT_CONST: {

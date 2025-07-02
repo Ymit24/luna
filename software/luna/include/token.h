@@ -15,6 +15,7 @@ enum TokenType {
   T_LPAREN,
   T_RPAREN,
   T_SEMICOLON,
+  T_COLON,
   T_LET,
   T_CONST,
   T_EQUALS,
