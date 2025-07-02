@@ -70,9 +70,9 @@ void print_expression(struct ExpressionNode *node) {
 int main(void) {
   puts("Luna Compiler");
 
-  uint8_t arena[1024];
+  uint8_t arena[10024];
 
-  struct ArenaAllocator allocator = arena_make(&arena, 1024);
+  struct ArenaAllocator allocator = arena_make(&arena, 10024);
 
   struct Lexer lexer = lexer_make(
       &allocator,
@@ -98,5 +98,8 @@ int main(void) {
 
   evaluate_statements(&environment, stmt);
 
+  printf("Arena Allocator used %d/%d (%0.2f%%) memory\n", allocator.length,
+         allocator.capacity,
+         (double)allocator.length / (double)allocator.capacity * 100.0);
   return 0;
 }
