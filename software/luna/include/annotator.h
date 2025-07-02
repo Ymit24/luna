@@ -16,6 +16,7 @@ struct DataTypeTable {
 
 struct SymbolTableEntry {
   struct LunaString symbol;
+  struct DataType* type;
   struct SymbolTableEntry *next;
 };
 
