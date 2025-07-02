@@ -17,6 +17,16 @@ struct Variable *lookup(struct Environment *environment,
   return var;
 }
 
+void print_variables(struct Environment *environment) {
+  struct Variable *variable = environment->variable;
+
+  puts("Variables:");
+  while (variable != NULL) {
+    printf("\t%s = %d\n", variable->symbol.data, variable->value);
+    variable = variable->next;
+  }
+}
+
 void evaluate_statement(struct Environment *environment,
                         struct StatementNode *stmt) {
   switch (stmt->type) {
@@ -42,6 +52,8 @@ void evaluate_statement(struct Environment *environment,
     break;
   }
   }
+
+  print_variables(environment);
 }
 
 void evaluate_statements(struct Environment *environment,

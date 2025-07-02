@@ -76,7 +76,8 @@ int main(void) {
 
   struct Lexer lexer = lexer_make(
       &allocator,
-      string_make("let a = 5 - (2 + 1); 10; let x = 10; let y = 5 + x; a = 10;"));
+      string_make(
+          "let a = 5 - (2 + 1); a = 10; let x = 10; let y = 5 + x; a = 10;"));
 
   struct Token toks[1024];
   uint16_t tok_index = 0;

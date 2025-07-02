@@ -200,6 +200,7 @@ struct StatementNode *parse_statement(struct Parser *parser) {
                        sizeof(struct StatementNode));
   }
   default: {
+    printf("sym: %d\n", parser_peek(parser).type);
     assert(parser_peek(parser).type == T_SYMBOL);
     struct LunaString symbol = parser_peek(parser).value.symbol;
     parser->position++;
