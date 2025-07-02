@@ -2,6 +2,7 @@
 #define ANNOTATOR_H
 
 #include "arena_allocator.h"
+#include "ast.h"
 #include "luna_string.h"
 
 struct DataType {
@@ -30,5 +31,8 @@ struct Annotator {
 
 void annotator_initialize_primitives(struct Annotator *annotator);
 struct Annotator annotator_make(struct ArenaAllocator *allocator);
+
+void annotator_visit_statements(struct Annotator *annotator,
+                                struct StatementNode *statement);
 
 #endif

@@ -98,8 +98,8 @@ int main(void) {
 
   struct Annotator annotator = annotator_make(&allocator);
 
-
   annotator_initialize_primitives(&annotator);
+  annotator_visit_statements(&annotator, stmt);
 
   struct Environment environment = (struct Environment){
       .allocator = &allocator,
