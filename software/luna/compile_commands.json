@@ -106,5 +106,59 @@
     "directory": "/Users/christiansmith/dev/logisim/digital_computer/software/luna",
     "file": "/Users/christiansmith/dev/logisim/digital_computer/software/luna/src/arena_allocator.c",
     "output": "/Users/christiansmith/dev/logisim/digital_computer/software/luna/lunac"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wall",
+      "-Wextra",
+      "-Wpedantic",
+      "-Werror",
+      "-std=c99",
+      "-Iinclude",
+      "-o",
+      "lunac",
+      "src/interpreter.c"
+    ],
+    "directory": "/Users/christiansmith/dev/logisim/digital_computer/software/luna",
+    "file": "/Users/christiansmith/dev/logisim/digital_computer/software/luna/src/interpreter.c",
+    "output": "/Users/christiansmith/dev/logisim/digital_computer/software/luna/lunac"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wall",
+      "-Wextra",
+      "-Wpedantic",
+      "-Werror",
+      "-std=c99",
+      "-Iinclude",
+      "-o",
+      "lunac",
+      "src/annotator.c"
+    ],
+    "directory": "/Users/christiansmith/dev/logisim/digital_computer/software/luna",
+    "file": "/Users/christiansmith/dev/logisim/digital_computer/software/luna/src/annotator.c",
+    "output": "/Users/christiansmith/dev/logisim/digital_computer/software/luna/lunac"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wall",
+      "-Wextra",
+      "-Wpedantic",
+      "-Werror",
+      "-std=c99",
+      "-Iinclude",
+      "-o",
+      "lunac",
+      "src/instruction_builder.c"
+    ],
+    "directory": "/Users/christiansmith/dev/logisim/digital_computer/software/luna",
+    "file": "/Users/christiansmith/dev/logisim/digital_computer/software/luna/src/instruction_builder.c",
+    "output": "/Users/christiansmith/dev/logisim/digital_computer/software/luna/lunac"
   }
 ]

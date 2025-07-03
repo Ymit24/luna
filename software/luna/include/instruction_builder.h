@@ -1,5 +1,5 @@
-#ifndef INSTRUCTIONS_H
-#define INSTRUCTIONS_H
+#ifndef INSTRUCTION_BUILDER_H
+#define INSTRUCTION_BUILDER_H
 
 #include "luna_string.h"
 #include <stdio.h>
