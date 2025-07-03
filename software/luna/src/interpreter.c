@@ -1,4 +1,5 @@
 #include "interpreter.h"
+#include "annotator.h"
 #include "arena_allocator.h"
 #include "ast.h"
 #include "luna_string.h"
@@ -15,6 +16,7 @@ struct Environment *environment_make(struct ArenaAllocator *allocator) {
   environment.variable = ast_promote(environment.allocator,
                                      &(struct Variable){
                                          .symbol = string_make("true"),
+                                         .type = &DT_BOOL,
                                          .value = 1,
                                          .next = environment.variable,
                                          .is_const = false,
@@ -24,6 +26,7 @@ struct Environment *environment_make(struct ArenaAllocator *allocator) {
   environment.variable = ast_promote(environment.allocator,
                                      &(struct Variable){
                                          .symbol = string_make("false"),
+                                         .type = &DT_BOOL,
                                          .value = 0,
                                          .next = environment.variable,
                                          .is_const = false,
@@ -63,6 +66,7 @@ void evaluate_statement(struct Environment *environment,
     assert(lookup(environment, stmt->node.decl->symbol) == NULL);
     struct Variable variable = (struct Variable){
         .symbol = stmt->node.decl->symbol,
+        .type = stmt->node.decl->data_type,
         .value = evaluate_expression(environment, stmt->node.decl->expression),
         .next = environment->variable,
         .is_const = false,
@@ -78,6 +82,7 @@ void evaluate_statement(struct Environment *environment,
     struct Variable variable = (struct Variable){
         .symbol = stmt->node.decl->symbol,
         .value = evaluate_expression(environment, stmt->node.decl->expression),
+        .type = stmt->node.decl->data_type,
         .next = environment->variable,
         .is_const = true,
     };

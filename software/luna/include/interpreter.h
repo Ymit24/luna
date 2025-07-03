@@ -1,11 +1,13 @@
 #ifndef INTERPRETER_H
 #define INTERPRETER_H
 
+#include "annotator.h"
 #include "ast.h"
 #include "luna_string.h"
 
 struct Variable {
   struct LunaString symbol;
+  struct DataType *type;
   uint16_t value;
   struct Variable *next;
   bool is_const;
