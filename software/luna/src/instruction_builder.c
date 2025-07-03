@@ -1,56 +1,77 @@
 #include "instruction_builder.h"
-#include "luna_string.h"
+#include "arena_allocator.h"
+#include "ast.h"
 #include <assert.h>
 
-uint16_t IB_SP_ADDR = 1, IB_BSP_ADDR = 2, IB_NP_ADDR = 0;
+struct InstructionGroup *
+get_preamble_group(struct InstructionBuilder *instruction_builder) {
+  return instruction_builder->head;
+}
 
-struct InstructionBuilder instruction_builder_make(FILE *output_file) {
-  return (struct InstructionBuilder){
-      .output_file = output_file,
+struct InstructionGroup *
+get_static_group(struct InstructionBuilder *instruction_builder) {
+  return instruction_builder->head->next;
+}
+
+struct InstructionBuilder
+instruction_builder_make(struct ArenaAllocator *allocator) {
+  struct InstructionBuilder instruction_builder = (struct InstructionBuilder){
+      .allocator = allocator,
+      .head = NULL,
+      .current = NULL,
   };
+
+  // make preamble
+  ib_push_fn(&instruction_builder);
+  // make statics
+  ib_push_fn(&instruction_builder);
+
+  assert(instruction_builder.head != NULL);
+  assert(instruction_builder.head->next != NULL);
+  assert(instruction_builder.current != NULL);
+
+  return instruction_builder;
 }
 
-void instr_write_line(struct InstructionBuilder *instruction_builder,
-                      struct LunaString line) {
-  if (fputs(line.data, instruction_builder->output_file) == EOF) {
-    fclose(instruction_builder->output_file);
-    puts("Failed to write to output file.");
-    assert(0);
+void ib_push_fn(struct InstructionBuilder *instruction_builder) {
+  struct InstructionGroup *group = ast_promote(
+      instruction_builder->allocator,
+      &(struct InstructionGroup){.prev = instruction_builder->current,
+                                 .next = NULL,
+                                 .head = NULL,
+                                 .tail = NULL},
+      sizeof(struct InstructionGroup));
+
+  if (instruction_builder->current != NULL) {
+    instruction_builder->current->next = group;
   }
+
+  if (instruction_builder->head == NULL) {
+    instruction_builder->head = group;
+  }
+
+  instruction_builder->current = group;
 }
 
-void instr_push_push(struct InstructionBuilder *instruction_builder,
-                     struct LunaString memory_segment, uint16_t location) {
-  char buff[64] = {0};
-  uint16_t length =
-      sprintf(buff, "push %s %d\n", memory_segment.data, location);
-  struct LunaString line = string_make(buff);
-  assert(line.length == length);
-  instr_write_line(instruction_builder, line);
+// NOTE: This does not remove function, just finishes the generation, for nested
+// functions
+void ib_pop_fn(struct InstructionBuilder *instruction_builder) {
+  assert(instruction_builder->current != NULL);
+
+  instruction_builder->current = instruction_builder->current->prev;
 }
 
-void instr_push_pop(struct InstructionBuilder *instruction_builder,
-                    struct LunaString memory_segment, uint16_t location) {
-  char buff[64] = {0};
-  uint16_t length = sprintf(buff, "pop %s %d\n", memory_segment.data, location);
-  struct LunaString line = string_make(buff);
-  assert(line.length == length);
-  instr_write_line(instruction_builder, line);
-}
+void ib_push_instruction(struct InstructionBuilder *instruction_builder,
+                         struct Instruction *instr) {
+  assert(instruction_builder->current != NULL);
 
-void instr_push_add(struct InstructionBuilder *instruction_builder) {
-  instr_write_line(instruction_builder, string_make("add"));
-}
-
-void instr_push_sub(struct InstructionBuilder *instruction_builder) {
-  instr_write_line(instruction_builder, string_make("sub"));
-}
-
-void instr_push_label(struct InstructionBuilder *instruction_builder,
-                      struct LunaString label) {
-  char buff[64] = {0};
-  uint16_t length = sprintf(buff, "$%s\n", label.data);
-  struct LunaString line = string_make(buff);
-  assert(line.length == length);
-  instr_write_line(instruction_builder, line);
+  if (instruction_builder->current->tail == NULL) {
+    assert(instruction_builder->current->head == NULL);
+    instruction_builder->current->tail = instr;
+    instruction_builder->current->head = instr;
+  } else {
+    assert(instruction_builder->current->head != NULL);
+    instruction_builder->current->tail->next = instr;
+    instruction_builder->current->tail = instr;
+  }
 }
