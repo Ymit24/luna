@@ -20,13 +20,13 @@ void instr_push_push(struct InstructionBuilder *instruction_builder,
 // pop $1 $2
 void instr_push_pop(struct InstructionBuilder *instruction_builder,
                     struct LunaString memory_segment, uint16_t location);
-// // add
-// void instr_push_add(struct InstructionBuilder *instruction_builder);
-// // sub
-// void instr_push_sub(struct InstructionBuilder *instruction_builder);
-// // $main
-// void instr_push_label(struct InstructionBuilder *instruction_builder,
-//                       struct LunaString label);
+// add
+void instr_push_add(struct InstructionBuilder *instruction_builder);
+// sub
+void instr_push_sub(struct InstructionBuilder *instruction_builder);
+// $main
+void instr_push_label(struct InstructionBuilder *instruction_builder,
+                      struct LunaString label);
 // // ret
 // void instr_push_return(struct InstructionBuilder *instruction_builder);
 // // call $1
