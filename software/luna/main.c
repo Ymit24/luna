@@ -29,8 +29,7 @@ int main(void) {
                                          "let g: int = 5;"
                                          "const main = fn(): int {"
                                          "  const abc = 123;"
-                                         "  return 123;"
-                                         "}"));
+                                         "};"));
 
   struct Token toks[1024];
   uint16_t tok_index = 0;

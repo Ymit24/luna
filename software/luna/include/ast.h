@@ -66,6 +66,7 @@ struct SymbolLiteralNode {
 
 struct FunctionDefinitionExpressionNode {
   struct StatementNode *body;
+  struct DataType *return_type;
 };
 
 enum BinaryExpressionType {

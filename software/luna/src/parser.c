@@ -1,4 +1,5 @@
 #include "parser.h"
+#include "annotator.h"
 #include "arena_allocator.h"
 #include "ast.h"
 #include "luna_string.h"
@@ -10,6 +11,7 @@
 
 struct IntegerLiteralNode *parse_integer_literal(struct Parser *parser);
 struct SymbolLiteralNode *parse_symbol_literal(struct Parser *parser);
+struct DataType *parse_data_type(struct Parser *parser);
 
 struct Parser parser_make(struct ArenaAllocator *allocator,
                           struct Token *tokens, uint16_t token_count) {
@@ -67,6 +69,20 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
     return result;
   }
   case T_FN: {
+    struct DataType *return_type = NULL;
+    assert(parser_peek(parser).type == T_FN);
+    parser->position++;
+    assert(parser_peek(parser).type == T_LPAREN);
+    parser->position++;
+    assert(parser_peek(parser).type == T_RPAREN);
+    parser->position++;
+    if (parser_peek(parser).type == T_COLON) {
+      puts("Found colon in func");
+      parser->position++;
+      return_type = parse_data_type(parser);
+    } else {
+      puts("Found NO colon in func");
+    }
     assert(parser_peek(parser).type == T_LBRACE);
     parser->position++;
     struct StatementNode *result = parse_statements(parser);
@@ -79,6 +95,7 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
                                parser->allocator,
                                &(struct FunctionDefinitionExpressionNode){
                                    .body = result,
+                                   .return_type = return_type,
                                },
                                sizeof(struct FunctionDefinitionExpressionNode)),
                        },
@@ -177,7 +194,8 @@ struct StatementNode *parse_statements(struct Parser *parser) {
   struct StatementNode *head = parse_statement(parser);
   struct StatementNode *curr = head;
 
-  while (parser_peek(parser).type != T_EOF) {
+  enum TokenType peak;
+  while ((peak = parser_peek(parser).type, peak != T_RBRACE && peak != T_EOF)) {
     curr->next = parse_statement(parser);
     curr = curr->next;
   }
@@ -269,6 +287,7 @@ struct StatementNode *parse_statement(struct Parser *parser) {
                        sizeof(struct StatementNode));
   }
   default: {
+    printf("Looking at: %d\n", parser_peek(parser).type);
     assert(parser_peek(parser).type == T_SYMBOL);
     struct LunaString symbol = parser_peek(parser).value.symbol;
     parser->position++;
