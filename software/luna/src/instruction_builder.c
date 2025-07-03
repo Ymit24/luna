@@ -62,8 +62,15 @@ void ib_pop_fn(struct InstructionBuilder *instruction_builder) {
 }
 
 void ib_push_instruction(struct InstructionBuilder *instruction_builder,
-                         struct Instruction *instr) {
+                         struct Instruction *instr,
+                         struct InstructionGroup *group) {
   assert(instruction_builder->current != NULL);
+
+  if (group == NULL) {
+    group = instruction_builder->current;
+  }
+
+  assert(group != NULL);
 
   if (instruction_builder->current->tail == NULL) {
     assert(instruction_builder->current->head == NULL);

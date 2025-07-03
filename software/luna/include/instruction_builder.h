@@ -21,10 +21,9 @@ struct InstructionBuilder
 instruction_builder_make(struct ArenaAllocator *allocator);
 
 void ib_push_fn(struct InstructionBuilder *instruction_builder);
-void ib_push_instruction(struct InstructionBuilder *instruction_builder,
-                         struct Instruction *instr);
-void ib_push_instruction_into_statics(
-    struct InstructionBuilder *instruction_builder, struct Instruction *instr);
 void ib_pop_fn(struct InstructionBuilder *instruction_builder);
+void ib_push_instruction(struct InstructionBuilder *instruction_builder,
+                         struct Instruction *instr,
+                         struct InstructionGroup *group);
 
 #endif
