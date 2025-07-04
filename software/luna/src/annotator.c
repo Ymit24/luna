@@ -20,9 +20,12 @@ struct DataType DT_BOOL = (struct DataType){
 };
 
 bool data_types_equal(struct DataType *left, struct DataType *right);
-
 void insert_symbol_entry(struct Annotator *annotator,
                          struct SymbolTableEntry entry);
+void annotator_visit_function_statements(
+    struct Annotator *annotator, struct FunctionStatementNode *statement);
+void annotator_visit_function_statement(
+    struct Annotator *annotator, struct FunctionStatementNode *statement);
 
 struct Annotator annotator_make(struct ArenaAllocator *allocator) {
   return (struct Annotator){
@@ -168,8 +171,8 @@ void insert_symbol_entry(struct Annotator *annotator,
   annotator->symbol_table.head = entry_ptr;
 }
 
-void annotator_visit_statement(struct Annotator *annotator,
-                               struct ModuleStatementNode *statement) {
+void annotator_visit_module_statement(struct Annotator *annotator,
+                                      struct ModuleStatementNode *statement) {
   switch (statement->type) {
   case MOD_STMT_LET: {
     assert(lookup_symbol(annotator, statement->node.decl->symbol) == NULL);
@@ -205,7 +208,65 @@ void annotator_visit_statement(struct Annotator *annotator,
                                    });
     break;
   }
-  case MOD_STMT_ASSIGN: {
+  default:
+    puts("Unknown module statement.");
+    assert(0);
+    break;
+  }
+}
+void annotator_visit_function_statements(
+    struct Annotator *annotator, struct FunctionStatementNode *statement) {
+  struct FunctionStatementNode *curr = statement;
+
+  puts("Starting function annotation..");
+  while (curr != NULL) {
+    puts("Annotating new line..");
+    annotator_visit_function_statement(annotator, curr);
+    print_symbols(annotator);
+    print_data_types(annotator);
+    curr = curr->next;
+  }
+  puts("Finished function annotation.");
+}
+
+void annotator_visit_function_statement(
+    struct Annotator *annotator, struct FunctionStatementNode *statement) {
+  switch (statement->type) {
+  case FN_STMT_LET: {
+    assert(lookup_symbol(annotator, statement->node.decl->symbol) == NULL);
+    struct DataType *type =
+        infer_type(annotator, statement->node.decl->expression);
+    if (statement->node.decl->has_type) {
+      assert(data_types_equal(type, statement->node.decl->data_type));
+    } else {
+      statement->node.decl->data_type = type;
+      statement->node.decl->has_type = true;
+    }
+    insert_symbol_entry(annotator, (struct SymbolTableEntry){
+                                       .symbol = statement->node.decl->symbol,
+                                       .type = type,
+                                       .next = NULL,
+                                   });
+    break;
+  }
+  case FN_STMT_CONST: {
+    assert(lookup_symbol(annotator, statement->node.decl->symbol) == NULL);
+    struct DataType *type =
+        infer_type(annotator, statement->node.decl->expression);
+    if (statement->node.decl->has_type) {
+      assert(data_types_equal(type, statement->node.decl->data_type));
+    } else {
+      statement->node.decl->data_type = type;
+      statement->node.decl->has_type = true;
+    }
+    insert_symbol_entry(annotator, (struct SymbolTableEntry){
+                                       .symbol = statement->node.decl->symbol,
+                                       .type = type,
+                                       .next = NULL,
+                                   });
+    break;
+  }
+  case FN_STMT_ASSIGN: {
     struct SymbolTableEntry *entry =
         lookup_symbol(annotator, statement->node.decl->symbol);
     assert(entry != NULL);
@@ -222,19 +283,19 @@ void annotator_visit_statement(struct Annotator *annotator,
   }
 }
 
-void annotator_visit_statements(struct Annotator *annotator,
-                                struct ModuleStatementNode *statement) {
+void annotator_visit_module_statements(struct Annotator *annotator,
+                                       struct ModuleStatementNode *statement) {
   struct ModuleStatementNode *curr = statement;
 
-  puts("Starting annotation..");
+  puts("Starting module annotation..");
   while (curr != NULL) {
     puts("Annotating new line..");
-    annotator_visit_statement(annotator, curr);
+    annotator_visit_module_statement(annotator, curr);
     print_symbols(annotator);
     print_data_types(annotator);
     curr = curr->next;
   }
-  puts("Finished annotation.");
+  puts("Finished module annotation.");
 }
 
 bool data_types_equal(struct DataType *left, struct DataType *right) {

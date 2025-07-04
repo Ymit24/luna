@@ -49,7 +49,7 @@ struct Annotator annotator_make(struct ArenaAllocator *allocator);
 
 struct ModuleStatementNode;
 
-void annotator_visit_statements(struct Annotator *annotator,
+void annotator_visit_module_statements(struct Annotator *annotator,
                                 struct ModuleStatementNode *statement);
 
 struct SymbolTableEntry *lookup_symbol(struct Annotator *annotator,

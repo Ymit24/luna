@@ -12,6 +12,8 @@
 struct IntegerLiteralNode *parse_integer_literal(struct Parser *parser);
 struct SymbolLiteralNode *parse_symbol_literal(struct Parser *parser);
 struct DataType *parse_data_type(struct Parser *parser);
+struct FunctionStatementNode *parse_function_statements(struct Parser *parser);
+struct FunctionStatementNode *parse_function_statement(struct Parser *parser);
 
 struct Parser parser_make(struct ArenaAllocator *allocator,
                           struct Token *tokens, uint16_t token_count) {
@@ -85,7 +87,7 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
     }
     assert(parser_peek(parser).type == T_LBRACE);
     parser->position++;
-    struct ModuleStatementNode *result = parse_statements(parser);
+    struct FunctionStatementNode *result = parse_function_statements(parser);
     assert(parser_peek(parser).type == T_RBRACE);
     parser->position++; // consume the close brace.
     return ast_promote(parser->allocator,
@@ -188,15 +190,30 @@ struct SymbolLiteralNode *parse_symbol_literal(struct Parser *parser) {
                      sizeof(struct SymbolLiteralNode));
 }
 
-struct ModuleStatementNode *parse_statements(struct Parser *parser) {
+struct ModuleStatementNode *parse_module_statements(struct Parser *parser) {
   assert(parser_peek(parser).type != T_EOF);
 
-  struct ModuleStatementNode *head = parse_statement(parser);
+  struct ModuleStatementNode *head = parse_module_statement(parser);
   struct ModuleStatementNode *curr = head;
 
   enum TokenType peak;
   while ((peak = parser_peek(parser).type, peak != T_RBRACE && peak != T_EOF)) {
-    curr->next = parse_statement(parser);
+    curr->next = parse_module_statement(parser);
+    curr = curr->next;
+  }
+
+  return head;
+}
+
+struct FunctionStatementNode *parse_function_statements(struct Parser *parser) {
+  assert(parser_peek(parser).type != T_EOF);
+
+  struct FunctionStatementNode *head = parse_function_statement(parser);
+  struct FunctionStatementNode *curr = head;
+
+  enum TokenType peak;
+  while ((peak = parser_peek(parser).type, peak != T_RBRACE && peak != T_EOF)) {
+    curr->next = parse_function_statement(parser);
     curr = curr->next;
   }
 
@@ -263,8 +280,66 @@ struct DeclarationStatementNode *parse_decl_statement(struct Parser *parser,
                                                         .data_type = data_type},
                      sizeof(struct DeclarationStatementNode));
 }
+struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
+  switch (parser_peek(parser).type) {
+  case T_LET: {
+    struct DeclarationStatementNode *decl = parse_decl_statement(parser, false);
+    return ast_promote(parser->allocator,
+                       &(struct FunctionStatementNode){
+                           .type = FN_STMT_LET,
+                           .node.decl = decl,
+                           .next = NULL,
+                       },
+                       sizeof(struct FunctionStatementNode));
+  }
+  case T_CONST: {
+    struct DeclarationStatementNode *decl = parse_decl_statement(parser, true);
+    return ast_promote(parser->allocator,
+                       &(struct FunctionStatementNode){
+                           .type = FN_STMT_CONST,
+                           .node.decl = decl,
+                           .next = NULL,
+                       },
+                       sizeof(struct FunctionStatementNode));
+  }
+  default: {
+    printf("Looking at: %d\n", parser_peek(parser).type);
+    assert(parser_peek(parser).type == T_SYMBOL);
+    struct LunaString symbol = parser_peek(parser).value.symbol;
+    parser->position++;
 
-struct ModuleStatementNode *parse_statement(struct Parser *parser) {
+    switch (parser_peek(parser).type) {
+    case T_EQUALS: {
+      parser->position++;
+      struct ExpressionNode *expr = parse_expression(parser, 0);
+
+      printf("in assign, parsed expression of type: %d\n", expr->type);
+
+      assert(parser_peek(parser).type == T_SEMICOLON);
+      parser->position++;
+
+      return ast_promote(parser->allocator,
+                         &(struct FunctionStatementNode){
+                             .type = FN_STMT_ASSIGN,
+                             .node.assign = ast_promote(
+                                 parser->allocator,
+                                 &(struct AssignStatementNode){
+                                     .symbol = symbol, .expression = expr},
+                                 sizeof(struct AssignStatementNode)),
+                             .next = NULL,
+                         },
+                         sizeof(struct FunctionStatementNode));
+      break;
+    }
+    default:
+      assert(0);
+      break;
+    };
+  }
+  }
+}
+
+struct ModuleStatementNode *parse_module_statement(struct Parser *parser) {
   switch (parser_peek(parser).type) {
   case T_LET: {
     struct DeclarationStatementNode *decl = parse_decl_statement(parser, false);
@@ -287,38 +362,8 @@ struct ModuleStatementNode *parse_statement(struct Parser *parser) {
                        sizeof(struct ModuleStatementNode));
   }
   default: {
-    printf("Looking at: %d\n", parser_peek(parser).type);
-    assert(parser_peek(parser).type == T_SYMBOL);
-    struct LunaString symbol = parser_peek(parser).value.symbol;
-    parser->position++;
-
-    switch (parser_peek(parser).type) {
-    case T_EQUALS: {
-      parser->position++;
-      struct ExpressionNode *expr = parse_expression(parser, 0);
-
-      printf("in assign, parsed expression of type: %d\n", expr->type);
-
-      assert(parser_peek(parser).type == T_SEMICOLON);
-      parser->position++;
-
-      return ast_promote(parser->allocator,
-                         &(struct ModuleStatementNode){
-                             .type = MOD_STMT_ASSIGN,
-                             .node.assign = ast_promote(
-                                 parser->allocator,
-                                 &(struct AssignStatementNode){
-                                     .symbol = symbol, .expression = expr},
-                                 sizeof(struct AssignStatementNode)),
-                             .next = NULL,
-                         },
-                         sizeof(struct ModuleStatementNode));
-      break;
-    }
-    default:
-      assert(0);
-      break;
-    };
+    assert(0);
+    break;
   }
   }
   assert(false);

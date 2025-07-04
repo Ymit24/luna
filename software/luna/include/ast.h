@@ -9,10 +9,15 @@
 #include "arena_allocator.h"
 #include "luna_string.h"
 
-enum StatementType {
+enum ModuleStatementType {
   MOD_STMT_LET,
   MOD_STMT_CONST,
-  MOD_STMT_ASSIGN,
+};
+
+enum FunctionStatementType {
+  FN_STMT_LET,
+  FN_STMT_CONST,
+  FN_STMT_ASSIGN,
 };
 
 struct DeclarationStatementNode {
@@ -29,12 +34,20 @@ struct AssignStatementNode {
 };
 
 struct ModuleStatementNode {
-  enum StatementType type;
+  enum ModuleStatementType type;
+  union {
+    struct DeclarationStatementNode *decl;
+  } node;
+  struct ModuleStatementNode *next;
+};
+
+struct FunctionStatementNode {
+  enum FunctionStatementType type;
   union {
     struct DeclarationStatementNode *decl;
     struct AssignStatementNode *assign;
   } node;
-  struct ModuleStatementNode *next;
+  struct FunctionStatementNode *next;
 };
 
 enum ExpressionType {
@@ -63,7 +76,7 @@ struct SymbolLiteralNode {
 };
 
 struct FunctionDefinitionExpressionNode {
-  struct ModuleStatementNode *body;
+  struct FunctionStatementNode *body;
   struct DataType *return_type;
 };
 

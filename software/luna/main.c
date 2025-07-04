@@ -24,7 +24,7 @@ int main(void) {
   struct Lexer lexer =
       lexer_make(&allocator, string_make("let a = 5 - (2 + 1);"
                                          // "const c = true;"
-                                         // "a = 10;"
+                                         "a = 7;"
                                          "let x = 3;"
                                          // "let y = 5 + x;"
                                          // "a = 4;"
@@ -48,19 +48,19 @@ int main(void) {
 
   struct Parser parser = parser_make(&allocator, toks, tok_index);
 
-  struct ModuleStatementNode *stmt = parse_statements(&parser);
+  struct ModuleStatementNode *stmt = parse_module_statements(&parser);
 
   struct Annotator annotator = annotator_make(&allocator);
 
   annotator_initialize_primitives(&annotator);
-  annotator_visit_statements(&annotator, stmt);
+  annotator_visit_module_statements(&annotator, stmt);
 
   struct InstructionBuilder ib = instruction_builder_make(&allocator);
 
   struct CodeGenerator code_generator = cg_make(&allocator, &ib, &annotator);
 
   puts("Start code gen");
-  cg_visit_statements(&code_generator, stmt);
+  cg_visit_module_statements(&code_generator, stmt);
   puts("Done code gen");
 
   // evaluate_statements(environment_make(&allocator), stmt);
