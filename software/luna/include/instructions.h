@@ -8,6 +8,8 @@ enum InstructionType {
   IT_PUSH,
   IT_POP,
   IT_LOAD,
+  IT_STORE,
+  IT_LEA,
   IT_LABEL,
   IT_ADD,
   IT_SUB,
@@ -15,7 +17,7 @@ enum InstructionType {
 
 enum MemorySegment { MS_LOCAL, MS_CONST };
 
-struct PushPopInstruction {
+struct PushPopLeaInstruction {
   enum MemorySegment memory_segment;
   uint16_t index;
 };
@@ -23,7 +25,7 @@ struct PushPopInstruction {
 struct Instruction {
   enum InstructionType type;
   union {
-    struct PushPopInstruction pushpop;
+    struct PushPopLeaInstruction pushpoplea;
     struct LunaString label;
   } value;
   struct Instruction *next;
@@ -60,18 +62,13 @@ struct Instruction {
  * push const 10
  * pop local 0
  *
- * push const %bsp
- * load
- * push const 0
- * add
+ * lea local 0
  * pop local 1
- *
  *
  * push local 0
  * push local 1
  * load
  * add
  * pop local 2
- *
  *
  */

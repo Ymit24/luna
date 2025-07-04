@@ -3,6 +3,7 @@
 
 #include "arena_allocator.h"
 #include "instructions.h"
+#include "luna_string.h"
 #include <stdint.h>
 
 struct InstructionGroup {
@@ -30,6 +31,12 @@ void ib_push_instruction(struct InstructionBuilder *instruction_builder,
 void ib_push_push(struct InstructionBuilder *instruction_builder,
                   enum MemorySegment memory_segment, uint16_t index);
 void ib_push_pop(struct InstructionBuilder *instruction_builder,
-                  enum MemorySegment memory_segment, uint16_t index);
+                 enum MemorySegment memory_segment, uint16_t index);
+void ib_push_lea(struct InstructionBuilder *instruction_builder,
+                 enum MemorySegment memory_segment, uint16_t index);
+void ib_push_label(struct InstructionBuilder *instruction_builder,
+                 struct LunaString label);
+void ib_push_argless(struct InstructionBuilder *instruction_builder,
+                 enum InstructionType type);
 
 #endif

@@ -90,8 +90,8 @@ void ib_push_push(struct InstructionBuilder *instruction_builder,
                       ast_promote(instruction_builder->allocator,
                                   &(struct Instruction){
                                       .type = IT_PUSH,
-                                      .value.pushpop =
-                                          (struct PushPopInstruction){
+                                      .value.pushpoplea =
+                                          (struct PushPopLeaInstruction){
                                               .memory_segment = memory_segment,
                                               .index = index,
                                           }},
@@ -105,11 +105,45 @@ void ib_push_pop(struct InstructionBuilder *instruction_builder,
                       ast_promote(instruction_builder->allocator,
                                   &(struct Instruction){
                                       .type = IT_POP,
-                                      .value.pushpop =
-                                          (struct PushPopInstruction){
+                                      .value.pushpoplea =
+                                          (struct PushPopLeaInstruction){
                                               .memory_segment = memory_segment,
                                               .index = index,
                                           }},
+                                  sizeof(struct Instruction)),
+                      NULL);
+}
+
+void ib_push_lea(struct InstructionBuilder *instruction_builder,
+                 enum MemorySegment memory_segment, uint16_t index) {
+  ib_push_instruction(instruction_builder,
+                      ast_promote(instruction_builder->allocator,
+                                  &(struct Instruction){
+                                      .type = IT_LEA,
+                                      .value.pushpoplea =
+                                          (struct PushPopLeaInstruction){
+                                              .memory_segment = memory_segment,
+                                              .index = index,
+                                          }},
+                                  sizeof(struct Instruction)),
+                      NULL);
+}
+
+void ib_push_label(struct InstructionBuilder *instruction_builder,
+                   struct LunaString label) {
+  ib_push_instruction(
+      instruction_builder,
+      ast_promote(instruction_builder->allocator,
+                  &(struct Instruction){.type = IT_LABEL, .value.label = label},
+                  sizeof(struct Instruction)),
+      NULL);
+}
+
+void ib_push_argless(struct InstructionBuilder *instruction_builder,
+                     enum InstructionType type) {
+  ib_push_instruction(instruction_builder,
+                      ast_promote(instruction_builder->allocator,
+                                  &(struct Instruction){.type = type},
                                   sizeof(struct Instruction)),
                       NULL);
 }
