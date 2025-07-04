@@ -8,7 +8,6 @@
 #include "ast.h"
 #include "code_gen.h"
 #include "instruction_builder.h"
-#include "interpreter.h"
 #include "lexer.h"
 #include "luna_string.h"
 #include "parser.h"
@@ -59,11 +58,11 @@ int main(void) {
   struct InstructionBuilder ib = instruction_builder_make(&allocator);
 
   struct CodeGenerator code_generator =
-      code_generator_make(&allocator, &ib, &annotator);
+      cg_make(&allocator, &ib, &annotator);
 
-  puts ("Start code gen");
+  puts("Start code gen");
   cg_visit_statements(&code_generator, stmt);
-  puts ("Done code gen");
+  puts("Done code gen");
 
   // evaluate_statements(environment_make(&allocator), stmt);
 

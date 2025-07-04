@@ -5,10 +5,9 @@
 #include <assert.h>
 #include <stdio.h>
 
-struct CodeGenerator
-code_gen_make(struct ArenaAllocator *allocator,
-              struct InstructionBuilder *instruction_builder,
-              struct Annotator *annotator) {
+struct CodeGenerator cg_make(struct ArenaAllocator *allocator,
+                             struct InstructionBuilder *instruction_builder,
+                             struct Annotator *annotator) {
   return (struct CodeGenerator){
       .allocator = allocator,
       .instruction_builder = instruction_builder,

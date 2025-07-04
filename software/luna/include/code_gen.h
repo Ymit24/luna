@@ -12,7 +12,7 @@ struct CodeGenerator {
 };
 
 struct CodeGenerator
-code_generator_make(struct ArenaAllocator *allocator,
+cg_make(struct ArenaAllocator *allocator,
                     struct InstructionBuilder *instruction_builder,
                     struct Annotator *annotator);
 

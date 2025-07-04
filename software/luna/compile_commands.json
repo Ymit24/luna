@@ -173,10 +173,10 @@
       "-Iinclude",
       "-o",
       "lunac",
-      "src/code_generator.c"
+      "src/code_gen.c"
     ],
     "directory": "/Users/christiansmith/dev/logisim/digital_computer/software/luna",
-    "file": "/Users/christiansmith/dev/logisim/digital_computer/software/luna/src/code_generator.c",
+    "file": "/Users/christiansmith/dev/logisim/digital_computer/software/luna/src/code_gen.c",
     "output": "/Users/christiansmith/dev/logisim/digital_computer/software/luna/lunac"
   }
 ]
