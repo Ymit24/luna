@@ -172,59 +172,36 @@ void insert_symbol_entry(struct Annotator *annotator,
   annotator->symbol_table.head = entry_ptr;
 }
 
+void annotator_visit_decl(struct Annotator *annotator,
+                          struct DeclarationStatementNode *decl) {
+  assert(lookup_symbol(annotator, decl->symbol) == NULL);
+  struct DataType *type = infer_type(annotator, decl->expression);
+  if (decl->has_type) {
+    assert(data_types_equal(type, decl->data_type));
+  } else {
+    decl->data_type = type;
+    decl->has_type = true;
+  }
+  insert_symbol_entry(annotator, (struct SymbolTableEntry){
+                                     .symbol = decl->symbol,
+                                     .type = type,
+                                     .next = NULL,
+                                 });
+  if (type->kind == DTK_FUNCTION) {
+    printf("Starting to annotate function (%s)\n", decl->symbol.data);
+    annotator_visit_function_statements(annotator,
+                                        decl->expression->node.fn_def->body);
+    printf("Done annotating function (%s)\n", decl->symbol.data);
+  }
+}
+
 void annotator_visit_module_statement(struct Annotator *annotator,
                                       struct ModuleStatementNode *statement) {
   switch (statement->type) {
-  case MOD_STMT_LET: {
-    assert(lookup_symbol(annotator, statement->node.decl->symbol) == NULL);
-    struct DataType *type =
-        infer_type(annotator, statement->node.decl->expression);
-    if (statement->node.decl->has_type) {
-      assert(data_types_equal(type, statement->node.decl->data_type));
-    } else {
-      statement->node.decl->data_type = type;
-      statement->node.decl->has_type = true;
-    }
-    insert_symbol_entry(annotator, (struct SymbolTableEntry){
-                                       .symbol = statement->node.decl->symbol,
-                                       .type = type,
-                                       .next = NULL,
-                                   });
-    if (type->kind == DTK_FUNCTION) {
-      printf("Starting to annotate function (%s)\n",
-             statement->node.decl->symbol.data);
-      annotator_visit_function_statements(
-          annotator, statement->node.decl->expression->node.fn_def->body);
-      printf("Done annotating function (%s)\n",
-             statement->node.decl->symbol.data);
-    }
+  case MOD_STMT_LET:
+  case MOD_STMT_CONST:
+    annotator_visit_decl(annotator, statement->node.decl);
     break;
-  }
-  case MOD_STMT_CONST: {
-    assert(lookup_symbol(annotator, statement->node.decl->symbol) == NULL);
-    struct DataType *type =
-        infer_type(annotator, statement->node.decl->expression);
-    if (statement->node.decl->has_type) {
-      assert(data_types_equal(type, statement->node.decl->data_type));
-    } else {
-      statement->node.decl->data_type = type;
-      statement->node.decl->has_type = true;
-    }
-    insert_symbol_entry(annotator, (struct SymbolTableEntry){
-                                       .symbol = statement->node.decl->symbol,
-                                       .type = type,
-                                       .next = NULL,
-                                   });
-    if (type->kind == DTK_FUNCTION) {
-      printf("Starting to annotate function (%s)\n",
-             statement->node.decl->symbol.data);
-      annotator_visit_function_statements(
-          annotator, statement->node.decl->expression->node.fn_def->body);
-      printf("Done annotating function (%s)\n",
-             statement->node.decl->symbol.data);
-    }
-    break;
-  }
   default:
     puts("Unknown module statement.");
     assert(0);
@@ -249,56 +226,11 @@ void annotator_visit_function_statements(
 void annotator_visit_function_statement(
     struct Annotator *annotator, struct FunctionStatementNode *statement) {
   switch (statement->type) {
-  case FN_STMT_LET: {
-    assert(lookup_symbol(annotator, statement->node.decl->symbol) == NULL);
-    struct DataType *type =
-        infer_type(annotator, statement->node.decl->expression);
-    if (statement->node.decl->has_type) {
-      assert(data_types_equal(type, statement->node.decl->data_type));
-    } else {
-      statement->node.decl->data_type = type;
-      statement->node.decl->has_type = true;
-    }
-    insert_symbol_entry(annotator, (struct SymbolTableEntry){
-                                       .symbol = statement->node.decl->symbol,
-                                       .type = type,
-                                       .next = NULL,
-                                   });
-    if (type->kind == DTK_FUNCTION) {
-      printf("Starting to annotate function (%s)\n",
-             statement->node.decl->symbol.data);
-      annotator_visit_function_statements(
-          annotator, statement->node.decl->expression->node.fn_def->body);
-      printf("Done annotating function (%s)\n",
-             statement->node.decl->symbol.data);
-    }
+
+  case FN_STMT_LET:
+  case FN_STMT_CONST:
+    annotator_visit_decl(annotator, statement->node.decl);
     break;
-  }
-  case FN_STMT_CONST: {
-    assert(lookup_symbol(annotator, statement->node.decl->symbol) == NULL);
-    struct DataType *type =
-        infer_type(annotator, statement->node.decl->expression);
-    if (statement->node.decl->has_type) {
-      assert(data_types_equal(type, statement->node.decl->data_type));
-    } else {
-      statement->node.decl->data_type = type;
-      statement->node.decl->has_type = true;
-    }
-    insert_symbol_entry(annotator, (struct SymbolTableEntry){
-                                       .symbol = statement->node.decl->symbol,
-                                       .type = type,
-                                       .next = NULL,
-                                   });
-    if (type->kind == DTK_FUNCTION) {
-      printf("Starting to annotate function (%s)\n",
-             statement->node.decl->symbol.data);
-      annotator_visit_function_statements(
-          annotator, statement->node.decl->expression->node.fn_def->body);
-      printf("Done annotating function (%s)\n",
-             statement->node.decl->symbol.data);
-    }
-    break;
-  }
   case FN_STMT_ASSIGN: {
     struct SymbolTableEntry *entry =
         lookup_symbol(annotator, statement->node.decl->symbol);
