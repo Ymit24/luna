@@ -55,6 +55,7 @@ int main(void) {
   struct ModuleStatementNode *stmt = parse_module_statements(&parser);
 
   struct Annotator annotator = annotator_make(&allocator);
+  annotator.current_symbol_table = &annotator.symbol_table;
 
   annotator_initialize_primitives(&annotator);
   annotator_visit_module_statements(&annotator, stmt);

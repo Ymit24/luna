@@ -72,20 +72,20 @@ void cg_visit_function_statement(struct CodeGenerator *code_generator,
                                  struct FunctionStatementNode *stmt) {
   switch (stmt->type) {
   case FN_STMT_LET:
-    assert(lookup_symbol(code_generator->annotator, stmt->node.decl->symbol) !=
-           NULL);
+    assert(lookup_symbol_current(code_generator->annotator,
+                                 stmt->node.decl->symbol) != NULL);
     puts("let safe.");
     cg_visit_expr(code_generator, stmt->node.decl->expression);
     break;
   case FN_STMT_CONST:
-    assert(lookup_symbol(code_generator->annotator, stmt->node.decl->symbol) !=
-           NULL);
+    assert(lookup_symbol_current(code_generator->annotator,
+                                 stmt->node.decl->symbol) != NULL);
     puts("const safe.");
     cg_visit_expr(code_generator, stmt->node.decl->expression);
     break;
   case FN_STMT_ASSIGN:
-    assert(lookup_symbol(code_generator->annotator,
-                         stmt->node.assign->symbol) != NULL);
+    assert(lookup_symbol_current(code_generator->annotator,
+                                 stmt->node.assign->symbol) != NULL);
     puts("assign safe.");
     printf("assign type: %s -> %d (bin is %d)\n",
            stmt->node.assign->symbol.data, stmt->node.assign->expression->type,
@@ -99,14 +99,14 @@ void cg_visit_module_statement(struct CodeGenerator *code_generator,
                                struct ModuleStatementNode *stmt) {
   switch (stmt->type) {
   case MOD_STMT_LET:
-    assert(lookup_symbol(code_generator->annotator, stmt->node.decl->symbol) !=
-           NULL);
+    assert(lookup_symbol_current(code_generator->annotator,
+                                 stmt->node.decl->symbol) != NULL);
     puts("let safe.");
     cg_visit_expr(code_generator, stmt->node.decl->expression);
     break;
   case MOD_STMT_CONST:
-    assert(lookup_symbol(code_generator->annotator, stmt->node.decl->symbol) !=
-           NULL);
+    assert(lookup_symbol_current(code_generator->annotator,
+                                 stmt->node.decl->symbol) != NULL);
     puts("const safe.");
     cg_visit_expr(code_generator, stmt->node.decl->expression);
     break;
@@ -118,7 +118,7 @@ void cg_visit_module_statement(struct CodeGenerator *code_generator,
 }
 
 void cg_visit_function_statements(struct CodeGenerator *code_generator,
-                                struct FunctionStatementNode *stmt) {
+                                  struct FunctionStatementNode *stmt) {
   struct FunctionStatementNode *curr = stmt;
   while (curr != NULL) {
     cg_visit_function_statement(code_generator, curr);
