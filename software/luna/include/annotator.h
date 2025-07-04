@@ -26,7 +26,6 @@ struct DataTypeTable {
 };
 
 extern struct DataType DT_INT;
-
 extern struct DataType DT_BOOL;
 
 struct SymbolTableEntry {
@@ -53,9 +52,7 @@ struct StatementNode;
 void annotator_visit_statements(struct Annotator *annotator,
                                 struct StatementNode *statement);
 
-
 struct SymbolTableEntry *lookup_symbol(struct Annotator *annotator,
                                        struct LunaString symbol);
-
 
 #endif

@@ -297,6 +297,8 @@ struct StatementNode *parse_statement(struct Parser *parser) {
       parser->position++;
       struct ExpressionNode *expr = parse_expression(parser, 0);
 
+      printf("in assign, parsed expression of type: %d\n", expr->type);
+
       assert(parser_peek(parser).type == T_SEMICOLON);
       parser->position++;
 

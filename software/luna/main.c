@@ -21,7 +21,8 @@ int main(void) {
   struct ArenaAllocator allocator = arena_make(&arena, 10024);
 
   struct Lexer lexer =
-      lexer_make(&allocator, string_make("let a = 5 - (2 + 1);"
+      lexer_make(&allocator, string_make(
+                                        "let a = 5 - (2 + 1);"
                                          "const c = true;"
                                          "a = 10;"
                                          "let x = 10;"
