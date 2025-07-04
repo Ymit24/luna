@@ -29,14 +29,14 @@ struct AssignStatementNode {
   struct ExpressionNode *expression;
 };
 
-struct StatementNode {
+struct ModuleStatementNode {
   enum StatementType type;
   union {
     struct ExpressionNode *expr;
     struct DeclarationStatementNode *decl;
     struct AssignStatementNode *assign;
   } node;
-  struct StatementNode *next;
+  struct ModuleStatementNode *next;
 };
 
 enum ExpressionType {
@@ -65,7 +65,7 @@ struct SymbolLiteralNode {
 };
 
 struct FunctionDefinitionExpressionNode {
-  struct StatementNode *body;
+  struct ModuleStatementNode *body;
   struct DataType *return_type;
 };
 

@@ -85,7 +85,7 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
     }
     assert(parser_peek(parser).type == T_LBRACE);
     parser->position++;
-    struct StatementNode *result = parse_statements(parser);
+    struct ModuleStatementNode *result = parse_statements(parser);
     assert(parser_peek(parser).type == T_RBRACE);
     parser->position++; // consume the close brace.
     return ast_promote(parser->allocator,
@@ -188,11 +188,11 @@ struct SymbolLiteralNode *parse_symbol_literal(struct Parser *parser) {
                      sizeof(struct SymbolLiteralNode));
 }
 
-struct StatementNode *parse_statements(struct Parser *parser) {
+struct ModuleStatementNode *parse_statements(struct Parser *parser) {
   assert(parser_peek(parser).type != T_EOF);
 
-  struct StatementNode *head = parse_statement(parser);
-  struct StatementNode *curr = head;
+  struct ModuleStatementNode *head = parse_statement(parser);
+  struct ModuleStatementNode *curr = head;
 
   enum TokenType peak;
   while ((peak = parser_peek(parser).type, peak != T_RBRACE && peak != T_EOF)) {
@@ -264,27 +264,27 @@ struct DeclarationStatementNode *parse_decl_statement(struct Parser *parser,
                      sizeof(struct DeclarationStatementNode));
 }
 
-struct StatementNode *parse_statement(struct Parser *parser) {
+struct ModuleStatementNode *parse_statement(struct Parser *parser) {
   switch (parser_peek(parser).type) {
   case T_LET: {
     struct DeclarationStatementNode *decl = parse_decl_statement(parser, false);
     return ast_promote(parser->allocator,
-                       &(struct StatementNode){
+                       &(struct ModuleStatementNode){
                            .type = STMT_LET,
                            .node.decl = decl,
                            .next = NULL,
                        },
-                       sizeof(struct StatementNode));
+                       sizeof(struct ModuleStatementNode));
   }
   case T_CONST: {
     struct DeclarationStatementNode *decl = parse_decl_statement(parser, true);
     return ast_promote(parser->allocator,
-                       &(struct StatementNode){
+                       &(struct ModuleStatementNode){
                            .type = STMT_CONST,
                            .node.decl = decl,
                            .next = NULL,
                        },
-                       sizeof(struct StatementNode));
+                       sizeof(struct ModuleStatementNode));
   }
   default: {
     printf("Looking at: %d\n", parser_peek(parser).type);
@@ -303,7 +303,7 @@ struct StatementNode *parse_statement(struct Parser *parser) {
       parser->position++;
 
       return ast_promote(parser->allocator,
-                         &(struct StatementNode){
+                         &(struct ModuleStatementNode){
                              .type = STMT_ASSIGN,
                              .node.assign = ast_promote(
                                  parser->allocator,
@@ -312,7 +312,7 @@ struct StatementNode *parse_statement(struct Parser *parser) {
                                  sizeof(struct AssignStatementNode)),
                              .next = NULL,
                          },
-                         sizeof(struct StatementNode));
+                         sizeof(struct ModuleStatementNode));
       break;
     }
     default:

@@ -48,7 +48,7 @@ int main(void) {
 
   struct Parser parser = parser_make(&allocator, toks, tok_index);
 
-  struct StatementNode *stmt = parse_statements(&parser);
+  struct ModuleStatementNode *stmt = parse_statements(&parser);
 
   struct Annotator annotator = annotator_make(&allocator);
 

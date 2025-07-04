@@ -64,7 +64,7 @@ void cg_visit_expr(struct CodeGenerator *code_generator,
 }
 
 void cg_visit_statement(struct CodeGenerator *code_generator,
-                        struct StatementNode *stmt) {
+                        struct ModuleStatementNode *stmt) {
   switch (stmt->type) {
   case STMT_LET:
     assert(lookup_symbol(code_generator->annotator, stmt->node.decl->symbol) !=
@@ -95,8 +95,8 @@ void cg_visit_statement(struct CodeGenerator *code_generator,
 }
 
 void cg_visit_statements(struct CodeGenerator *code_generator,
-                         struct StatementNode *stmt) {
-  struct StatementNode *curr = stmt;
+                         struct ModuleStatementNode *stmt) {
+  struct ModuleStatementNode *curr = stmt;
   while (curr != NULL) {
     cg_visit_statement(code_generator, curr);
     curr = curr->next;

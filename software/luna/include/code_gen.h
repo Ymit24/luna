@@ -11,12 +11,11 @@ struct CodeGenerator {
   struct Annotator *annotator;
 };
 
-struct CodeGenerator
-cg_make(struct ArenaAllocator *allocator,
-                    struct InstructionBuilder *instruction_builder,
-                    struct Annotator *annotator);
+struct CodeGenerator cg_make(struct ArenaAllocator *allocator,
+                             struct InstructionBuilder *instruction_builder,
+                             struct Annotator *annotator);
 
 void cg_visit_statements(struct CodeGenerator *code_generator,
-                         struct StatementNode *stmt);
+                         struct ModuleStatementNode *stmt);
 
 #endif

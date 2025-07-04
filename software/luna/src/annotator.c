@@ -169,7 +169,7 @@ void insert_symbol_entry(struct Annotator *annotator,
 }
 
 void annotator_visit_statement(struct Annotator *annotator,
-                               struct StatementNode *statement) {
+                               struct ModuleStatementNode *statement) {
   switch (statement->type) {
   case STMT_LET: {
     assert(lookup_symbol(annotator, statement->node.decl->symbol) == NULL);
@@ -223,8 +223,8 @@ void annotator_visit_statement(struct Annotator *annotator,
 }
 
 void annotator_visit_statements(struct Annotator *annotator,
-                                struct StatementNode *statement) {
-  struct StatementNode *curr = statement;
+                                struct ModuleStatementNode *statement) {
+  struct ModuleStatementNode *curr = statement;
 
   puts("Starting annotation..");
   while (curr != NULL) {

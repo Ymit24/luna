@@ -57,7 +57,7 @@ void print_variables(struct Environment *environment) {
 }
 
 void evaluate_statement(struct Environment *environment,
-                        struct StatementNode *stmt) {
+                        struct ModuleStatementNode *stmt) {
   switch (stmt->type) {
   case STMT_EXPR:
     printf("expr: %d\n", evaluate_expression(environment, stmt->node.expr));
@@ -107,8 +107,8 @@ void evaluate_statement(struct Environment *environment,
 }
 
 void evaluate_statements(struct Environment *environment,
-                         struct StatementNode *stmt) {
-  struct StatementNode *curr = stmt;
+                         struct ModuleStatementNode *stmt) {
+  struct ModuleStatementNode *curr = stmt;
 
   while (curr != NULL) {
     evaluate_statement(environment, curr);

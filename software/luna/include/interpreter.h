@@ -21,7 +21,7 @@ struct Environment {
 struct Environment *environment_make(struct ArenaAllocator *allocator);
 
 void evaluate_statements(struct Environment *environment,
-                         struct StatementNode *stmt);
+                         struct ModuleStatementNode *stmt);
 
 uint16_t evaluate_expression(struct Environment *environment,
                              struct ExpressionNode *expr);
