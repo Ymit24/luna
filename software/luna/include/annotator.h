@@ -53,4 +53,9 @@ struct StatementNode;
 void annotator_visit_statements(struct Annotator *annotator,
                                 struct StatementNode *statement);
 
+
+struct SymbolTableEntry *lookup_symbol(struct Annotator *annotator,
+                                       struct LunaString symbol);
+
+
 #endif
