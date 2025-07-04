@@ -17,7 +17,7 @@
 int main(void) {
   puts("Luna Compiler");
 
-  uint8_t arena[10024];
+  uint8_t arena[UINT16_MAX];
 
   struct ArenaAllocator allocator = arena_make(&arena, UINT16_MAX);
 
