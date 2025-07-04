@@ -1,6 +1,5 @@
 #ifndef AST_H
 #define AST_H
-#pragma once
 
 #include <stdbool.h>
 #include <stdint.h>

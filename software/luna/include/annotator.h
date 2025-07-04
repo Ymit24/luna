@@ -1,6 +1,5 @@
 #ifndef ANNOTATOR_H
 #define ANNOTATOR_H
-#pragma once
 
 #include "arena_allocator.h"
 #include "luna_string.h"
@@ -50,7 +49,7 @@ struct Annotator annotator_make(struct ArenaAllocator *allocator);
 struct ModuleStatementNode;
 
 void annotator_visit_module_statements(struct Annotator *annotator,
-                                struct ModuleStatementNode *statement);
+                                       struct ModuleStatementNode *statement);
 
 struct SymbolTableEntry *lookup_symbol(struct Annotator *annotator,
                                        struct LunaString symbol);
