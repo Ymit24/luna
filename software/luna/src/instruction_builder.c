@@ -24,8 +24,10 @@ instruction_builder_make(struct ArenaAllocator *allocator) {
 
   // make preamble
   ib_push_fn(&instruction_builder);
+  ib_push_label(&instruction_builder, string_make(".preamble"));
   // make statics
   ib_push_fn(&instruction_builder);
+  ib_push_label(&instruction_builder, string_make(".statics"));
 
   assert(instruction_builder.head != NULL);
   assert(instruction_builder.head->next != NULL);

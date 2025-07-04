@@ -8,6 +8,7 @@
 #include "ast.h"
 #include "code_gen.h"
 #include "instruction_builder.h"
+#include "instructions.h"
 #include "lexer.h"
 #include "luna_string.h"
 #include "parser.h"
@@ -21,12 +22,11 @@ int main(void) {
   struct ArenaAllocator allocator = arena_make(&arena, 10024);
 
   struct Lexer lexer =
-      lexer_make(&allocator, string_make(
-                                        "let a = 5 - (2 + 1);"
-                                         "const c = true;"
+      lexer_make(&allocator, string_make("let a = 5 - (2 + 1);"
+                                         // "const c = true;"
                                          "a = 10;"
                                          "let x = 10;"
-                                         "let y = 5 + x;"
+                                         // "let y = 5 + x;"
                                          "a = 10;"
                                          "let g: int = 5;"
                                          // "const main = fn(): int {"
@@ -58,14 +58,73 @@ int main(void) {
 
   struct InstructionBuilder ib = instruction_builder_make(&allocator);
 
-  struct CodeGenerator code_generator =
-      cg_make(&allocator, &ib, &annotator);
+  struct CodeGenerator code_generator = cg_make(&allocator, &ib, &annotator);
 
   puts("Start code gen");
   cg_visit_statements(&code_generator, stmt);
   puts("Done code gen");
 
   // evaluate_statements(environment_make(&allocator), stmt);
+
+  puts("Code Generated:");
+  struct InstructionGroup *curr = ib.head;
+
+  while (curr != NULL) {
+    struct Instruction *instr = curr->head;
+    while (instr != NULL) {
+      switch (instr->type) {
+      case IT_PUSH: {
+        switch (instr->value.pushpoplea.memory_segment) {
+        case MS_LOCAL:
+          printf("\tpush local %d\n", instr->value.pushpoplea.index);
+          break;
+        case MS_CONST:
+          printf("\tpush const %d\n", instr->value.pushpoplea.index);
+          break;
+        }
+        break;
+      }
+      case IT_POP:
+        switch (instr->value.pushpoplea.memory_segment) {
+        case MS_LOCAL:
+          printf("\tpop local %d\n", instr->value.pushpoplea.index);
+          break;
+        case MS_CONST:
+          printf("\tpop const %d\n", instr->value.pushpoplea.index);
+          break;
+        }
+        break;
+      case IT_LEA:
+        switch (instr->value.pushpoplea.memory_segment) {
+        case MS_LOCAL:
+          printf("\tlea local %d\n", instr->value.pushpoplea.index);
+          break;
+        case MS_CONST:
+          puts("Illegal lea of const.");
+          break;
+        }
+        break;
+      case IT_LOAD:
+        puts("\tload");
+        break;
+      case IT_STORE:
+        puts("\tstore");
+        break;
+      case IT_LABEL:
+        printf("label %s\n", instr->value.label.data);
+        break;
+      case IT_ADD:
+        puts("\tadd");
+        break;
+      case IT_SUB:
+        puts("\tsub");
+        break;
+      }
+      instr = instr->next;
+    }
+    curr = curr->next;
+    puts("");
+  }
 
   printf("Arena Allocator used %d/%d (%0.2f%%) memory\n", allocator.length,
          allocator.capacity,
