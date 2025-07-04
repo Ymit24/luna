@@ -2,6 +2,7 @@
 #define INSTRUCTIONS_H
 
 #include "luna_string.h"
+#include <stdbool.h>
 #include <stdint.h>
 
 enum InstructionType {
@@ -19,7 +20,11 @@ enum MemorySegment { MS_LOCAL, MS_CONST };
 
 struct PushPopLeaInstruction {
   enum MemorySegment memory_segment;
-  uint16_t index;
+  union {
+    uint16_t index;
+    struct LunaString label;
+  } value;
+  bool is_index;
 };
 
 struct Instruction {

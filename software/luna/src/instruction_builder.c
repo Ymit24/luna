@@ -2,7 +2,10 @@
 #include "arena_allocator.h"
 #include "ast.h"
 #include "instructions.h"
+#include "luna_string.h"
 #include <assert.h>
+#include <stdio.h>
+#include <string.h>
 
 struct InstructionGroup *
 get_preamble_group(struct InstructionBuilder *instruction_builder) {
@@ -20,6 +23,7 @@ instruction_builder_make(struct ArenaAllocator *allocator) {
       .allocator = allocator,
       .head = NULL,
       .current = NULL,
+      .next_label_number = 0,
   };
 
   // make preamble
@@ -36,7 +40,20 @@ instruction_builder_make(struct ArenaAllocator *allocator) {
   return instruction_builder;
 }
 
-void ib_push_fn(struct InstructionBuilder *instruction_builder) {
+struct LunaString
+ib_next_function_label(struct InstructionBuilder *instruction_builder) {
+  char buff[64];
+  uint16_t size = snprintf(buff, sizeof(buff), "__luna_anon_fn_%d",
+                           instruction_builder->next_label_number++);
+
+  char *str = arena_alloc(instruction_builder->allocator, size);
+
+  memcpy(str, buff, size);
+
+  return string_make(str);
+}
+
+struct LunaString ib_push_fn(struct InstructionBuilder *instruction_builder) {
   struct InstructionGroup *group = ast_promote(
       instruction_builder->allocator,
       &(struct InstructionGroup){.prev = instruction_builder->current,
@@ -54,6 +71,10 @@ void ib_push_fn(struct InstructionBuilder *instruction_builder) {
   }
 
   instruction_builder->current = group;
+
+  struct LunaString label = ib_next_function_label(instruction_builder);
+  ib_push_label(instruction_builder, label);
+  return label;
 }
 
 // NOTE: This does not remove function, just finishes the generation, for nested
@@ -86,8 +107,8 @@ void ib_push_instruction(struct InstructionBuilder *instruction_builder,
   }
 }
 
-void ib_push_push(struct InstructionBuilder *instruction_builder,
-                  enum MemorySegment memory_segment, uint16_t index) {
+void ib_push_push_index(struct InstructionBuilder *instruction_builder,
+                        enum MemorySegment memory_segment, uint16_t index) {
   ib_push_instruction(instruction_builder,
                       ast_promote(instruction_builder->allocator,
                                   &(struct Instruction){
@@ -95,10 +116,27 @@ void ib_push_push(struct InstructionBuilder *instruction_builder,
                                       .value.pushpoplea =
                                           (struct PushPopLeaInstruction){
                                               .memory_segment = memory_segment,
-                                              .index = index,
+                                              .value.index = index,
+                                              .is_index = true,
                                           }},
                                   sizeof(struct Instruction)),
                       NULL);
+}
+
+void ib_push_push_label(struct InstructionBuilder *instruction_builder,
+                        struct LunaString label) {
+  ib_push_instruction(
+      instruction_builder,
+      ast_promote(instruction_builder->allocator,
+                  &(struct Instruction){.type = IT_PUSH,
+                                        .value.pushpoplea =
+                                            (struct PushPopLeaInstruction){
+                                                .memory_segment = MS_CONST,
+                                                .value.label = label,
+                                                .is_index = false,
+                                            }},
+                  sizeof(struct Instruction)),
+      NULL);
 }
 
 void ib_push_pop(struct InstructionBuilder *instruction_builder,
@@ -110,7 +148,8 @@ void ib_push_pop(struct InstructionBuilder *instruction_builder,
                                       .value.pushpoplea =
                                           (struct PushPopLeaInstruction){
                                               .memory_segment = memory_segment,
-                                              .index = index,
+                                              .value.index = index,
+                                              .is_index = true,
                                           }},
                                   sizeof(struct Instruction)),
                       NULL);
@@ -125,7 +164,8 @@ void ib_push_lea(struct InstructionBuilder *instruction_builder,
                                       .value.pushpoplea =
                                           (struct PushPopLeaInstruction){
                                               .memory_segment = memory_segment,
-                                              .index = index,
+                                              .value.index = index,
+                                              .is_index = true,
                                           }},
                                   sizeof(struct Instruction)),
                       NULL);

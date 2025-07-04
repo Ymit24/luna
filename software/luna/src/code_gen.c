@@ -43,16 +43,22 @@ void cg_visit_expr(struct CodeGenerator *code_generator,
       break;
     }
   case EXPR_INTEGER_LITERAL:
-    ib_push_push(code_generator->instruction_builder, MS_CONST,
-                 expr->node.integer->value);
+    ib_push_push_index(code_generator->instruction_builder, MS_CONST,
+                       expr->node.integer->value);
     break;
   case EXPR_SYMBOL_LITERAL:
     puts("unsupported expr type");
     assert(0);
     break;
   case EXPR_FN_DEF:
-    puts("unsupported expr type");
-    assert(0);
+    puts("pushing function");
+    struct LunaString label = ib_push_fn(code_generator->instruction_builder);
+    cg_visit_statements(code_generator, expr->node.fn_def->body);
+    puts("popping function");
+    ib_pop_fn(code_generator->instruction_builder);
+
+    ib_push_push_label(code_generator->instruction_builder, label);
+
     break;
   }
 }

@@ -19,20 +19,19 @@ int main(void) {
 
   uint8_t arena[10024];
 
-  struct ArenaAllocator allocator = arena_make(&arena, 10024);
+  struct ArenaAllocator allocator = arena_make(&arena, UINT16_MAX);
 
   struct Lexer lexer =
       lexer_make(&allocator, string_make("let a = 5 - (2 + 1);"
                                          // "const c = true;"
-                                         "a = 10;"
-                                         "let x = 10;"
+                                         // "a = 10;"
+                                         "let x = 3;"
                                          // "let y = 5 + x;"
-                                         "a = 10;"
+                                         // "a = 4;"
                                          "let g: int = 5;"
-                                         // "const main = fn(): int {"
-                                         // "  const abc = 123;"
-                                         // "};"
-                                         ));
+                                         "const main = fn(): int {"
+                                         "  const abc = 456;"
+                                         "};"));
 
   struct Token toks[1024];
   uint16_t tok_index = 0;
@@ -76,10 +75,15 @@ int main(void) {
       case IT_PUSH: {
         switch (instr->value.pushpoplea.memory_segment) {
         case MS_LOCAL:
-          printf("\tpush local %d\n", instr->value.pushpoplea.index);
+          printf("\tpush local %d\n", instr->value.pushpoplea.value.index);
           break;
         case MS_CONST:
-          printf("\tpush const %d\n", instr->value.pushpoplea.index);
+          if (instr->value.pushpoplea.is_index) {
+            printf("\tpush const %d\n", instr->value.pushpoplea.value.index);
+          } else {
+            printf("\tpush const %s\n",
+                   instr->value.pushpoplea.value.label.data);
+          }
           break;
         }
         break;
@@ -87,17 +91,17 @@ int main(void) {
       case IT_POP:
         switch (instr->value.pushpoplea.memory_segment) {
         case MS_LOCAL:
-          printf("\tpop local %d\n", instr->value.pushpoplea.index);
+          printf("\tpop local %d\n", instr->value.pushpoplea.value.index);
           break;
         case MS_CONST:
-          printf("\tpop const %d\n", instr->value.pushpoplea.index);
+          printf("\tpop const %d\n", instr->value.pushpoplea.value.index);
           break;
         }
         break;
       case IT_LEA:
         switch (instr->value.pushpoplea.memory_segment) {
         case MS_LOCAL:
-          printf("\tlea local %d\n", instr->value.pushpoplea.index);
+          printf("\tlea local %d\n", instr->value.pushpoplea.value.index);
           break;
         case MS_CONST:
           puts("Illegal lea of const.");
