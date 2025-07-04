@@ -125,10 +125,11 @@ void print_data_types(struct Annotator *annotator) {
 
 struct SymbolTableEntry *lookup_symbol(struct Annotator *annotator,
                                        struct LunaString symbol) {
+  printf("About to check symbol: %s\n", symbol.data);
   struct SymbolTableEntry *entry = annotator->symbol_table.head;
 
   while (entry != NULL &&
-         strncmp(entry->symbol.data, symbol.data, entry->symbol.length) != 0) {
+         strncmp(entry->symbol.data, symbol.data, symbol.length) != 0) {
     entry = entry->next;
   }
 
@@ -189,6 +190,14 @@ void annotator_visit_module_statement(struct Annotator *annotator,
                                        .type = type,
                                        .next = NULL,
                                    });
+    if (type->kind == DTK_FUNCTION) {
+      printf("Starting to annotate function (%s)\n",
+             statement->node.decl->symbol.data);
+      annotator_visit_function_statements(
+          annotator, statement->node.decl->expression->node.fn_def->body);
+      printf("Done annotating function (%s)\n",
+             statement->node.decl->symbol.data);
+    }
     break;
   }
   case MOD_STMT_CONST: {
@@ -206,6 +215,14 @@ void annotator_visit_module_statement(struct Annotator *annotator,
                                        .type = type,
                                        .next = NULL,
                                    });
+    if (type->kind == DTK_FUNCTION) {
+      printf("Starting to annotate function (%s)\n",
+             statement->node.decl->symbol.data);
+      annotator_visit_function_statements(
+          annotator, statement->node.decl->expression->node.fn_def->body);
+      printf("Done annotating function (%s)\n",
+             statement->node.decl->symbol.data);
+    }
     break;
   }
   default:
@@ -247,6 +264,14 @@ void annotator_visit_function_statement(
                                        .type = type,
                                        .next = NULL,
                                    });
+    if (type->kind == DTK_FUNCTION) {
+      printf("Starting to annotate function (%s)\n",
+             statement->node.decl->symbol.data);
+      annotator_visit_function_statements(
+          annotator, statement->node.decl->expression->node.fn_def->body);
+      printf("Done annotating function (%s)\n",
+             statement->node.decl->symbol.data);
+    }
     break;
   }
   case FN_STMT_CONST: {
@@ -264,6 +289,14 @@ void annotator_visit_function_statement(
                                        .type = type,
                                        .next = NULL,
                                    });
+    if (type->kind == DTK_FUNCTION) {
+      printf("Starting to annotate function (%s)\n",
+             statement->node.decl->symbol.data);
+      annotator_visit_function_statements(
+          annotator, statement->node.decl->expression->node.fn_def->body);
+      printf("Done annotating function (%s)\n",
+             statement->node.decl->symbol.data);
+    }
     break;
   }
   case FN_STMT_ASSIGN: {

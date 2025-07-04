@@ -31,6 +31,9 @@ int main(void) {
                                          "let g: int = 5;"
                                          "const main = fn(): int {"
                                          "  const abc = 456;"
+                                         "  const inner = fn(): int {"
+                                         "    const innervar = 92;"
+                                         "  };"
                                          "  abc = 5;"
                                          "};"));
 
