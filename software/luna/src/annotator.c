@@ -239,7 +239,12 @@ void annotator_visit_function_statement(
     assert(data_types_equal(
         entry->type,
         infer_type(annotator, statement->node.assign->expression)));
-
+    if (entry->type->kind == DTK_FUNCTION) {
+      printf("Starting to annotate function (%s)\n", entry->symbol.data);
+      annotator_visit_function_statements(
+          annotator, statement->node.assign->expression->node.fn_def->body);
+      printf("Done annotating function (%s)\n", entry->symbol.data);
+    }
     break;
   }
   default:
