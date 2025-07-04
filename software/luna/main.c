@@ -27,9 +27,10 @@ int main(void) {
                                          "let y = 5 + x;"
                                          "a = 10;"
                                          "let g: int = 5;"
-                                         "const main = fn(): int {"
-                                         "  const abc = 123;"
-                                         "};"));
+                                         // "const main = fn(): int {"
+                                         // "  const abc = 123;"
+                                         // "};"
+                                         ));
 
   struct Token toks[1024];
   uint16_t tok_index = 0;

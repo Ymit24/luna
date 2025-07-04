@@ -1,6 +1,7 @@
 #include "instruction_builder.h"
 #include "arena_allocator.h"
 #include "ast.h"
+#include "instructions.h"
 #include <assert.h>
 
 struct InstructionGroup *
@@ -81,4 +82,34 @@ void ib_push_instruction(struct InstructionBuilder *instruction_builder,
     instruction_builder->current->tail->next = instr;
     instruction_builder->current->tail = instr;
   }
+}
+
+void ib_push_push(struct InstructionBuilder *instruction_builder,
+                  enum MemorySegment memory_segment, uint16_t index) {
+  ib_push_instruction(instruction_builder,
+                      ast_promote(instruction_builder->allocator,
+                                  &(struct Instruction){
+                                      .type = IT_PUSH,
+                                      .value.pushpop =
+                                          (struct PushPopInstruction){
+                                              .memory_segment = memory_segment,
+                                              .index = index,
+                                          }},
+                                  sizeof(struct Instruction)),
+                      NULL);
+}
+
+void ib_push_pop(struct InstructionBuilder *instruction_builder,
+                 enum MemorySegment memory_segment, uint16_t index) {
+  ib_push_instruction(instruction_builder,
+                      ast_promote(instruction_builder->allocator,
+                                  &(struct Instruction){
+                                      .type = IT_POP,
+                                      .value.pushpop =
+                                          (struct PushPopInstruction){
+                                              .memory_segment = memory_segment,
+                                              .index = index,
+                                          }},
+                                  sizeof(struct Instruction)),
+                      NULL);
 }
