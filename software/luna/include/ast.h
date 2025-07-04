@@ -10,10 +10,9 @@
 #include "luna_string.h"
 
 enum StatementType {
-  STMT_EXPR,
-  STMT_LET,
-  STMT_CONST,
-  STMT_ASSIGN,
+  MOD_STMT_LET,
+  MOD_STMT_CONST,
+  MOD_STMT_ASSIGN,
 };
 
 struct DeclarationStatementNode {
@@ -32,7 +31,6 @@ struct AssignStatementNode {
 struct ModuleStatementNode {
   enum StatementType type;
   union {
-    struct ExpressionNode *expr;
     struct DeclarationStatementNode *decl;
     struct AssignStatementNode *assign;
   } node;

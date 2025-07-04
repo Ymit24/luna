@@ -66,19 +66,19 @@ void cg_visit_expr(struct CodeGenerator *code_generator,
 void cg_visit_statement(struct CodeGenerator *code_generator,
                         struct ModuleStatementNode *stmt) {
   switch (stmt->type) {
-  case STMT_LET:
+  case MOD_STMT_LET:
     assert(lookup_symbol(code_generator->annotator, stmt->node.decl->symbol) !=
            NULL);
     puts("let safe.");
     cg_visit_expr(code_generator, stmt->node.decl->expression);
     break;
-  case STMT_CONST:
+  case MOD_STMT_CONST:
     assert(lookup_symbol(code_generator->annotator, stmt->node.decl->symbol) !=
            NULL);
     puts("const safe.");
     cg_visit_expr(code_generator, stmt->node.decl->expression);
     break;
-  case STMT_ASSIGN:
+  case MOD_STMT_ASSIGN:
     assert(lookup_symbol(code_generator->annotator,
                          stmt->node.assign->symbol) != NULL);
     puts("assign safe.");
@@ -86,10 +86,6 @@ void cg_visit_statement(struct CodeGenerator *code_generator,
            stmt->node.assign->symbol.data, stmt->node.assign->expression->type,
            EXPR_BINARY);
     cg_visit_expr(code_generator, stmt->node.assign->expression);
-    break;
-  case STMT_EXPR:
-    puts("Unsupported statement type");
-    assert(0);
     break;
   }
 }

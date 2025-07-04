@@ -270,7 +270,7 @@ struct ModuleStatementNode *parse_statement(struct Parser *parser) {
     struct DeclarationStatementNode *decl = parse_decl_statement(parser, false);
     return ast_promote(parser->allocator,
                        &(struct ModuleStatementNode){
-                           .type = STMT_LET,
+                           .type = MOD_STMT_LET,
                            .node.decl = decl,
                            .next = NULL,
                        },
@@ -280,7 +280,7 @@ struct ModuleStatementNode *parse_statement(struct Parser *parser) {
     struct DeclarationStatementNode *decl = parse_decl_statement(parser, true);
     return ast_promote(parser->allocator,
                        &(struct ModuleStatementNode){
-                           .type = STMT_CONST,
+                           .type = MOD_STMT_CONST,
                            .node.decl = decl,
                            .next = NULL,
                        },
@@ -304,7 +304,7 @@ struct ModuleStatementNode *parse_statement(struct Parser *parser) {
 
       return ast_promote(parser->allocator,
                          &(struct ModuleStatementNode){
-                             .type = STMT_ASSIGN,
+                             .type = MOD_STMT_ASSIGN,
                              .node.assign = ast_promote(
                                  parser->allocator,
                                  &(struct AssignStatementNode){

@@ -59,10 +59,7 @@ void print_variables(struct Environment *environment) {
 void evaluate_statement(struct Environment *environment,
                         struct ModuleStatementNode *stmt) {
   switch (stmt->type) {
-  case STMT_EXPR:
-    printf("expr: %d\n", evaluate_expression(environment, stmt->node.expr));
-    break;
-  case STMT_LET: {
+  case MOD_STMT_LET: {
     assert(lookup(environment, stmt->node.decl->symbol) == NULL);
     struct Variable variable = (struct Variable){
         .symbol = stmt->node.decl->symbol,
@@ -78,7 +75,7 @@ void evaluate_statement(struct Environment *environment,
            stmt->node.decl->data_type->kind, variable.value);
     break;
   }
-  case STMT_CONST: {
+  case MOD_STMT_CONST: {
     struct Variable variable = (struct Variable){
         .symbol = stmt->node.decl->symbol,
         .value = evaluate_expression(environment, stmt->node.decl->expression),
@@ -91,7 +88,7 @@ void evaluate_statement(struct Environment *environment,
     printf("let %s = %d\n", variable.symbol.data, variable.value);
     break;
   }
-  case STMT_ASSIGN: {
+  case MOD_STMT_ASSIGN: {
     struct Variable *variable = lookup(environment, stmt->node.assign->symbol);
 
     assert(variable != NULL);

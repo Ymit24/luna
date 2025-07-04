@@ -171,7 +171,7 @@ void insert_symbol_entry(struct Annotator *annotator,
 void annotator_visit_statement(struct Annotator *annotator,
                                struct ModuleStatementNode *statement) {
   switch (statement->type) {
-  case STMT_LET: {
+  case MOD_STMT_LET: {
     assert(lookup_symbol(annotator, statement->node.decl->symbol) == NULL);
     struct DataType *type =
         infer_type(annotator, statement->node.decl->expression);
@@ -188,7 +188,7 @@ void annotator_visit_statement(struct Annotator *annotator,
                                    });
     break;
   }
-  case STMT_CONST: {
+  case MOD_STMT_CONST: {
     assert(lookup_symbol(annotator, statement->node.decl->symbol) == NULL);
     struct DataType *type =
         infer_type(annotator, statement->node.decl->expression);
@@ -205,7 +205,7 @@ void annotator_visit_statement(struct Annotator *annotator,
                                    });
     break;
   }
-  case STMT_ASSIGN: {
+  case MOD_STMT_ASSIGN: {
     struct SymbolTableEntry *entry =
         lookup_symbol(annotator, statement->node.decl->symbol);
     assert(entry != NULL);
