@@ -24,13 +24,14 @@ int main(void) {
   struct Lexer lexer =
       lexer_make(&allocator, string_make("let a = 5 - (2 + 1);"
                                          // "const c = true;"
-                                         "a = 7;"
+                                         // "a = 7;"
                                          "let x = 3;"
                                          // "let y = 5 + x;"
                                          // "a = 4;"
                                          "let g: int = 5;"
                                          "const main = fn(): int {"
                                          "  const abc = 456;"
+                                         "  abc = 5;"
                                          "};"));
 
   struct Token toks[1024];
