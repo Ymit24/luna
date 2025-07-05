@@ -77,6 +77,9 @@ int main(void) {
         case MS_LOCAL:
           printf("\tpush local %d\n", instr->value.pushpoplea.value.index);
           break;
+        case MS_STATIC:
+          printf("\tpush static %d\n", instr->value.pushpoplea.value.index);
+          break;
         case MS_CONST:
           if (instr->value.pushpoplea.is_index) {
             printf("\tpush const %d\n", instr->value.pushpoplea.value.index);
@@ -93,6 +96,9 @@ int main(void) {
         case MS_LOCAL:
           printf("\tpop local %d\n", instr->value.pushpoplea.value.index);
           break;
+        case MS_STATIC:
+          printf("\tpop static %d\n", instr->value.pushpoplea.value.index);
+          break;
         case MS_CONST:
           printf("\tpop const %d\n", instr->value.pushpoplea.value.index);
           break;
@@ -102,6 +108,9 @@ int main(void) {
         switch (instr->value.pushpoplea.memory_segment) {
         case MS_LOCAL:
           printf("\tlea local %d\n", instr->value.pushpoplea.value.index);
+          break;
+        case MS_STATIC:
+          printf("\tlea static %d\n", instr->value.pushpoplea.value.index);
           break;
         case MS_CONST:
           puts("Illegal lea of const.");

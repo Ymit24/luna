@@ -16,7 +16,7 @@ enum InstructionType {
   IT_SUB,
 };
 
-enum MemorySegment { MS_LOCAL, MS_CONST };
+enum MemorySegment { MS_LOCAL, MS_CONST, MS_STATIC };
 
 struct PushPopLeaInstruction {
   enum MemorySegment memory_segment;

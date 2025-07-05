@@ -2,6 +2,7 @@
 #define ANNOTATOR_H
 
 #include "arena_allocator.h"
+#include "instructions.h"
 #include "luna_string.h"
 #include <stdbool.h>
 #include <stddef.h>
@@ -33,11 +34,14 @@ struct SymbolTableEntry {
   struct LunaString symbol;
   struct DataType *type;
   struct SymbolTableEntry *next;
+  enum MemorySegment memory_segment;
+  uint16_t index;
 };
 
 struct SymbolTable {
   struct SymbolTableEntry *head;
   struct SymbolTable *parent;
+  uint16_t current_index;
   bool is_function;
 };
 

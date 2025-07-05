@@ -72,20 +72,26 @@ void cg_visit_expr(struct CodeGenerator *code_generator,
   }
 }
 
+void cg_visit_decl(struct CodeGenerator *code_generator,
+                   struct DeclarationStatementNode *decl) {
+
+  struct SymbolTableEntry *symbol =
+      lookup_symbol_in(decl->symbol, code_generator->current_symbol_table);
+  assert(symbol != NULL);
+  printf("Code genning decl %s.\n", symbol->symbol.data);
+  cg_visit_expr(code_generator, decl->expression);
+  ib_push_pop(code_generator->instruction_builder, symbol->memory_segment,
+              symbol->index);
+}
+
 void cg_visit_function_statement(struct CodeGenerator *code_generator,
                                  struct FunctionStatementNode *stmt) {
   switch (stmt->type) {
   case FN_STMT_LET:
-    assert(lookup_symbol_in(stmt->node.decl->symbol,
-                            code_generator->current_symbol_table) != NULL);
-    puts("let safe.");
-    cg_visit_expr(code_generator, stmt->node.decl->expression);
+    cg_visit_decl(code_generator, stmt->node.decl);
     break;
   case FN_STMT_CONST:
-    assert(lookup_symbol_in(stmt->node.decl->symbol,
-                            code_generator->current_symbol_table) != NULL);
-    puts("const safe.");
-    cg_visit_expr(code_generator, stmt->node.decl->expression);
+    cg_visit_decl(code_generator, stmt->node.decl);
     break;
   case FN_STMT_ASSIGN:
     assert(lookup_symbol_in(stmt->node.assign->symbol,
@@ -103,16 +109,10 @@ void cg_visit_module_statement(struct CodeGenerator *code_generator,
                                struct ModuleStatementNode *stmt) {
   switch (stmt->type) {
   case MOD_STMT_LET:
-    assert(lookup_symbol_in(stmt->node.decl->symbol,
-                            code_generator->current_symbol_table) != NULL);
-    puts("let safe.");
-    cg_visit_expr(code_generator, stmt->node.decl->expression);
+    cg_visit_decl(code_generator, stmt->node.decl);
     break;
   case MOD_STMT_CONST:
-    assert(lookup_symbol_in(stmt->node.decl->symbol,
-                            code_generator->current_symbol_table) != NULL);
-    puts("const safe.");
-    cg_visit_expr(code_generator, stmt->node.decl->expression);
+    cg_visit_decl(code_generator, stmt->node.decl);
     break;
   default:
     puts("Unknown module statement type.");

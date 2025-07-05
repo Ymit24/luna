@@ -33,7 +33,8 @@ struct Annotator annotator_make(struct ArenaAllocator *allocator) {
       .data_type_table = (struct DataTypeTable){.head = NULL},
       .root_symbol_table = (struct SymbolTable){.head = NULL,
                                                 .is_function = false,
-                                                .parent = NULL},
+                                                .parent = NULL,
+                                                .current_index = 0},
   };
   return annotator;
 }
@@ -80,11 +81,13 @@ void annotator_initialize_primitives(struct Annotator *annotator) {
                                      .symbol = string_make("true"),
                                      .type = primitives[1],
                                      .next = NULL,
+                                     .memory_segment = MS_STATIC,
                                  });
   insert_symbol_entry(annotator, (struct SymbolTableEntry){
                                      .symbol = string_make("false"),
                                      .type = primitives[1],
                                      .next = NULL,
+                                     .memory_segment = MS_STATIC,
                                  });
 }
 
@@ -183,6 +186,8 @@ void insert_symbol_entry_in(struct Annotator *annotator,
                             struct SymbolTableEntry entry) {
   struct SymbolTableEntry *entry_ptr = ast_promote(
       annotator->allocator, &entry, sizeof(struct SymbolTableEntry));
+  entry_ptr->index = symbol_table->current_index;
+  symbol_table->current_index++; // TODO: HANDLE DATA TYPE SIZE
   entry_ptr->next = symbol_table->head;
   symbol_table->head = entry_ptr;
 }
@@ -230,7 +235,8 @@ void annotator_visit_expr(struct Annotator *annotator,
     annotator_visit_function_statements(annotator, expr->node.fn_def->body);
     annotator->current_symbol_table = old_current;
     puts("Done visiting function expression");
-    print_symbol_table(string_make("anon function"), &expr->node.fn_def->symbol_table);
+    print_symbol_table(string_make("anon function"),
+                       &expr->node.fn_def->symbol_table);
     break;
   }
   }
