@@ -77,6 +77,7 @@ struct SymbolLiteralNode {
 struct FunctionDefinitionExpressionNode {
   struct FunctionStatementNode *body;
   struct DataType *return_type;
+  struct SymbolTable symbol_table;
 };
 
 enum BinaryExpressionType {

@@ -31,7 +31,9 @@ struct Annotator annotator_make(struct ArenaAllocator *allocator) {
   struct Annotator annotator = (struct Annotator){
       .allocator = allocator,
       .data_type_table = (struct DataTypeTable){.head = NULL},
-      .symbol_table = (struct SymbolTable){.head = NULL},
+      .root_symbol_table = (struct SymbolTable){.head = NULL,
+                                                .is_function = false,
+                                                .parent = NULL},
   };
   return annotator;
 }
@@ -78,19 +80,18 @@ void annotator_initialize_primitives(struct Annotator *annotator) {
                                      .symbol = string_make("true"),
                                      .type = primitives[1],
                                      .next = NULL,
-                                     .subtable = NULL,
                                  });
   insert_symbol_entry(annotator, (struct SymbolTableEntry){
                                      .symbol = string_make("false"),
                                      .type = primitives[1],
                                      .next = NULL,
-                                     .subtable = NULL,
                                  });
 }
 
-void print_symbols(struct Annotator *annotator) {
-  struct SymbolTableEntry *symbol_table_entry = annotator->symbol_table.head;
-  puts("Symbol Table:");
+void print_symbol_table(struct LunaString name,
+                        struct SymbolTable *symbol_table) {
+  struct SymbolTableEntry *symbol_table_entry = symbol_table->head;
+  printf("Symbol Table (%s):\n", name.data);
   while (symbol_table_entry != NULL) {
     if (symbol_table_entry->type != NULL) {
       switch (symbol_table_entry->type->kind) {
@@ -103,11 +104,20 @@ void print_symbols(struct Annotator *annotator) {
         break;
       }
     } else {
-
       printf("\t%s: unknown\n", symbol_table_entry->symbol.data);
     }
+
+    // if (symbol_table_entry->subtable != NULL) {
+    //   print_symbol_table(symbol_table_entry->symbol,
+    //                      symbol_table_entry->subtable);
+    // }
+
     symbol_table_entry = symbol_table_entry->next;
   }
+}
+
+void print_symbols(struct Annotator *annotator) {
+  print_symbol_table(string_make("root"), &annotator->root_symbol_table);
 }
 
 void print_data_types(struct Annotator *annotator) {
@@ -126,8 +136,8 @@ void print_data_types(struct Annotator *annotator) {
   }
 }
 
-struct SymbolTableEntry *lookup_symbol_in(struct SymbolTable *symbol_table,
-                                          struct LunaString symbol) {
+struct SymbolTableEntry *lookup_symbol_in(struct LunaString symbol,
+                                          struct SymbolTable *symbol_table) {
   printf("About to check symbol: %s\n", symbol.data);
   struct SymbolTableEntry *entry = symbol_table->head;
 
@@ -140,36 +150,9 @@ struct SymbolTableEntry *lookup_symbol_in(struct SymbolTable *symbol_table,
 }
 
 struct SymbolTableEntry *lookup_symbol(struct Annotator *annotator,
-                                       struct LunaString symbol_path[],
-                                       size_t symbol_path_length) {
-  struct SymbolTable *current_table = &annotator->symbol_table;
-  for (size_t i = 0; i < symbol_path_length - 1; i++) {
-    struct LunaString current_symbol = symbol_path[i];
-    struct SymbolTableEntry *entry =
-        lookup_symbol_in(current_table, current_symbol);
-    assert(entry != NULL);
-    assert(entry->subtable != NULL);
-    current_table = entry->subtable;
-  }
-
-  assert(current_table != NULL);
-  struct SymbolTableEntry *entry =
-      lookup_symbol_in(current_table, symbol_path[symbol_path_length - 1]);
-  assert(entry != NULL);
-  return entry;
-}
-
-struct SymbolTableEntry *lookup_symbol_current(struct Annotator *annotator,
-                                               struct LunaString symbol) {
-  printf("About to check symbol: %s\n", symbol.data);
-  struct SymbolTableEntry *entry = annotator->symbol_table.head;
-
-  while (entry != NULL &&
-         strncmp(entry->symbol.data, symbol.data, symbol.length) != 0) {
-    entry = entry->next;
-  }
-
-  return entry;
+                                       struct LunaString symbol) {
+  assert(annotator->current_symbol_table != NULL);
+  return lookup_symbol_in(symbol, annotator->current_symbol_table);
 }
 
 struct DataType *infer_type(struct Annotator *annotator,
@@ -180,7 +163,7 @@ struct DataType *infer_type(struct Annotator *annotator,
     return make_primitive_data_type(annotator, P_INT);
   case EXPR_SYMBOL_LITERAL: {
     struct SymbolTableEntry *entry =
-        lookup_symbol_current(annotator, expr->node.symbol->value);
+        lookup_symbol(annotator, expr->node.symbol->value);
     assert(entry != NULL);
     return entry->type;
   }
@@ -200,17 +183,66 @@ struct DataType *infer_type(struct Annotator *annotator,
   return NULL;
 }
 
-void insert_symbol_entry(struct Annotator *annotator,
-                         struct SymbolTableEntry entry) {
+void insert_symbol_entry_in(struct Annotator *annotator,
+                            struct SymbolTable *symbol_table,
+                            struct SymbolTableEntry entry) {
   struct SymbolTableEntry *entry_ptr = ast_promote(
       annotator->allocator, &entry, sizeof(struct SymbolTableEntry));
-  entry_ptr->next = annotator->symbol_table.head;
-  annotator->symbol_table.head = entry_ptr;
+  entry_ptr->next = symbol_table->head;
+  symbol_table->head = entry_ptr;
+}
+
+void insert_symbol_entry(struct Annotator *annotator,
+                         struct SymbolTableEntry entry) {
+  puts("Inserting symbol into symbol table");
+
+  insert_symbol_entry_in(annotator, annotator->current_symbol_table, entry);
+}
+
+struct SymbolTable *find_parent_table(struct SymbolTable *symbol_table) {
+  assert(symbol_table != NULL);
+  struct SymbolTable *current = symbol_table;
+
+  while (current->parent != NULL && current->is_function) {
+    current = current->parent;
+  }
+
+  assert(current != NULL);
+  assert(current->is_function == false);
+  return current;
+}
+
+void annotator_visit_expr(struct Annotator *annotator,
+                          struct ExpressionNode *expr) {
+  switch (expr->type) {
+  case EXPR_BINARY:
+    annotator_visit_expr(annotator, expr->node.binary->left);
+    annotator_visit_expr(annotator, expr->node.binary->right);
+    break;
+  case EXPR_INTEGER_LITERAL:
+    break;
+  case EXPR_SYMBOL_LITERAL:
+    break;
+  case EXPR_FN_DEF: {
+    puts("Visiting function expression");
+    struct SymbolTable *old_current = annotator->current_symbol_table;
+    expr->node.fn_def->symbol_table = (struct SymbolTable){
+        .head = NULL,
+        .is_function = true,
+        .parent = find_parent_table(annotator->current_symbol_table),
+    };
+    annotator->current_symbol_table = &expr->node.fn_def->symbol_table;
+    annotator_visit_function_statements(annotator, expr->node.fn_def->body);
+    annotator->current_symbol_table = old_current;
+    puts("Done visiting function expression");
+    break;
+  }
+  }
 }
 
 void annotator_visit_decl(struct Annotator *annotator,
                           struct DeclarationStatementNode *decl) {
-  assert(lookup_symbol_current(annotator, decl->symbol) == NULL);
+  assert(lookup_symbol(annotator, decl->symbol) == NULL);
   struct DataType *type = infer_type(annotator, decl->expression);
   if (decl->has_type) {
     assert(data_types_equal(type, decl->data_type));
@@ -222,25 +254,8 @@ void annotator_visit_decl(struct Annotator *annotator,
                                      .symbol = decl->symbol,
                                      .type = type,
                                      .next = NULL,
-                                     .subtable = NULL,
                                  });
-  if (type->kind == DTK_FUNCTION) {
-    printf("Starting to annotate function (%s)\n", decl->symbol.data);
-    struct SymbolTableEntry *current =
-        lookup_symbol_current(annotator, decl->symbol);
-    assert(current != NULL);
-    current->subtable = ast_promote(annotator->allocator,
-                                    &(struct SymbolTable){
-                                        .head = NULL,
-                                    },
-                                    sizeof(struct SymbolTable));
-    struct SymbolTable *old_current = annotator->current_symbol_table;
-    annotator->current_symbol_table = current->subtable;
-    annotator_visit_function_statements(annotator,
-                                        decl->expression->node.fn_def->body);
-    annotator->current_symbol_table = old_current;
-    printf("Done annotating function (%s)\n", decl->symbol.data);
-  }
+  annotator_visit_expr(annotator, decl->expression);
 }
 
 void annotator_visit_module_statement(struct Annotator *annotator,
@@ -261,6 +276,7 @@ void annotator_visit_function_statements(
   struct FunctionStatementNode *curr = statement;
 
   puts("Starting function annotation..");
+
   while (curr != NULL) {
     puts("Annotating new line..");
     annotator_visit_function_statement(annotator, curr);
@@ -281,18 +297,15 @@ void annotator_visit_function_statement(
     break;
   case FN_STMT_ASSIGN: {
     struct SymbolTableEntry *entry =
-        lookup_symbol_current(annotator, statement->node.decl->symbol);
+        lookup_symbol(annotator, statement->node.decl->symbol);
+
     assert(entry != NULL);
 
     assert(data_types_equal(
         entry->type,
         infer_type(annotator, statement->node.assign->expression)));
-    if (entry->type->kind == DTK_FUNCTION) {
-      printf("Starting to annotate function (%s)\n", entry->symbol.data);
-      annotator_visit_function_statements(
-          annotator, statement->node.assign->expression->node.fn_def->body);
-      printf("Done annotating function (%s)\n", entry->symbol.data);
-    }
+
+    annotator_visit_expr(annotator, statement->node.assign->expression);
     break;
   }
   default:

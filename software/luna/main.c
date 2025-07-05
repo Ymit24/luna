@@ -23,17 +23,10 @@ int main(void) {
 
   struct Lexer lexer =
       lexer_make(&allocator, string_make("let a = 5 - (2 + 1);"
-                                         // "const c = true;"
-                                         // "a = 7;"
                                          "let x = 3;"
-                                         // "let y = 5 + x;"
-                                         // "a = 4;"
                                          "let g: int = 5;"
                                          "const main = fn(): int {"
                                          "  const abc = 456;"
-                                         "  const inner = fn(): int {"
-                                         "    const innervar = 92;"
-                                         "  };"
                                          "  abc = 5;"
                                          "};"));
 
@@ -54,8 +47,10 @@ int main(void) {
 
   struct ModuleStatementNode *stmt = parse_module_statements(&parser);
 
+  puts("done parsing");
+
   struct Annotator annotator = annotator_make(&allocator);
-  annotator.current_symbol_table = &annotator.symbol_table;
+  annotator.current_symbol_table = &annotator.root_symbol_table;
 
   annotator_initialize_primitives(&annotator);
   annotator_visit_module_statements(&annotator, stmt);
