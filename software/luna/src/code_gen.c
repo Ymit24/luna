@@ -18,6 +18,7 @@ struct CodeGenerator cg_make(struct ArenaAllocator *allocator,
       .allocator = allocator,
       .instruction_builder = instruction_builder,
       .annotator = annotator,
+      .current_symbol_table = &annotator->root_symbol_table,
   };
 }
 
@@ -58,7 +59,10 @@ void cg_visit_expr(struct CodeGenerator *code_generator,
   case EXPR_FN_DEF:
     puts("pushing function");
     struct LunaString label = ib_push_fn(code_generator->instruction_builder);
+    struct SymbolTable *old_current = code_generator->current_symbol_table;
+    code_generator->current_symbol_table = &expr->node.fn_def->symbol_table;
     cg_visit_function_statements(code_generator, expr->node.fn_def->body);
+    code_generator->current_symbol_table = old_current;
     puts("popping function");
     ib_pop_fn(code_generator->instruction_builder);
 
@@ -72,20 +76,20 @@ void cg_visit_function_statement(struct CodeGenerator *code_generator,
                                  struct FunctionStatementNode *stmt) {
   switch (stmt->type) {
   case FN_STMT_LET:
-    assert(lookup_symbol(code_generator->annotator, stmt->node.decl->symbol) !=
-           NULL);
+    assert(lookup_symbol_in(stmt->node.decl->symbol,
+                            code_generator->current_symbol_table) != NULL);
     puts("let safe.");
     cg_visit_expr(code_generator, stmt->node.decl->expression);
     break;
   case FN_STMT_CONST:
-    assert(lookup_symbol(code_generator->annotator, stmt->node.decl->symbol) !=
-           NULL);
+    assert(lookup_symbol_in(stmt->node.decl->symbol,
+                            code_generator->current_symbol_table) != NULL);
     puts("const safe.");
     cg_visit_expr(code_generator, stmt->node.decl->expression);
     break;
   case FN_STMT_ASSIGN:
-    assert(lookup_symbol(code_generator->annotator,
-                         stmt->node.assign->symbol) != NULL);
+    assert(lookup_symbol_in(stmt->node.assign->symbol,
+                            code_generator->current_symbol_table) != NULL);
     puts("assign safe.");
     printf("assign type: %s -> %d (bin is %d)\n",
            stmt->node.assign->symbol.data, stmt->node.assign->expression->type,
@@ -99,14 +103,14 @@ void cg_visit_module_statement(struct CodeGenerator *code_generator,
                                struct ModuleStatementNode *stmt) {
   switch (stmt->type) {
   case MOD_STMT_LET:
-    assert(lookup_symbol(code_generator->annotator, stmt->node.decl->symbol) !=
-           NULL);
+    assert(lookup_symbol_in(stmt->node.decl->symbol,
+                            code_generator->current_symbol_table) != NULL);
     puts("let safe.");
     cg_visit_expr(code_generator, stmt->node.decl->expression);
     break;
   case MOD_STMT_CONST:
-    assert(lookup_symbol(code_generator->annotator, stmt->node.decl->symbol) !=
-           NULL);
+    assert(lookup_symbol_in(stmt->node.decl->symbol,
+                            code_generator->current_symbol_table) != NULL);
     puts("const safe.");
     cg_visit_expr(code_generator, stmt->node.decl->expression);
     break;

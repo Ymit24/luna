@@ -9,6 +9,7 @@ struct CodeGenerator {
   struct ArenaAllocator *allocator;
   struct InstructionBuilder *instruction_builder;
   struct Annotator *annotator;
+  struct SymbolTable *current_symbol_table;
 };
 
 struct CodeGenerator cg_make(struct ArenaAllocator *allocator,
@@ -16,6 +17,6 @@ struct CodeGenerator cg_make(struct ArenaAllocator *allocator,
                              struct Annotator *annotator);
 
 void cg_visit_module_statements(struct CodeGenerator *code_generator,
-                         struct ModuleStatementNode *stmt);
+                                struct ModuleStatementNode *stmt);
 
 #endif
