@@ -107,11 +107,6 @@ void print_symbol_table(struct LunaString name,
       printf("\t%s: unknown\n", symbol_table_entry->symbol.data);
     }
 
-    // if (symbol_table_entry->subtable != NULL) {
-    //   print_symbol_table(symbol_table_entry->symbol,
-    //                      symbol_table_entry->subtable);
-    // }
-
     symbol_table_entry = symbol_table_entry->next;
   }
 }
@@ -235,6 +230,7 @@ void annotator_visit_expr(struct Annotator *annotator,
     annotator_visit_function_statements(annotator, expr->node.fn_def->body);
     annotator->current_symbol_table = old_current;
     puts("Done visiting function expression");
+    print_symbol_table(string_make("anon function"), &expr->node.fn_def->symbol_table);
     break;
   }
   }
