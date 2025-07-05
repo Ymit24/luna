@@ -27,6 +27,9 @@ int main(void) {
                                          "let g: int = 5;"
                                          "const main = fn(): int {"
                                          "  const abc = 456;"
+                                         "  const inner = fn(): int {"
+                                         "    const doubleinner = 9;"
+                                         "  };"
                                          "  abc = 5;"
                                          "};"));
 
