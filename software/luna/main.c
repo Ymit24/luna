@@ -28,13 +28,15 @@ int main(void) {
       lexer_make(&allocator, string_make("let a = 5 - (2 + 1);"
                                          "let x = 3;"
                                          "let g: int = 5;"
-                                         "const main = fn(): int {"
+                                         "const main: fn(): int = fn(): int {"
                                          "  const abc = 456;"
                                          "  const inner = fn(): int {"
                                          "    const doubleinner = 9;"
+                                         "    return doubleinner;"
                                          "  };"
-                                         "  abc = 5;"
-                                         "};"));
+                                         "  abc = 5 + inner();"
+                                         "};"
+                                         "main()"));
 
   struct Token toks[1024];
   uint16_t tok_index = 0;

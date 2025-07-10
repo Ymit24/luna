@@ -64,4 +64,7 @@ struct SymbolTableEntry *lookup_symbol_in(struct LunaString symbol,
                                           struct SymbolTable *symbol_table);
 struct SymbolTableEntry *lookup_symbol(struct Annotator *annotator,
                                        struct LunaString symbol);
+
+struct DataType *make_function_data_type(struct Annotator *annotator,
+                                         struct DataType *return_type);
 #endif

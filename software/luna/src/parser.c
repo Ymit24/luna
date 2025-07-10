@@ -238,7 +238,25 @@ struct DataType *parse_data_type(struct Parser *parser) {
     break;
   }
   case T_FN: {
-    break;
+    // Parse function type: fn(): return_type
+    parser->position++; // consume 'fn'
+    assert(parser_peek(parser).type == T_LPAREN);
+    parser->position++; // consume '('
+    assert(parser_peek(parser).type == T_RPAREN);
+    parser->position++; // consume ')'
+    assert(parser_peek(parser).type == T_COLON);
+    parser->position++; // consume ':'
+    
+    struct DataType *return_type = parse_data_type(parser);
+    
+    // Create function data type using the parser's allocator
+    return ast_promote(parser->allocator,
+                       &(struct DataType){
+                           .kind = DTK_FUNCTION,
+                           .value.function.return_type = return_type,
+                           .next = NULL,
+                       },
+                       sizeof(struct DataType));
   }
   default:
     assert(0);
