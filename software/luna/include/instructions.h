@@ -14,6 +14,8 @@ enum InstructionType {
   IT_LABEL,
   IT_ADD,
   IT_SUB,
+  IT_CALL,
+  IT_RETURN,
 };
 
 enum MemorySegment { MS_LOCAL, MS_CONST, MS_STATIC };
@@ -32,6 +34,7 @@ struct Instruction {
   union {
     struct PushPopLeaInstruction pushpoplea;
     struct LunaString label;
+    // IT_CALL and IT_RETURN have no additional data - they work with the stack
   } value;
   struct Instruction *next;
 };

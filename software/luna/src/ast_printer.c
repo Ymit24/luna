@@ -26,6 +26,7 @@ const char* ast_get_expression_type_name(enum ExpressionType type) {
   case EXPR_INTEGER_LITERAL: return "Integer";
   case EXPR_SYMBOL_LITERAL: return "Symbol";
   case EXPR_FN_DEF: return "Function";
+  case EXPR_FN_CALL: return "FunctionCall";
   default: return "Unknown";
   }
 }
@@ -108,6 +109,12 @@ void ast_print_expression(struct ExpressionNode *expr, uint16_t indent) {
     printf(DIM "└─ Body:\n" RESET);
     ast_print_function_statements(expr->node.fn_def->body, indent + 2);
     break;
+
+  case EXPR_FN_CALL:
+    ast_print_indent(indent + 1);
+    printf(CYAN "📞 Callee: %.*s\n" RESET, 
+           expr->node.fn_call->callee.length, expr->node.fn_call->callee.data);
+    break;
   }
 }
 
@@ -189,6 +196,17 @@ void ast_print_function_statements(struct FunctionStatementNode *stmt, uint16_t 
       printf(YELLOW "Assignment Statement:\n" RESET);
       ast_print_assignment(current->node.assign, indent + 1);
       break;
+    case FN_STMT_RETURN:
+      printf(MAGENTA "Return Statement:\n" RESET);
+      if (current->node.ret->has_expression) {
+        ast_print_indent(indent + 1);
+        printf(DIM "└─ Expression:\n" RESET);
+        ast_print_expression(current->node.ret->expression, indent + 2);
+      } else {
+        ast_print_indent(indent + 1);
+        printf(DIM "└─ (void return)\n" RESET);
+      }
+      break;
     }
 
     current = current->next;
@@ -206,7 +224,6 @@ void ast_print_module_statements(struct ModuleStatementNode *stmt, uint16_t inde
   struct ModuleStatementNode *current = stmt;
   uint16_t count = 0;
 
-  // Count statements
   while (current != NULL) {
     count++;
     current = current->next;
@@ -222,20 +239,20 @@ void ast_print_module_statements(struct ModuleStatementNode *stmt, uint16_t inde
 
     switch (current->type) {
     case MOD_STMT_LET:
-      printf(GREEN "Module Let Statement:\n" RESET);
+      printf(GREEN "Let Declaration:\n" RESET);
       ast_print_declaration(current->node.decl, indent + 1);
       break;
     case MOD_STMT_CONST:
-      printf(BLUE "Module Const Statement:\n" RESET);
+      printf(BLUE "Const Declaration:\n" RESET);
       ast_print_declaration(current->node.decl, indent + 1);
+      break;
+    case MOD_STMT_EXPR:
+      printf(YELLOW "Expression Statement:\n" RESET);
+      ast_print_expression(current->node.expr->expression, indent + 1);
       break;
     }
 
     current = current->next;
     index++;
-    
-    if (current != NULL) {
-      printf("\n");
-    }
   }
 } 

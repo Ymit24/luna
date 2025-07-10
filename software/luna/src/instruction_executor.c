@@ -14,6 +14,9 @@ struct VMState vm_init(struct ArenaAllocator *allocator) {
       .allocator = allocator,
       .halted = false,
       .debug_mode = true,
+      .function_count = 0,
+      .call_depth = 0,
+      .has_pending_call = false,
   };
 
   // Initialize all memory to zero
@@ -218,6 +221,12 @@ void vm_print_instruction(struct Instruction *instruction) {
   case IT_SUB:
     printf("SUB");
     break;
+  case IT_CALL:
+    printf("CALL");
+    break;
+  case IT_RETURN:
+    printf("RETURN");
+    break;
   case IT_LABEL:
     printf(CYAN "🏷️  %.*s:" RESET, instruction->value.label.length,
            instruction->value.label.data);
@@ -273,6 +282,33 @@ void vm_print_memory_segments(struct VMState *vm) {
 void vm_print_state(struct VMState *vm) {
   vm_print_memory_segments(vm);
   printf(DIM "────────────────────────────────────────\n" RESET);
+}
+
+// Function management functions
+void vm_register_function(struct VMState *vm, struct LunaString label, struct Instruction *instruction) {
+  if (vm->function_count >= 256) {
+    printf(RED "  ❌ Function table full\n" RESET);
+    vm->halted = true;
+    return;
+  }
+  
+  vm->function_table[vm->function_count].label = label;
+  vm->function_table[vm->function_count].instruction = instruction;
+  vm->function_count++;
+  
+  if (vm->debug_mode) {
+    printf(CYAN "  📝 Registered function: %.*s\n" RESET, label.length, label.data);
+  }
+}
+
+struct Instruction *vm_find_function(struct VMState *vm, struct LunaString label) {
+  for (uint16_t i = 0; i < vm->function_count; i++) {
+    if (vm->function_table[i].label.length == label.length &&
+        strncmp(vm->function_table[i].label.data, label.data, label.length) == 0) {
+      return vm->function_table[i].instruction;
+    }
+  }
+  return NULL;
 }
 
 void vm_execute_instruction(struct VMState *vm, struct Instruction *instruction) {
@@ -370,6 +406,68 @@ void vm_execute_instruction(struct VMState *vm, struct Instruction *instruction)
     }
     break;
   }
+  case IT_CALL: {
+    // Pop the target address from the stack
+    uint16_t target_address = vm_pop(vm);
+    
+    if (vm->call_depth >= VM_MAX_CALL_DEPTH) {
+      printf(RED "  ❌ Call stack overflow\n" RESET);
+      vm->halted = true;
+      break;
+    }
+    
+    // Save current frame - store the ACTUAL return instruction
+    vm->call_stack[vm->call_depth].return_lcl = vm_get_lcl(vm);
+    vm->call_stack[vm->call_depth].return_sp = vm_get_sp(vm);
+    vm->call_stack[vm->call_depth].return_instruction = instruction->next; // Where to return to
+    vm->call_depth++;
+    
+    // Set up new frame
+    uint16_t new_lcl = vm_get_sp(vm);
+    vm_set_lcl(vm, new_lcl);
+    
+    if (vm->debug_mode) {
+      printf(CYAN "  📞 CALL: address=%d (depth: %d, new LCL: %d)\n" RESET,
+             target_address, vm->call_depth, new_lcl);
+    }
+    
+    // Store target address for execution loop to use
+    vm->pending_call_target = target_address;
+    vm->has_pending_call = true;
+    
+    break;
+  }
+  case IT_RETURN: {
+    if (vm->call_depth == 0) {
+      if (vm->debug_mode) {
+        printf(CYAN "  🔙 RETURN: program exit\n" RESET);
+      }
+      vm->halted = true;
+      break;
+    }
+    
+    // Return value should be on top of stack - leave it there
+    uint16_t return_value = 0;
+    if (vm_get_sp(vm) > vm_get_lcl(vm)) {
+      return_value = vm_pop(vm);
+    }
+    
+    // Restore previous frame
+    vm->call_depth--;
+    vm_set_lcl(vm, vm->call_stack[vm->call_depth].return_lcl);
+    vm_set_sp(vm, vm->call_stack[vm->call_depth].return_sp);
+    
+    // Push return value
+    vm_push(vm, return_value);
+    
+    if (vm->debug_mode) {
+      printf(CYAN "  🔙 RETURN: value=%d, restored LCL=%d, SP=%d\n" RESET,
+             return_value, vm_get_lcl(vm), vm_get_sp(vm));
+    }
+    
+    // Note: The actual jump back will be handled in vm_execute_group
+    break;
+  }
   case IT_LABEL:
     // Labels are just markers, no execution needed
     break;
@@ -401,14 +499,126 @@ void vm_execute_program(struct VMState *vm, struct InstructionBuilder *builder) 
   printf(BOLD GREEN "\n🎯 Starting program execution\n" RESET);
   printf(DIM "══════════════════════════════════════════\n" RESET);
 
+  // Build instruction address mapping for address-based calls
+  struct Instruction *instruction_map[10000] = {0}; // Max 10k instructions
+  uint16_t current_address = 0;
+  
+  struct InstructionGroup *group = builder->head;
+  while (group != NULL) {
+    struct Instruction *instr = group->head;
+    while (instr != NULL) {
+      if (instr->type != IT_LABEL) {
+        instruction_map[current_address] = instr;
+        current_address++;
+      }
+      instr = instr->next;
+    }
+    group = group->next;
+  }
+
+  // Find the .statics group and look for the main() call
   struct InstructionGroup *current_group = builder->head;
-  while (current_group != NULL && !vm->halted) {
-    vm_execute_group(vm, current_group);
+  struct Instruction *current_instruction = NULL;
+  
+  while (current_group != NULL) {
+    if (current_group->head != NULL && current_group->head->type == IT_LABEL) {
+      struct LunaString label = current_group->head->value.label;
+      if (strncmp(label.data, ".statics", 8) == 0) {
+        // Find the last CALL instruction in this group (should be main())
+        struct Instruction *instr = current_group->head->next; // Skip the label
+        struct Instruction *last_call = NULL;
+        while (instr != NULL) {
+          if (instr->type == IT_CALL) {
+            last_call = instr;
+          }
+          instr = instr->next;
+        }
+        if (last_call != NULL) {
+          current_instruction = last_call;
+          break;
+        }
+      }
+    }
     current_group = current_group->next;
   }
 
+  // If no main call found, start from first non-preamble group
+  if (current_instruction == NULL) {
+    current_group = builder->head;
+    while (current_group != NULL) {
+      if (current_group->head != NULL && current_group->head->type == IT_LABEL) {
+        struct LunaString label = current_group->head->value.label;
+        if (strncmp(label.data, ".preamble", 9) != 0 && 
+            strncmp(label.data, ".statics", 8) != 0) {
+          current_instruction = current_group->head->next; // Skip the label
+          break;
+        }
+      }
+      current_group = current_group->next;
+    }
+  }
+
+  if (current_instruction == NULL && current_group != NULL) {
+    current_instruction = current_group->head;
+  }
+
+  // Main execution loop with address-based function call support
+  while (current_instruction != NULL && !vm->halted) {
+    enum InstructionType type = current_instruction->type;
+    
+    vm_execute_instruction(vm, current_instruction);
+    
+    if (vm->halted) break;
+    
+    // Handle control flow
+    if (type == IT_CALL) {
+      // Jump to address stored in pending call
+      if (vm->has_pending_call) {
+        uint16_t target_address = vm->pending_call_target;
+        vm->has_pending_call = false; // Clear the flag
+        
+        if (target_address < 10000 && instruction_map[target_address] != NULL) {
+          current_instruction = instruction_map[target_address];
+          continue;
+        } else {
+          printf(RED "  ❌ Invalid function address: %d\n" RESET, target_address);
+          vm->halted = true;
+          break;
+        }
+      }
+    } else if (type == IT_RETURN) {
+      // Jump back to caller
+      if (vm->call_depth > 0) {
+        current_instruction = vm->call_stack[vm->call_depth].return_instruction;
+        continue;
+      } else {
+        // Program exit - main function returned
+        break;
+      }
+    }
+    
+    // Normal sequential execution
+    current_instruction = current_instruction->next;
+    
+    // If we reached the end of current group, move to next
+    if (current_instruction == NULL) {
+      current_group = current_group->next;
+      if (current_group != NULL) {
+        current_instruction = current_group->head;
+        // Skip labels
+        while (current_instruction != NULL && current_instruction->type == IT_LABEL) {
+          current_instruction = current_instruction->next;
+        }
+      }
+    }
+
+    if (vm->debug_mode && current_instruction != NULL) {
+      vm_print_state(vm);
+    }
+  }
+
   if (vm->halted) {
-    printf(BOLD RED "\n🛑 VM halted due to error\n" RESET);
+    printf(BOLD RED "\n🛑 VM halted\n" RESET);
   } else {
     printf(BOLD GREEN "\n✅ Program execution completed successfully\n" RESET);
   }

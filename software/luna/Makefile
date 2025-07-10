@@ -15,17 +15,18 @@ TARGET = lunac
 
 # Source files
 SOURCES = main.c \
-          $(SRC_DIR)/luna_string.c \
-          $(SRC_DIR)/lexer.c \
-          $(SRC_DIR)/parser.c \
-          $(SRC_DIR)/ast.c \
-          $(SRC_DIR)/arena_allocator.c \
-          $(SRC_DIR)/annotator.c \
-          $(SRC_DIR)/instruction_builder.c \
-          $(SRC_DIR)/instruction_executor.c \
-          $(SRC_DIR)/pretty_print.c \
-          $(SRC_DIR)/ast_printer.c \
-          $(SRC_DIR)/code_gen.c
+          src/luna_string.c \
+          src/lexer.c \
+          src/parser.c \
+          src/ast.c \
+          src/arena_allocator.c \
+          src/annotator.c \
+          src/instruction_builder.c \
+          src/instruction_executor.c \
+          src/pretty_print.c \
+          src/ast_printer.c \
+          src/code_gen.c \
+          src/linker.c
 
 # Object files
 OBJECTS = $(SOURCES:%.c=$(OBJ_DIR)/%.o)

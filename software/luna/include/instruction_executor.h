@@ -26,14 +26,40 @@
 #define VM_THIS_ADDR      3       // This pointer at RAM[3]
 #define VM_THAT_ADDR      4       // That pointer at RAM[4]
 
+// Call stack management
+#define VM_MAX_CALL_DEPTH 256
+
+struct FunctionEntry {
+  struct LunaString label;
+  struct Instruction *instruction;
+};
+
+struct CallFrame {
+  uint16_t return_lcl;
+  uint16_t return_sp;
+  struct Instruction *return_instruction;
+};
+
 struct VMState {
   // Unified 64k memory space
   uint16_t memory[VM_MEMORY_SIZE];
+  
+  // Function table for label lookup
+  struct FunctionEntry function_table[256];
+  uint16_t function_count;
+  
+  // Call stack for function calls
+  struct CallFrame call_stack[VM_MAX_CALL_DEPTH];
+  uint16_t call_depth;
   
   // Execution state
   struct ArenaAllocator *allocator;
   bool halted;
   bool debug_mode;
+  
+  // Temporary storage for call targets
+  uint16_t pending_call_target;
+  bool has_pending_call;
 };
 
 // Initialize VM state
@@ -60,6 +86,10 @@ void vm_set_memory(struct VMState *vm, enum MemorySegment segment, uint16_t inde
 // Direct memory access
 uint16_t vm_read_memory(struct VMState *vm, uint16_t address);
 void vm_write_memory(struct VMState *vm, uint16_t address, uint16_t value);
+
+// Function management
+void vm_register_function(struct VMState *vm, struct LunaString label, struct Instruction *instruction);
+struct Instruction *vm_find_function(struct VMState *vm, struct LunaString label);
 
 // Pointer management
 uint16_t vm_get_sp(struct VMState *vm);

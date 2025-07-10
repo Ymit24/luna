@@ -16,6 +16,7 @@
 #include "parser.h"
 #include "pretty_print.h"
 #include "token.h"
+#include "linker.h"
 
 int main(void) {
   pp_header("Luna Compiler");
@@ -35,6 +36,7 @@ int main(void) {
                                          "    return doubleinner;"
                                          "  };"
                                          "  abc = 5 + inner();"
+                                         "  return 0;"
                                          "};"
                                          "main()"));
 
@@ -71,17 +73,32 @@ int main(void) {
   pp_success("Semantic analysis completed");
   pp_section_end();
 
-  pp_section_start("Code Generation");
-  pp_step("Initializing instruction builder...");
-  struct InstructionBuilder ib = instruction_builder_make(&allocator);
-  struct CodeGenerator code_generator = cg_make(&allocator, &ib, &annotator);
+  printf(BOLD CYAN "\n📋 Code Generation\n" RESET);
+  printf(DIM "  🔹 Initializing instruction builder...\n" RESET);
+  struct InstructionBuilder instruction_builder = instruction_builder_make(&allocator);
+  struct CodeGenerator code_generator = cg_make(&allocator, &instruction_builder, &annotator);
 
-  pp_step("Generating VM instructions...");
+  printf(DIM "  🔹 Generating VM instructions...\n" RESET);
   cg_visit_module_statements(&code_generator, stmt);
-  pp_success("Code generation completed");
+  
+  printf(BOLD GREEN "  ✅ Code generation completed\n" RESET);
 
-  pp_subheader("Generated Instructions");
-  struct InstructionGroup *curr = ib.head;
+  printf(DIM "────────────────────────────────────────\n" RESET);
+
+  printf(BOLD CYAN "\n📋 Linking\n" RESET);
+  printf(DIM "  🔹 Initializing linker...\n" RESET);
+  struct Linker linker = linker_init(&allocator);
+  
+  linker_collect_labels(&linker, &instruction_builder);
+  linker_resolve_addresses(&linker, &instruction_builder);
+  
+  printf(BOLD GREEN "  ✅ Linking completed\n" RESET);
+
+  printf(DIM "────────────────────────────────────────\n" RESET);
+
+  printf(BOLD YELLOW "\n✨ Generated Instructions\n" RESET);
+  printf(DIM "──────────────────────────────────────────\n" RESET);
+  struct InstructionGroup *curr = instruction_builder.head;
 
   while (curr != NULL) {
     struct Instruction *instr = curr->head;
@@ -100,7 +117,7 @@ int main(void) {
           if (instr->value.pushpoplea.is_index) {
             printf("push const %d", instr->value.pushpoplea.value.index);
           } else {
-            printf("push const %s", instr->value.pushpoplea.value.label.data);
+            printf("push const %.*s", instr->value.pushpoplea.value.label.length, instr->value.pushpoplea.value.label.data);
           }
           break;
         }
@@ -139,7 +156,7 @@ int main(void) {
         printf("store");
         break;
       case IT_LABEL:
-        printf(CYAN "%s:" RESET, instr->value.label.data);
+        printf(CYAN "%.*s:" RESET, instr->value.label.length, instr->value.label.data);
         printf("\n");
         goto next_instruction;
       case IT_ADD:
@@ -147,6 +164,12 @@ int main(void) {
         break;
       case IT_SUB:
         printf("sub");
+        break;
+      case IT_CALL:
+        printf("call");
+        break;
+      case IT_RETURN:
+        printf("return");
         break;
       }
       printf(RESET "\n");
@@ -156,12 +179,12 @@ int main(void) {
     curr = curr->next;
     if (curr != NULL) printf("\n");
   }
-  pp_section_end();
+  printf(DIM "────────────────────────────────────────\n" RESET);
 
   // Execute the generated code using the VM
   pp_header("VM Execution");
   struct VMState vm = vm_init(&allocator);
-  vm_execute_program(&vm, &ib);
+  vm_execute_program(&vm, &instruction_builder);
 
   pp_memory_usage(allocator.length, allocator.capacity);
   return 0;

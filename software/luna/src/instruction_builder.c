@@ -183,9 +183,18 @@ void ib_push_label(struct InstructionBuilder *instruction_builder,
 
 void ib_push_argless(struct InstructionBuilder *instruction_builder,
                      enum InstructionType type) {
-  ib_push_instruction(instruction_builder,
-                      ast_promote(instruction_builder->allocator,
-                                  &(struct Instruction){.type = type},
-                                  sizeof(struct Instruction)),
-                      NULL);
+  struct Instruction *instruction = ast_promote(
+      instruction_builder->allocator,
+      &(struct Instruction){.type = type, .next = NULL},
+      sizeof(struct Instruction));
+
+  ib_push_instruction(instruction_builder, instruction, NULL);
+}
+
+void ib_push_call(struct InstructionBuilder *instruction_builder) {
+  ib_push_argless(instruction_builder, IT_CALL);
+}
+
+void ib_push_return(struct InstructionBuilder *instruction_builder) {
+  ib_push_argless(instruction_builder, IT_RETURN);
 }

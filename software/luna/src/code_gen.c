@@ -6,6 +6,7 @@
 #include "pretty_print.h"
 #include <assert.h>
 #include <stdio.h>
+#include <string.h>
 
 void cg_visit_function_statement(struct CodeGenerator *code_generator,
                                  struct FunctionStatementNode *stmt);
@@ -58,8 +59,16 @@ void cg_visit_expr(struct CodeGenerator *code_generator,
                        expr->node.integer->value);
     break;
   case EXPR_SYMBOL_LITERAL:
-    pp_error("Symbol literals not yet supported in code generation");
-    assert(0);
+    pp_debug("Generating code for symbol literal: %.*s", 
+             expr->node.symbol->value.length, expr->node.symbol->value.data);
+    struct SymbolTableEntry *symbol =
+        lookup_symbol_in(expr->node.symbol->value, code_generator->current_symbol_table);
+    assert(symbol != NULL);
+    pp_debug("Emitting PUSH %s %d", 
+             symbol->memory_segment == MS_LOCAL ? "LOCAL" : "STATIC", 
+             symbol->index);
+    ib_push_push_index(code_generator->instruction_builder, symbol->memory_segment,
+                       symbol->index);
     break;
   case EXPR_FN_DEF:
     pp_debug("Starting function code generation");
@@ -73,6 +82,25 @@ void cg_visit_expr(struct CodeGenerator *code_generator,
 
     ib_push_push_label(code_generator->instruction_builder, label);
     break;
+  case EXPR_FN_CALL:
+    pp_debug("Generating function call: %.*s", 
+             expr->node.fn_call->callee.length, expr->node.fn_call->callee.data);
+    // Look up the function symbol and push its value (the function address)
+    struct SymbolTableEntry *fn_symbol =
+        lookup_symbol_in(expr->node.fn_call->callee, code_generator->current_symbol_table);
+    assert(fn_symbol != NULL);
+    assert(fn_symbol->type->kind == DTK_FUNCTION);
+    
+    // Push the function address stored in the variable
+    const char *segment_name = (fn_symbol->memory_segment == MS_LOCAL) ? "LOCAL" :
+                              (fn_symbol->memory_segment == MS_STATIC) ? "STATIC" : "CONST";
+    pp_debug("Emitting PUSH %s %d (function address)", segment_name, fn_symbol->index);
+    ib_push_push_index(code_generator->instruction_builder, fn_symbol->memory_segment, fn_symbol->index);
+    
+    // Call using the address on the stack
+    pp_debug("Emitting stack-based CALL");
+    ib_push_call(code_generator->instruction_builder);
+    break;
   }
 }
 
@@ -83,7 +111,27 @@ void cg_visit_decl(struct CodeGenerator *code_generator,
       lookup_symbol_in(decl->symbol, code_generator->current_symbol_table);
   assert(symbol != NULL);
   pp_debug("Generating code for declaration: %.*s", decl->symbol.length, decl->symbol.data);
-  cg_visit_expr(code_generator, decl->expression);
+  
+  // Special handling for function declarations
+  if (symbol->type->kind == DTK_FUNCTION) {
+    // Generate the function and store its label
+    assert(decl->expression->type == EXPR_FN_DEF);
+    
+    struct LunaString label = ib_push_fn(code_generator->instruction_builder);
+    symbol->function_label = label;
+    symbol->has_function_label = true;
+    
+    struct SymbolTable *old_current = code_generator->current_symbol_table;
+    code_generator->current_symbol_table = &decl->expression->node.fn_def->symbol_table;
+    cg_visit_function_statements(code_generator, decl->expression->node.fn_def->body);
+    code_generator->current_symbol_table = old_current;
+    
+    ib_pop_fn(code_generator->instruction_builder);
+    ib_push_push_label(code_generator->instruction_builder, label);
+  } else {
+    // Regular variable declaration
+    cg_visit_expr(code_generator, decl->expression);
+  }
   
   const char *segment_name = (symbol->memory_segment == MS_LOCAL) ? "LOCAL" :
                             (symbol->memory_segment == MS_STATIC) ? "STATIC" : "CONST";
@@ -107,6 +155,22 @@ void cg_visit_function_statement(struct CodeGenerator *code_generator,
     pp_debug("Generating assignment for: %.*s", 
              stmt->node.assign->symbol.length, stmt->node.assign->symbol.data);
     cg_visit_expr(code_generator, stmt->node.assign->expression);
+    
+    struct SymbolTableEntry *assign_symbol =
+        lookup_symbol_in(stmt->node.assign->symbol, code_generator->current_symbol_table);
+    pp_debug("Emitting POP %s %d", 
+             assign_symbol->memory_segment == MS_LOCAL ? "LOCAL" : "STATIC", 
+             assign_symbol->index);
+    ib_push_pop(code_generator->instruction_builder, assign_symbol->memory_segment,
+                assign_symbol->index);
+    break;
+  case FN_STMT_RETURN:
+    pp_debug("Generating return statement");
+    if (stmt->node.ret->has_expression) {
+      cg_visit_expr(code_generator, stmt->node.ret->expression);
+    }
+    pp_debug("Emitting RETURN instruction");
+    ib_push_return(code_generator->instruction_builder);
     break;
   }
 }
@@ -119,6 +183,10 @@ void cg_visit_module_statement(struct CodeGenerator *code_generator,
     break;
   case MOD_STMT_CONST:
     cg_visit_decl(code_generator, stmt->node.decl);
+    break;
+  case MOD_STMT_EXPR:
+    pp_debug("Generating code for module expression statement");
+    cg_visit_expr(code_generator, stmt->node.expr->expression);
     break;
   default:
     pp_error("Unknown module statement type");

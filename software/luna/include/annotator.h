@@ -36,6 +36,8 @@ struct SymbolTableEntry {
   struct SymbolTableEntry *next;
   enum MemorySegment memory_segment;
   uint16_t index;
+  struct LunaString function_label; // For function symbols, store the generated label
+  bool has_function_label;
 };
 
 struct SymbolTable {

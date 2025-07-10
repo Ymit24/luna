@@ -202,6 +202,15 @@ struct DataType *infer_type(struct Annotator *annotator,
   }
   case EXPR_FN_DEF:
     return make_function_data_type(annotator, expr->node.fn_def->return_type);
+  case EXPR_FN_CALL: {
+    pp_debug("Inferring function call type for: %.*s", 
+             expr->node.fn_call->callee.length, expr->node.fn_call->callee.data);
+    struct SymbolTableEntry *entry =
+        lookup_symbol(annotator, expr->node.fn_call->callee);
+    assert(entry != NULL);
+    assert(entry->type->kind == DTK_FUNCTION);
+    return entry->type->value.function.return_type;
+  }
   }
 
   pp_error("Failed to infer type for expression");
@@ -266,6 +275,16 @@ void annotator_visit_expr(struct Annotator *annotator,
                        &expr->node.fn_def->symbol_table);
     break;
   }
+  case EXPR_FN_CALL: {
+    pp_debug("Visiting function call: %.*s", 
+             expr->node.fn_call->callee.length, expr->node.fn_call->callee.data);
+    // Check that the function exists and is actually a function
+    struct SymbolTableEntry *entry =
+        lookup_symbol(annotator, expr->node.fn_call->callee);
+    assert(entry != NULL && "Function not found");
+    assert(entry->type->kind == DTK_FUNCTION && "Symbol is not a function");
+    break;
+  }
   }
 }
 
@@ -283,6 +302,8 @@ void annotator_visit_decl(struct Annotator *annotator,
                                      .symbol = decl->symbol,
                                      .type = type,
                                      .next = NULL,
+                                     .function_label = {0},
+                                     .has_function_label = false,
                                  });
   annotator_visit_expr(annotator, decl->expression);
 }
@@ -293,6 +314,10 @@ void annotator_visit_module_statement(struct Annotator *annotator,
   case MOD_STMT_LET:
   case MOD_STMT_CONST:
     annotator_visit_decl(annotator, statement->node.decl);
+    break;
+  case MOD_STMT_EXPR:
+    pp_debug("Visiting module expression statement");
+    annotator_visit_expr(annotator, statement->node.expr->expression);
     break;
   default:
     pp_error("Unknown module statement type");
@@ -327,7 +352,7 @@ void annotator_visit_function_statement(
     break;
   case FN_STMT_ASSIGN: {
     struct SymbolTableEntry *entry =
-        lookup_symbol(annotator, statement->node.decl->symbol);
+        lookup_symbol(annotator, statement->node.assign->symbol);
 
     assert(entry != NULL);
 
@@ -339,6 +364,14 @@ void annotator_visit_function_statement(
     pp_debug("Assignment type check passed");
 
     annotator_visit_expr(annotator, statement->node.assign->expression);
+    break;
+  }
+  case FN_STMT_RETURN: {
+    pp_debug("Visiting return statement");
+    if (statement->node.ret->has_expression) {
+      annotator_visit_expr(annotator, statement->node.ret->expression);
+      // TODO: Check that return type matches function signature
+    }
     break;
   }
   default:

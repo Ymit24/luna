@@ -33,6 +33,8 @@ struct Token parser_peek(struct Parser *parser) {
 
 uint8_t precedence_for_token(enum TokenType type) {
   switch (type) {
+  case T_LPAREN:
+    return 10; // Highest precedence for function calls
   case T_PLUS:
     return 1;
   case T_MINUS:
@@ -120,6 +122,28 @@ struct ExpressionNode *parse_expression(struct Parser *parser,
     token = parser_peek(parser);
     if (token.type == T_EOF) {
       return left;
+    }
+
+    // Check for function call after symbol
+    if (token.type == T_LPAREN && left->type == EXPR_SYMBOL_LITERAL) {
+      parser->position++; // consume '('
+      assert(parser_peek(parser).type == T_RPAREN); // For now, no args
+      parser->position++; // consume ')'
+      
+      // Convert symbol literal to function call
+      struct LunaString callee = left->node.symbol->value;
+      left = ast_promote(parser->allocator,
+                         &(struct ExpressionNode){
+                             .type = EXPR_FN_CALL,
+                             .node.fn_call = ast_promote(
+                                 parser->allocator,
+                                 &(struct FunctionCallExpressionNode){
+                                     .callee = callee,
+                                 },
+                                 sizeof(struct FunctionCallExpressionNode)),
+                         },
+                         sizeof(struct ExpressionNode));
+      continue;
     }
 
     parser->position++;
@@ -321,6 +345,34 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
                        },
                        sizeof(struct FunctionStatementNode));
   }
+  case T_RETURN: {
+    parser->position++; // consume 'return'
+    
+    struct ExpressionNode *expr = NULL;
+    bool has_expression = false;
+    
+    if (parser_peek(parser).type != T_SEMICOLON) {
+      expr = parse_expression(parser, 0);
+      has_expression = true;
+    }
+    
+    assert(parser_peek(parser).type == T_SEMICOLON);
+    parser->position++; // consume ';'
+    
+    return ast_promote(parser->allocator,
+                       &(struct FunctionStatementNode){
+                           .type = FN_STMT_RETURN,
+                           .node.ret = ast_promote(
+                               parser->allocator,
+                               &(struct ReturnStatementNode){
+                                   .expression = expr,
+                                   .has_expression = has_expression,
+                               },
+                               sizeof(struct ReturnStatementNode)),
+                           .next = NULL,
+                       },
+                       sizeof(struct FunctionStatementNode));
+  }
   default: {
     printf("Looking at: %d\n", parser_peek(parser).type);
     assert(parser_peek(parser).type == T_SYMBOL);
@@ -381,10 +433,26 @@ struct ModuleStatementNode *parse_module_statement(struct Parser *parser) {
                        sizeof(struct ModuleStatementNode));
   }
   default: {
-    assert(0);
-    break;
+    // Parse as expression statement (e.g., function calls)
+    struct ExpressionNode *expr = parse_expression(parser, 0);
+    
+    // Expression statements don't require semicolons at module level for now
+    if (parser_peek(parser).type == T_SEMICOLON) {
+      parser->position++; // consume optional semicolon
+    }
+    
+    return ast_promote(parser->allocator,
+                       &(struct ModuleStatementNode){
+                           .type = MOD_STMT_EXPR,
+                           .node.expr = ast_promote(
+                               parser->allocator,
+                               &(struct ExpressionStatementNode){
+                                   .expression = expr,
+                               },
+                               sizeof(struct ExpressionStatementNode)),
+                           .next = NULL,
+                       },
+                       sizeof(struct ModuleStatementNode));
   }
   }
-  assert(false);
-  return NULL;
 }

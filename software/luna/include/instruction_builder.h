@@ -40,5 +40,7 @@ void ib_push_label(struct InstructionBuilder *instruction_builder,
                    struct LunaString label);
 void ib_push_argless(struct InstructionBuilder *instruction_builder,
                      enum InstructionType type);
+void ib_push_call(struct InstructionBuilder *instruction_builder);
+void ib_push_return(struct InstructionBuilder *instruction_builder);
 
 #endif

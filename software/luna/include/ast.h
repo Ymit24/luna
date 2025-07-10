@@ -11,12 +11,14 @@
 enum ModuleStatementType {
   MOD_STMT_LET,
   MOD_STMT_CONST,
+  MOD_STMT_EXPR,
 };
 
 enum FunctionStatementType {
   FN_STMT_LET,
   FN_STMT_CONST,
   FN_STMT_ASSIGN,
+  FN_STMT_RETURN,
 };
 
 struct DeclarationStatementNode {
@@ -36,6 +38,7 @@ struct ModuleStatementNode {
   enum ModuleStatementType type;
   union {
     struct DeclarationStatementNode *decl;
+    struct ExpressionStatementNode *expr;
   } node;
   struct ModuleStatementNode *next;
 };
@@ -45,6 +48,7 @@ struct FunctionStatementNode {
   union {
     struct DeclarationStatementNode *decl;
     struct AssignStatementNode *assign;
+    struct ReturnStatementNode *ret;
   } node;
   struct FunctionStatementNode *next;
 };
@@ -54,6 +58,7 @@ enum ExpressionType {
   EXPR_INTEGER_LITERAL,
   EXPR_SYMBOL_LITERAL,
   EXPR_FN_DEF,
+  EXPR_FN_CALL,
 };
 
 struct ExpressionNode {
@@ -63,6 +68,7 @@ struct ExpressionNode {
     struct SymbolLiteralNode *symbol;
     struct BinaryExpressionNode *binary;
     struct FunctionDefinitionExpressionNode *fn_def;
+    struct FunctionCallExpressionNode *fn_call;
   } node;
 };
 
@@ -90,6 +96,19 @@ enum BinaryExpressionType {
 struct BinaryExpressionNode {
   enum BinaryExpressionType type;
   struct ExpressionNode *left, *right;
+};
+
+struct FunctionCallExpressionNode {
+  struct LunaString callee;
+};
+
+struct ReturnStatementNode {
+  struct ExpressionNode *expression;
+  bool has_expression;
+};
+
+struct ExpressionStatementNode {
+  struct ExpressionNode *expression;
 };
 
 struct IntegerLiteralNode *
