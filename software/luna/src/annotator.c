@@ -2,6 +2,7 @@
 #include "arena_allocator.h"
 #include "ast.h"
 #include "luna_string.h"
+#include "pretty_print.h"
 #include <alloca.h>
 #include <assert.h>
 #include <stdio.h>
@@ -94,22 +95,34 @@ void annotator_initialize_primitives(struct Annotator *annotator) {
 void print_symbol_table(struct LunaString name,
                         struct SymbolTable *symbol_table) {
   struct SymbolTableEntry *symbol_table_entry = symbol_table->head;
-  printf("Symbol Table (%s):\n", name.data);
+  printf(MAGENTA "    📚 Symbol Table (%.*s):\n" RESET, name.length, name.data);
+  if (symbol_table_entry == NULL) {
+    printf(DIM "      (empty)\n" RESET);
+    return;
+  }
+  
   while (symbol_table_entry != NULL) {
+    printf(BLUE "      %.*s" RESET ": ", symbol_table_entry->symbol.length, symbol_table_entry->symbol.data);
     if (symbol_table_entry->type != NULL) {
       switch (symbol_table_entry->type->kind) {
       case DTK_PRIMITIVE:
-        printf("\t%s: %d\n", symbol_table_entry->symbol.data,
-               symbol_table_entry->type->value.primitive);
+        switch (symbol_table_entry->type->value.primitive) {
+        case P_INT:
+          printf(GREEN "int" RESET);
+          break;
+        case P_BOOL:
+          printf(GREEN "bool" RESET);
+          break;
+        }
         break;
       case DTK_FUNCTION:
-        printf("\t%s: fn\n", symbol_table_entry->symbol.data);
+        printf(YELLOW "function" RESET);
         break;
       }
     } else {
-      printf("\t%s: unknown\n", symbol_table_entry->symbol.data);
+      printf(RED "unknown" RESET);
     }
-
+    printf("\n");
     symbol_table_entry = symbol_table_entry->next;
   }
 }
@@ -120,23 +133,37 @@ void print_symbols(struct Annotator *annotator) {
 
 void print_data_types(struct Annotator *annotator) {
   struct DataType *data_type = annotator->data_type_table.head;
-  puts("Type Table:");
+  printf(CYAN "    🏷️  Type Table:\n" RESET);
+  if (data_type == NULL) {
+    printf(DIM "      (empty)\n" RESET);
+    return;
+  }
+  
   while (data_type != NULL) {
+    printf("      ");
     switch (data_type->kind) {
     case DTK_PRIMITIVE:
-      printf("\t%d\n", data_type->value.primitive);
+      switch (data_type->value.primitive) {
+      case P_INT:
+        printf(GREEN "int" RESET);
+        break;
+      case P_BOOL:
+        printf(GREEN "bool" RESET);
+        break;
+      }
       break;
     case DTK_FUNCTION:
-      printf("\tfn\n");
+      printf(YELLOW "function" RESET);
       break;
     }
+    printf("\n");
     data_type = data_type->next;
   }
 }
 
 struct SymbolTableEntry *lookup_symbol_in(struct LunaString symbol,
                                           struct SymbolTable *symbol_table) {
-  printf("About to check symbol: %s\n", symbol.data);
+  pp_debug("Looking up symbol: %.*s", symbol.length, symbol.data);
   struct SymbolTableEntry *entry = symbol_table->head;
 
   while (entry != NULL &&
@@ -157,7 +184,7 @@ struct DataType *infer_type(struct Annotator *annotator,
                             struct ExpressionNode *expr) {
   switch (expr->type) {
   case EXPR_INTEGER_LITERAL:
-    puts("infered int");
+    pp_debug("Inferred type: int (integer literal)");
     return make_primitive_data_type(annotator, P_INT);
   case EXPR_SYMBOL_LITERAL: {
     struct SymbolTableEntry *entry =
@@ -166,7 +193,7 @@ struct DataType *infer_type(struct Annotator *annotator,
     return entry->type;
   }
   case EXPR_BINARY: {
-    puts("Infering on binary..");
+    pp_debug("Inferring binary expression types...");
     struct DataType *left = infer_type(annotator, expr->node.binary->left);
     struct DataType *right = infer_type(annotator, expr->node.binary->right);
     assert(data_types_equal(left, right));
@@ -177,7 +204,7 @@ struct DataType *infer_type(struct Annotator *annotator,
     return make_function_data_type(annotator, expr->node.fn_def->return_type);
   }
 
-  puts("Failed to infer type.");
+  pp_error("Failed to infer type for expression");
   assert(0);
   return NULL;
 }
@@ -195,8 +222,7 @@ void insert_symbol_entry_in(struct Annotator *annotator,
 
 void insert_symbol_entry(struct Annotator *annotator,
                          struct SymbolTableEntry entry) {
-  puts("Inserting symbol into symbol table");
-
+  pp_debug("Inserting symbol: %.*s", entry.symbol.length, entry.symbol.data);
   insert_symbol_entry_in(annotator, annotator->current_symbol_table, entry);
 }
 
@@ -225,7 +251,7 @@ void annotator_visit_expr(struct Annotator *annotator,
   case EXPR_SYMBOL_LITERAL:
     break;
   case EXPR_FN_DEF: {
-    puts("Visiting function expression");
+    pp_debug("Visiting function expression");
     struct SymbolTable *old_current = annotator->current_symbol_table;
     expr->node.fn_def->symbol_table = (struct SymbolTable){
         .head = NULL,
@@ -235,8 +261,8 @@ void annotator_visit_expr(struct Annotator *annotator,
     annotator->current_symbol_table = &expr->node.fn_def->symbol_table;
     annotator_visit_function_statements(annotator, expr->node.fn_def->body);
     annotator->current_symbol_table = old_current;
-    puts("Done visiting function expression");
-    print_symbol_table(string_make("anon function"),
+    pp_debug("Completed function expression analysis");
+    print_symbol_table(string_make("function"),
                        &expr->node.fn_def->symbol_table);
     break;
   }
@@ -269,25 +295,26 @@ void annotator_visit_module_statement(struct Annotator *annotator,
     annotator_visit_decl(annotator, statement->node.decl);
     break;
   default:
-    puts("Unknown module statement.");
+    pp_error("Unknown module statement type");
     assert(0);
     break;
   }
 }
+
 void annotator_visit_function_statements(
     struct Annotator *annotator, struct FunctionStatementNode *statement) {
   struct FunctionStatementNode *curr = statement;
 
-  puts("Starting function annotation..");
+  pp_debug("Starting function body analysis...");
 
   while (curr != NULL) {
-    puts("Annotating new line..");
+    pp_debug("Analyzing function statement...");
     annotator_visit_function_statement(annotator, curr);
     print_symbols(annotator);
     print_data_types(annotator);
     curr = curr->next;
   }
-  puts("Finished function annotation.");
+  pp_debug("Function body analysis completed");
 }
 
 void annotator_visit_function_statement(
@@ -309,11 +336,13 @@ void annotator_visit_function_statement(
         infer_type(annotator, statement->node.assign->expression)));
     
     (void)entry; // Used only in asserts, suppress unused warning
+    pp_debug("Assignment type check passed");
 
     annotator_visit_expr(annotator, statement->node.assign->expression);
     break;
   }
   default:
+    pp_error("Unknown function statement type");
     assert(0);
     break;
   }
@@ -323,15 +352,15 @@ void annotator_visit_module_statements(struct Annotator *annotator,
                                        struct ModuleStatementNode *statement) {
   struct ModuleStatementNode *curr = statement;
 
-  puts("Starting module annotation..");
+  pp_debug("Starting module statements analysis...");
   while (curr != NULL) {
-    puts("Annotating new line..");
+    pp_debug("Analyzing module statement...");
     annotator_visit_module_statement(annotator, curr);
     print_symbols(annotator);
     print_data_types(annotator);
     curr = curr->next;
   }
-  puts("Finished module annotation.");
+  pp_debug("Module statements analysis completed");
 }
 
 bool data_types_equal(struct DataType *left, struct DataType *right) {
@@ -350,3 +379,4 @@ bool data_types_equal(struct DataType *left, struct DataType *right) {
                             right->value.function.return_type);
   };
 }
+

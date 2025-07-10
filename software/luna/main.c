@@ -13,15 +13,16 @@
 #include "lexer.h"
 #include "luna_string.h"
 #include "parser.h"
+#include "pretty_print.h"
 #include "token.h"
 
 int main(void) {
-  puts("Luna Compiler");
+  pp_header("Luna Compiler");
 
   uint8_t arena[UINT16_MAX];
-
   struct ArenaAllocator allocator = arena_make(&arena, UINT16_MAX);
 
+  pp_section_start("Lexical Analysis");
   struct Lexer lexer =
       lexer_make(&allocator, string_make("let a = 5 - (2 + 1);"
                                          "let x = 3;"
@@ -37,59 +38,62 @@ int main(void) {
   struct Token toks[1024];
   uint16_t tok_index = 0;
 
-  puts("tokens:");
+  pp_step("Tokenizing source code...");
   while (lexer_next(&lexer, &toks[tok_index++])) {
-    if (false) {
-      printf("\t%d\n", toks[tok_index - 1].type);
-    }
+    // Tokens processed
   }
-  puts("");
 
-  printf("Found a total of %d tokens.\n", tok_index - 1);
+  pp_success("Found %d tokens", tok_index - 1);
+  pp_section_end();
 
+  pp_section_start("Syntax Analysis");
+  pp_step("Parsing module statements...");
   struct Parser parser = parser_make(&allocator, toks, tok_index);
-
   struct ModuleStatementNode *stmt = parse_module_statements(&parser);
+  pp_success("Parsing completed successfully");
+  pp_section_end();
 
-  puts("done parsing");
-
+  pp_section_start("Semantic Analysis");
+  pp_step("Initializing annotator...");
   struct Annotator annotator = annotator_make(&allocator);
   annotator.current_symbol_table = &annotator.root_symbol_table;
 
   annotator_initialize_primitives(&annotator);
+  pp_step("Analyzing symbols and types...");
   annotator_visit_module_statements(&annotator, stmt);
+  pp_success("Semantic analysis completed");
+  pp_section_end();
 
+  pp_section_start("Code Generation");
+  pp_step("Initializing instruction builder...");
   struct InstructionBuilder ib = instruction_builder_make(&allocator);
-
   struct CodeGenerator code_generator = cg_make(&allocator, &ib, &annotator);
 
-  puts("Start code gen");
+  pp_step("Generating VM instructions...");
   cg_visit_module_statements(&code_generator, stmt);
-  puts("Done code gen");
+  pp_success("Code generation completed");
 
-  // evaluate_statements(environment_make(&allocator), stmt);
-
-  puts("Code Generated:");
+  pp_subheader("Generated Instructions");
   struct InstructionGroup *curr = ib.head;
 
   while (curr != NULL) {
     struct Instruction *instr = curr->head;
     while (instr != NULL) {
+      printf(DIM "  ");
       switch (instr->type) {
       case IT_PUSH: {
         switch (instr->value.pushpoplea.memory_segment) {
         case MS_LOCAL:
-          printf("\tpush local %d\n", instr->value.pushpoplea.value.index);
+          printf("push local %d", instr->value.pushpoplea.value.index);
           break;
         case MS_STATIC:
-          printf("\tpush static %d\n", instr->value.pushpoplea.value.index);
+          printf("push static %d", instr->value.pushpoplea.value.index);
           break;
         case MS_CONST:
           if (instr->value.pushpoplea.is_index) {
-            printf("\tpush const %d\n", instr->value.pushpoplea.value.index);
+            printf("push const %d", instr->value.pushpoplea.value.index);
           } else {
-            printf("\tpush const %s\n",
-                   instr->value.pushpoplea.value.label.data);
+            printf("push const %s", instr->value.pushpoplea.value.label.data);
           }
           break;
         }
@@ -98,61 +102,61 @@ int main(void) {
       case IT_POP:
         switch (instr->value.pushpoplea.memory_segment) {
         case MS_LOCAL:
-          printf("\tpop local %d\n", instr->value.pushpoplea.value.index);
+          printf("pop local %d", instr->value.pushpoplea.value.index);
           break;
         case MS_STATIC:
-          printf("\tpop static %d\n", instr->value.pushpoplea.value.index);
+          printf("pop static %d", instr->value.pushpoplea.value.index);
           break;
         case MS_CONST:
-          printf("\tpop const %d\n", instr->value.pushpoplea.value.index);
+          printf("pop const %d", instr->value.pushpoplea.value.index);
           break;
         }
         break;
       case IT_LEA:
         switch (instr->value.pushpoplea.memory_segment) {
         case MS_LOCAL:
-          printf("\tlea local %d\n", instr->value.pushpoplea.value.index);
+          printf("lea local %d", instr->value.pushpoplea.value.index);
           break;
         case MS_STATIC:
-          printf("\tlea static %d\n", instr->value.pushpoplea.value.index);
+          printf("lea static %d", instr->value.pushpoplea.value.index);
           break;
         case MS_CONST:
-          puts("Illegal lea of const.");
+          printf("lea const (illegal)");
           break;
         }
         break;
       case IT_LOAD:
-        puts("\tload");
+        printf("load");
         break;
       case IT_STORE:
-        puts("\tstore");
+        printf("store");
         break;
       case IT_LABEL:
-        printf("label %s\n", instr->value.label.data);
-        break;
+        printf(CYAN "%s:" RESET, instr->value.label.data);
+        printf("\n");
+        goto next_instruction;
       case IT_ADD:
-        puts("\tadd");
+        printf("add");
         break;
       case IT_SUB:
-        puts("\tsub");
+        printf("sub");
         break;
       }
+      printf(RESET "\n");
+      next_instruction:
       instr = instr->next;
     }
     curr = curr->next;
-    puts("");
+    if (curr != NULL) printf("\n");
   }
+  pp_section_end();
 
   // Execute the generated code using the VM
-  puts("\n" "═══════════════════════════════════════════════════════════════════");
-  puts("Running Luna VM Execution:");
-  puts("═══════════════════════════════════════════════════════════════════");
-  
+  pp_header("VM Execution");
   struct VMState vm = vm_init(&allocator);
   vm_execute_program(&vm, &ib);
 
-  printf("Arena Allocator used %d/%d (%0.2f%%) memory\n", allocator.length,
-         allocator.capacity,
-         (double)allocator.length / (double)allocator.capacity * 100.0);
+  pp_separator();
+  pp_memory_usage(allocator.length, allocator.capacity);
   return 0;
 }
