@@ -106,6 +106,7 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
   default:
     printf("Found type: %d\n", token.type);
     assert(false);
+    return NULL; // This line will never be reached, but satisfies the compiler
   }
 }
 
@@ -333,7 +334,7 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
     }
     default:
       assert(0);
-      break;
+      return NULL; // This line will never be reached, but satisfies the compiler
     };
   }
   }

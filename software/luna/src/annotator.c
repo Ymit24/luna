@@ -170,6 +170,7 @@ struct DataType *infer_type(struct Annotator *annotator,
     struct DataType *left = infer_type(annotator, expr->node.binary->left);
     struct DataType *right = infer_type(annotator, expr->node.binary->right);
     assert(data_types_equal(left, right));
+    (void)right; // Used only in assert, suppress unused warning
     return left;
   }
   case EXPR_FN_DEF:
@@ -306,6 +307,8 @@ void annotator_visit_function_statement(
     assert(data_types_equal(
         entry->type,
         infer_type(annotator, statement->node.assign->expression)));
+    
+    (void)entry; // Used only in asserts, suppress unused warning
 
     annotator_visit_expr(annotator, statement->node.assign->expression);
     break;
