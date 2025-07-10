@@ -6,6 +6,7 @@
 #include "annotator.h"
 #include "arena_allocator.h"
 #include "ast.h"
+#include "ast_printer.h"
 #include "code_gen.h"
 #include "instruction_builder.h"
 #include "instruction_executor.h"
@@ -51,6 +52,10 @@ int main(void) {
   struct Parser parser = parser_make(&allocator, toks, tok_index);
   struct ModuleStatementNode *stmt = parse_module_statements(&parser);
   pp_success("Parsing completed successfully");
+
+  pp_subheader("Abstract Syntax Tree");
+  printf(BOLD CYAN "🌳 Parsed AST Structure:\n" RESET);
+  ast_print_module_statements(stmt, 0);
   pp_section_end();
 
   pp_section_start("Semantic Analysis");
@@ -156,7 +161,6 @@ int main(void) {
   struct VMState vm = vm_init(&allocator);
   vm_execute_program(&vm, &ib);
 
-  pp_separator();
   pp_memory_usage(allocator.length, allocator.capacity);
   return 0;
 }

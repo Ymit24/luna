@@ -24,13 +24,14 @@ SOURCES = main.c \
           $(SRC_DIR)/instruction_builder.c \
           $(SRC_DIR)/instruction_executor.c \
           $(SRC_DIR)/pretty_print.c \
+          $(SRC_DIR)/ast_printer.c \
           $(SRC_DIR)/code_gen.c
 
 # Object files
 OBJECTS = $(SOURCES:%.c=$(OBJ_DIR)/%.o)
 
 # Default target
-.PHONY: all clean debug release help
+.PHONY: all clean debug debug-build release run help
 
 all: $(TARGET)
 
@@ -39,15 +40,24 @@ $(TARGET): CFLAGS += $(RELEASE_FLAGS)
 $(TARGET): $(OBJECTS)
 	$(CC) $(OBJECTS) -o $@
 
-# Debug build
+# Debug build (clean rebuild)
 debug: CFLAGS += $(DEBUG_FLAGS)
 debug: clean $(OBJECTS)
+	$(CC) $(OBJECTS) -o $(TARGET)
+
+# Debug build (incremental)
+debug-build: CFLAGS += $(DEBUG_FLAGS)
+debug-build: $(OBJECTS)
 	$(CC) $(OBJECTS) -o $(TARGET)
 
 # Release build (explicit)
 release: CFLAGS += $(RELEASE_FLAGS)
 release: clean $(OBJECTS)
 	$(CC) $(OBJECTS) -o $(TARGET)
+
+# Build and run (incremental debug build)
+run: debug-build
+	./$(TARGET)
 
 # Object file compilation
 $(OBJ_DIR)/%.o: %.c | $(OBJ_DIR)
@@ -76,12 +86,14 @@ rebuild: clean all
 help:
 	@echo "Luna Compiler Makefile"
 	@echo "Available targets:"
-	@echo "  all       - Build the compiler (release mode)"
-	@echo "  debug     - Build with debug flags"
-	@echo "  release   - Build with optimization (explicit)"
-	@echo "  clean     - Remove build artifacts"
-	@echo "  rebuild   - Clean and build"
-	@echo "  help      - Show this help message"
+	@echo "  all         - Build the compiler (release mode)"
+	@echo "  debug       - Clean and build with debug flags"
+	@echo "  debug-build - Incremental build with debug flags"
+	@echo "  release     - Clean and build with optimization"
+	@echo "  run         - Incremental debug build and run"
+	@echo "  clean       - Remove build artifacts"
+	@echo "  rebuild     - Clean and build"
+	@echo "  help        - Show this help message"
 
 # Header dependencies (manual for key files)
 $(OBJ_DIR)/main.o: $(wildcard $(INCLUDE_DIR)/*.h)
