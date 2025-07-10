@@ -8,6 +8,7 @@
 #include "ast.h"
 #include "code_gen.h"
 #include "instruction_builder.h"
+#include "instruction_executor.h"
 #include "instructions.h"
 #include "lexer.h"
 #include "luna_string.h"
@@ -141,6 +142,14 @@ int main(void) {
     curr = curr->next;
     puts("");
   }
+
+  // Execute the generated code using the VM
+  puts("\n" "═══════════════════════════════════════════════════════════════════");
+  puts("Running Luna VM Execution:");
+  puts("═══════════════════════════════════════════════════════════════════");
+  
+  struct VMState vm = vm_init(&allocator);
+  vm_execute_program(&vm, &ib);
 
   printf("Arena Allocator used %d/%d (%0.2f%%) memory\n", allocator.length,
          allocator.capacity,

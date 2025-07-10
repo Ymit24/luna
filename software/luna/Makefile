@@ -22,6 +22,7 @@ SOURCES = main.c \
           $(SRC_DIR)/arena_allocator.c \
           $(SRC_DIR)/annotator.c \
           $(SRC_DIR)/instruction_builder.c \
+          $(SRC_DIR)/instruction_executor.c \
           $(SRC_DIR)/code_gen.c
 
 # Object files
