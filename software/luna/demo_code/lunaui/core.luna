@@ -1,0 +1,70 @@
+const core = mod {
+    const Subscription = struct {
+        id: u32,
+        next: *Subscription,
+    };
+
+    const Subscriber = struct {
+        id: u32,
+        notify: fn(),
+        next: *Subscriber,
+    };
+
+    const new_subscriber = fn(id: u32, notify: fn()): Subscriber {
+        return Subscriber { id: id, notify: notify, next: nil };
+    };
+
+    const Signal = struct<T> {
+        value: T,
+        subscribers: *Subscriber,
+        version: u32,
+    };
+
+    const make_signal = fn<T>(initial: T): Signal<T> {
+        return Signal<T> { value: initial, subscribers: nil, version: 0 };
+    };
+
+    const get = fn<T>(self: *Signal<T>): T { return self.value; };
+
+    const set = fn<T>(self: *Signal<T>, next: T) {
+        if next == self.value { return; }
+        self.value = next;
+        self.version += 1;
+        let sub = self.subscribers;
+        while sub != nil { sub.notify(); sub = sub.next; }
+    };
+
+    const subscribe = fn<T>(self: *Signal<T>, sub: *Subscriber) {
+        sub.next = self.subscribers;
+        self.subscribers = sub;
+    };
+
+    const Computed = struct<T> {
+        compute: fn(): T,
+        cached: T,
+        dirty: i1,
+        subs: *Subscriber,
+    };
+
+    const make_computed = fn<T>(compute: fn(): T, initial: T): Computed<T> {
+        return Computed<T> { compute: compute, cached: initial, dirty: 1, subs: nil };
+    };
+
+    const value = fn<T>(self: *Computed<T>): T {
+        if self.dirty == 1 { self.cached = self.compute(); self.dirty = 0; }
+        return self.cached;
+    };
+
+    const invalidate = fn<T>(self: *Computed<T>) {
+        if self.dirty == 1 { return; }
+        self.dirty = 1;
+        let sub = self.subs;
+        while sub != nil { sub.notify(); sub = sub.next; }
+    };
+
+    const Effect = struct {
+        run: fn(),
+    };
+
+    const effect = fn(run: fn()): Effect { return Effect { run: run }; };
+};

@@ -1,0 +1,267 @@
+const strings = use "strings";
+const lexer = use "./lexer.luna";
+const ast = use "./ast.luna";
+const typechecker = use "./typechecker.luna";
+
+const codegen = mod {
+    const CodeGenerator = struct {
+        output: strings::string,
+        indent_level: u32,
+        temp_var_counter: u32,
+        label_counter: u32,
+        type_checker: *typechecker::TypeChecker,
+    };
+    
+    const new = fn(tc: *typechecker::TypeChecker): CodeGenerator {
+        return CodeGenerator {
+            output: strings::from(""),
+            indent_level: 0,
+            temp_var_counter: 0,
+            label_counter: 0,
+            type_checker: tc,
+        };
+    };
+    
+    const emit = fn(cg: *CodeGenerator, code: strings::string) {
+        cg.output = strings::concat(cg.output, code);
+    };
+    
+    const emit_line = fn(cg: *CodeGenerator, code: strings::string) {
+        emit_indent(cg);
+        emit(cg, code);
+        emit(cg, strings::from("\n"));
+    };
+    
+    const emit_indent = fn(cg: *CodeGenerator) {
+        let i: u32 = 0;
+        while i < cg.indent_level {
+            emit(cg, strings::from("    "));
+            i += 1;
+        }
+    };
+    
+    const indent = fn(cg: *CodeGenerator) {
+        cg.indent_level += 1;
+    };
+    
+    const dedent = fn(cg: *CodeGenerator) {
+        if cg.indent_level > 0 {
+            cg.indent_level -= 1;
+        }
+    };
+    
+    const next_temp_var = fn(cg: *CodeGenerator): strings::string {
+        let var_name = strings::concat(strings::from("_t"), strings::itoa(cg.temp_var_counter));
+        cg.temp_var_counter += 1;
+        return var_name;
+    };
+    
+    const next_label = fn(cg: *CodeGenerator): strings::string {
+        let label_name = strings::concat(strings::from("L"), strings::itoa(cg.label_counter));
+        cg.label_counter += 1;
+        return label_name;
+    };
+    
+    const type_to_c = fn(luna_type: *typechecker::Type): strings::string {
+        if luna_type.kind == typechecker::TypeKind::PRIMITIVE {
+            if strings::equals(luna_type.name, "i32") { return strings::from("int32_t"); }
+            if strings::equals(luna_type.name, "u32") { return strings::from("uint32_t"); }
+            if strings::equals(luna_type.name, "i1") { return strings::from("bool"); }
+            if strings::equals(luna_type.name, "u16") { return strings::from("uint16_t"); }
+        } else if luna_type.kind == typechecker::TypeKind::POINTER {
+            let base_type = type_to_c(luna_type.pointer_to);
+            return strings::concat(base_type, strings::from("*"));
+        } else if luna_type.kind == typechecker::TypeKind::VOID {
+            return strings::from("void");
+        }
+        return strings::from("void"); // fallback
+    };
+    
+    const generate_program = fn(cg: *CodeGenerator, program: *ast::ModuleStatement): strings::string {
+        // Generate C headers
+        emit_line(cg, strings::from("#include <stdio.h>"));
+        emit_line(cg, strings::from("#include <stdlib.h>"));
+        emit_line(cg, strings::from("#include <stdint.h>"));
+        emit_line(cg, strings::from("#include <stdbool.h>"));
+        emit_line(cg, strings::from("#include <string.h>"));
+        emit_line(cg, strings::from(""));
+        
+        // Generate forward declarations
+        generate_forward_declarations(cg, program);
+        
+        // Generate main program
+        let i: u32 = 0;
+        while i < program.statement_count {
+            generate_statement(cg, program.statements[i]);
+            i += 1;
+        }
+        
+        return cg.output;
+    };
+    
+    const generate_forward_declarations = fn(cg: *CodeGenerator, program: *ast::ModuleStatement) {
+        emit_line(cg, strings::from("// Forward declarations"));
+        
+        let i: u32 = 0;
+        while i < program.statement_count {
+            let stmt = program.statements[i];
+            if stmt.node.type == ast::NodeType::CONST_STATEMENT {
+                // TODO: Check if this is a function declaration
+                // For now, assume all const statements might be functions
+                emit_line(cg, strings::from("// Function forward declaration"));
+            }
+            i += 1;
+        }
+        
+        emit_line(cg, strings::from(""));
+    };
+    
+    const generate_statement = fn(cg: *CodeGenerator, stmt: *ast::Statement) {
+        if stmt.node.type == ast::NodeType::LET_STATEMENT {
+            generate_let_statement(cg, stmt);
+        } else if stmt.node.type == ast::NodeType::CONST_STATEMENT {
+            generate_const_statement(cg, stmt);
+        } else if stmt.node.type == ast::NodeType::RETURN_STATEMENT {
+            generate_return_statement(cg, stmt);
+        } else if stmt.node.type == ast::NodeType::EXPRESSION_STATEMENT {
+            generate_expression_statement(cg, stmt);
+        } else if stmt.node.type == ast::NodeType::BLOCK_STATEMENT {
+            generate_block_statement(cg, stmt);
+        }
+    };
+    
+    const generate_let_statement = fn(cg: *CodeGenerator, stmt: *ast::Statement) {
+        // TODO: Cast stmt to LetStatement
+        // For now, generate a simple variable declaration
+        emit_line(cg, strings::from("int32_t var = 0; // let statement"));
+    };
+    
+    const generate_const_statement = fn(cg: *CodeGenerator, stmt: *ast::Statement) {
+        // TODO: Cast stmt to ConstStatement
+        // Check if this is a function or variable
+        emit_line(cg, strings::from("// const statement"));
+    };
+    
+    const generate_return_statement = fn(cg: *CodeGenerator, stmt: *ast::Statement) {
+        // TODO: Cast stmt to ReturnStatement
+        emit_line(cg, strings::from("return 0; // return statement"));
+    };
+    
+    const generate_expression_statement = fn(cg: *CodeGenerator, stmt: *ast::Statement) {
+        // TODO: Cast stmt to ExpressionStatement
+        emit_line(cg, strings::from("// expression statement"));
+    };
+    
+    const generate_block_statement = fn(cg: *CodeGenerator, stmt: *ast::Statement) {
+        emit_line(cg, strings::from("{"));
+        indent(cg);
+        
+        // TODO: Cast stmt to BlockStatement and generate all statements
+        emit_line(cg, strings::from("// block statements"));
+        
+        dedent(cg);
+        emit_line(cg, strings::from("}"));
+    };
+    
+    const generate_expression = fn(cg: *CodeGenerator, expr: *ast::Expression): strings::string {
+        if expr.node.type == ast::NodeType::IDENTIFIER {
+            return generate_identifier(cg, expr);
+        } else if expr.node.type == ast::NodeType::INTEGER_LITERAL {
+            return generate_integer_literal(cg, expr);
+        } else if expr.node.type == ast::NodeType::STRING_LITERAL {
+            return generate_string_literal(cg, expr);
+        } else if expr.node.type == ast::NodeType::BOOLEAN_LITERAL {
+            return generate_boolean_literal(cg, expr);
+        } else if expr.node.type == ast::NodeType::NIL_LITERAL {
+            return generate_nil_literal(cg, expr);
+        } else if expr.node.type == ast::NodeType::PREFIX_EXPRESSION {
+            return generate_prefix_expression(cg, expr);
+        } else if expr.node.type == ast::NodeType::INFIX_EXPRESSION {
+            return generate_infix_expression(cg, expr);
+        } else if expr.node.type == ast::NodeType::IF_EXPRESSION {
+            return generate_if_expression(cg, expr);
+        } else if expr.node.type == ast::NodeType::FUNCTION_LITERAL {
+            return generate_function_literal(cg, expr);
+        } else if expr.node.type == ast::NodeType::CALL_EXPRESSION {
+            return generate_call_expression(cg, expr);
+        }
+        return strings::from("0"); // fallback
+    };
+    
+    const generate_identifier = fn(cg: *CodeGenerator, expr: *ast::Expression): strings::string {
+        // TODO: Cast expr to Identifier
+        return strings::from("identifier");
+    };
+    
+    const generate_integer_literal = fn(cg: *CodeGenerator, expr: *ast::Expression): strings::string {
+        // TODO: Cast expr to IntegerLiteral
+        return strings::from("42");
+    };
+    
+    const generate_string_literal = fn(cg: *CodeGenerator, expr: *ast::Expression): strings::string {
+        // TODO: Cast expr to StringLiteral
+        return strings::from("\"string\"");
+    };
+    
+    const generate_boolean_literal = fn(cg: *CodeGenerator, expr: *ast::Expression): strings::string {
+        // TODO: Cast expr to BooleanLiteral
+        return strings::from("true");
+    };
+    
+    const generate_nil_literal = fn(cg: *CodeGenerator, expr: *ast::Expression): strings::string {
+        return strings::from("NULL");
+    };
+    
+    const generate_prefix_expression = fn(cg: *CodeGenerator, expr: *ast::Expression): strings::string {
+        // TODO: Cast expr to PrefixExpression
+        return strings::from("(-expr)");
+    };
+    
+    const generate_infix_expression = fn(cg: *CodeGenerator, expr: *ast::Expression): strings::string {
+        // TODO: Cast expr to InfixExpression
+        return strings::from("(left + right)");
+    };
+    
+    const generate_if_expression = fn(cg: *CodeGenerator, expr: *ast::Expression): strings::string {
+        // TODO: Cast expr to IfExpression
+        // This is complex as it needs to generate a ternary or if-else block
+        let result_var = next_temp_var(cg);
+        emit_line(cg, strings::concat(strings::from("int32_t "), strings::concat(result_var, strings::from(";"))));
+        emit_line(cg, strings::from("if (condition) {"));
+        indent(cg);
+        emit_line(cg, strings::concat(result_var, strings::from(" = consequence;")));
+        dedent(cg);
+        emit_line(cg, strings::from("} else {"));
+        indent(cg);
+        emit_line(cg, strings::concat(result_var, strings::from(" = alternative;")));
+        dedent(cg);
+        emit_line(cg, strings::from("}"));
+        return result_var;
+    };
+    
+    const generate_function_literal = fn(cg: *CodeGenerator, expr: *ast::Expression): strings::string {
+        // TODO: Cast expr to FunctionLiteral
+        // Generate function definition
+        let func_name = next_temp_var(cg);
+        emit_line(cg, strings::concat(strings::from("int32_t "), strings::concat(func_name, strings::from("() {"))));
+        indent(cg);
+        emit_line(cg, strings::from("return 0;"));
+        dedent(cg);
+        emit_line(cg, strings::from("}"));
+        return func_name;
+    };
+    
+    const generate_call_expression = fn(cg: *CodeGenerator, expr: *ast::Expression): strings::string {
+        // TODO: Cast expr to CallExpression
+        return strings::from("function_call()");
+    };
+    
+    const generate_main_function = fn(cg: *CodeGenerator) {
+        emit_line(cg, strings::from("int main(void) {"));
+        indent(cg);
+        emit_line(cg, strings::from("// Generated main function"));
+        emit_line(cg, strings::from("return 0;"));
+        dedent(cg);
+        emit_line(cg, strings::from("}"));
+    };
+};

@@ -1,0 +1,10 @@
+const add = fn(a: i32, b: i32): i32 {
+    return a + b;
+};
+
+const main = fn(): i32 {
+    let x = 5;
+    let y = 3;
+    let result = add(x, y);
+    return result;
+};

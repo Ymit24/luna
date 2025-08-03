@@ -1,0 +1,14 @@
+const events = mod {
+    const strings = use "strings";
+
+    const EventHandler = fn(event: strings::string);
+
+    const Event = struct {
+        name: strings::string,
+        handler: EventHandler,
+    };
+
+    const add_event = fn(name: strings::string, handler: EventHandler): Event {
+        return Event { name: name, handler: handler };
+    };
+};

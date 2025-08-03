@@ -1,0 +1,34 @@
+const gfx_text = mod {
+    const strings = use "strings";
+    const fbm = use "./framebuffer.luna";
+    const col = use "./color.luna";
+    const font8 = use "./font8x8_basic.luna";
+
+    const draw_char = fn(fb: *fbm::FrameBuffer, x: i32, y: i32, ch: u8, font: *font8::Font, color: col::Color) {
+        let row: u8 = 0;
+        while row < font.h {
+            const bits = font.data[(ch as u32 * font.h as u32 + row as u32) as usize];
+            let colb: u8 = 0;
+            while colb < font.w {
+                if ((bits >> colb) & 1) == 1 { // set bit style
+                    // left-to-right mapping
+                    const px = x + (colb as i32);
+                    const py = y + (row as i32);
+                    // draw pixel
+                    const idx = fbm::index_of(fb, px, py);
+                    if idx != 0xffffffff { fb.data[idx] = col::to_u32(color); }
+                }
+                colb += 1;
+            }
+            row += 1;
+        }
+    };
+
+    const draw_text = fn(fb: *fbm::FrameBuffer, x: i32, y: i32, text: strings::string, font: *font8::Font, color: col::Color) {
+        let i: u16 = 0;
+        while i < strings::len(text) {
+            draw_char(fb, x + (i as i32) * (font.w as i32), y, strings::at(text, i), font, color);
+            i += 1;
+        }
+    };
+};

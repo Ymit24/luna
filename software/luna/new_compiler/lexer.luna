@@ -1,0 +1,305 @@
+const strings = use "strings";
+
+const lexer = mod {
+    const TokenType = enum {
+        EOF,
+        ILLEGAL,
+        
+        // Identifiers and literals
+        IDENT,
+        INT,
+        STRING,
+        
+        // Operators
+        ASSIGN,
+        PLUS,
+        MINUS,
+        BANG,
+        ASTERISK,
+        SLASH,
+        
+        LT,
+        GT,
+        EQ,
+        NOT_EQ,
+        
+        // Delimiters
+        COMMA,
+        SEMICOLON,
+        COLON,
+        
+        LPAREN,
+        RPAREN,
+        LBRACE,
+        RBRACE,
+        LBRACKET,
+        RBRACKET,
+        
+        // Keywords
+        FUNCTION,
+        LET,
+        CONST,
+        TRUE,
+        FALSE,
+        IF,
+        ELSE,
+        RETURN,
+        WHILE,
+        BREAK,
+        STRUCT,
+        ENUM,
+        UNION,
+        MOD,
+        USE,
+        AS,
+        NIL,
+        
+        // Types
+        I32,
+        U32,
+        I1,
+        U16,
+        
+        // Generics
+        LANGLE,
+        RANGLE,
+        
+        // Module access
+        DOUBLE_COLON,
+        
+        // Pointer
+        AMPERSAND,
+        
+        // Dot
+        DOT,
+    };
+    
+    const Token = struct {
+        type: TokenType,
+        literal: strings::string,
+        line: u32,
+        column: u32,
+    };
+    
+    const Lexer = struct {
+        input: strings::string,
+        position: u32,
+        read_position: u32,
+        ch: u8,
+        line: u32,
+        column: u32,
+    };
+    
+    const new = fn(input: strings::string): Lexer {
+        let l = Lexer {
+            input: input,
+            position: 0,
+            read_position: 0,
+            ch: 0,
+            line: 1,
+            column: 0,
+        };
+        read_char(&l);
+        return l;
+    };
+    
+    const read_char = fn(l: *Lexer) {
+        if l.read_position >= l.input.len {
+            l.ch = 0;
+        } else {
+            l.ch = l.input.data[l.read_position];
+        }
+        l.position = l.read_position;
+        l.read_position += 1;
+        
+        if l.ch == '\n' {
+            l.line += 1;
+            l.column = 0;
+        } else {
+            l.column += 1;
+        }
+    };
+    
+    const peek_char = fn(l: *Lexer): u8 {
+        if l.read_position >= l.input.len {
+            return 0;
+        } else {
+            return l.input.data[l.read_position];
+        }
+    };
+    
+    const skip_whitespace = fn(l: *Lexer) {
+        while l.ch == ' ' or l.ch == '\t' or l.ch == '\n' or l.ch == '\r' {
+            read_char(l);
+        }
+    };
+    
+    const read_identifier = fn(l: *Lexer): strings::string {
+        const position = l.position;
+        while is_letter(l.ch) or is_digit(l.ch) {
+            read_char(l);
+        }
+        return strings::substring(l.input, position, l.position);
+    };
+    
+    const read_number = fn(l: *Lexer): strings::string {
+        const position = l.position;
+        while is_digit(l.ch) {
+            read_char(l);
+        }
+        return strings::substring(l.input, position, l.position);
+    };
+    
+    const read_string = fn(l: *Lexer): strings::string {
+        const position = l.position + 1;
+        while true {
+            read_char(l);
+            if l.ch == '"' or l.ch == 0 {
+                break;
+            }
+        }
+        return strings::substring(l.input, position, l.position);
+    };
+    
+    const is_letter = fn(ch: u8): i1 {
+        return 'a' <= ch and ch <= 'z' or 'A' <= ch and ch <= 'Z' or ch == '_';
+    };
+    
+    const is_digit = fn(ch: u8): i1 {
+        return '0' <= ch and ch <= '9';
+    };
+    
+    const lookup_ident = fn(ident: strings::string): TokenType {
+        if strings::equals(ident, "fn") { return TokenType::FUNCTION; }
+        if strings::equals(ident, "let") { return TokenType::LET; }
+        if strings::equals(ident, "const") { return TokenType::CONST; }
+        if strings::equals(ident, "true") { return TokenType::TRUE; }
+        if strings::equals(ident, "false") { return TokenType::FALSE; }
+        if strings::equals(ident, "if") { return TokenType::IF; }
+        if strings::equals(ident, "else") { return TokenType::ELSE; }
+        if strings::equals(ident, "return") { return TokenType::RETURN; }
+        if strings::equals(ident, "while") { return TokenType::WHILE; }
+        if strings::equals(ident, "break") { return TokenType::BREAK; }
+        if strings::equals(ident, "struct") { return TokenType::STRUCT; }
+        if strings::equals(ident, "enum") { return TokenType::ENUM; }
+        if strings::equals(ident, "union") { return TokenType::UNION; }
+        if strings::equals(ident, "mod") { return TokenType::MOD; }
+        if strings::equals(ident, "use") { return TokenType::USE; }
+        if strings::equals(ident, "as") { return TokenType::AS; }
+        if strings::equals(ident, "nil") { return TokenType::NIL; }
+        if strings::equals(ident, "i32") { return TokenType::I32; }
+        if strings::equals(ident, "u32") { return TokenType::U32; }
+        if strings::equals(ident, "i1") { return TokenType::I1; }
+        if strings::equals(ident, "u16") { return TokenType::U16; }
+        return TokenType::IDENT;
+    };
+    
+    const next_token = fn(l: *Lexer): Token {
+        let tok: Token;
+        
+        skip_whitespace(l);
+        
+        tok.line = l.line;
+        tok.column = l.column;
+        
+        if l.ch == '=' {
+            if peek_char(l) == '=' {
+                const ch = l.ch;
+                read_char(l);
+                tok.type = TokenType::EQ;
+                tok.literal = strings::from("==");
+            } else {
+                tok.type = TokenType::ASSIGN;
+                tok.literal = strings::char_to_string(l.ch);
+            }
+        } else if l.ch == '+' {
+            tok.type = TokenType::PLUS;
+            tok.literal = strings::char_to_string(l.ch);
+        } else if l.ch == '-' {
+            tok.type = TokenType::MINUS;
+            tok.literal = strings::char_to_string(l.ch);
+        } else if l.ch == '!' {
+            if peek_char(l) == '=' {
+                const ch = l.ch;
+                read_char(l);
+                tok.type = TokenType::NOT_EQ;
+                tok.literal = strings::from("!=");
+            } else {
+                tok.type = TokenType::BANG;
+                tok.literal = strings::char_to_string(l.ch);
+            }
+        } else if l.ch == '*' {
+            tok.type = TokenType::ASTERISK;
+            tok.literal = strings::char_to_string(l.ch);
+        } else if l.ch == '/' {
+            tok.type = TokenType::SLASH;
+            tok.literal = strings::char_to_string(l.ch);
+        } else if l.ch == '<' {
+            tok.type = TokenType::LT;
+            tok.literal = strings::char_to_string(l.ch);
+        } else if l.ch == '>' {
+            tok.type = TokenType::GT;
+            tok.literal = strings::char_to_string(l.ch);
+        } else if l.ch == ',' {
+            tok.type = TokenType::COMMA;
+            tok.literal = strings::char_to_string(l.ch);
+        } else if l.ch == ';' {
+            tok.type = TokenType::SEMICOLON;
+            tok.literal = strings::char_to_string(l.ch);
+        } else if l.ch == ':' {
+            if peek_char(l) == ':' {
+                const ch = l.ch;
+                read_char(l);
+                tok.type = TokenType::DOUBLE_COLON;
+                tok.literal = strings::from("::");
+            } else {
+                tok.type = TokenType::COLON;
+                tok.literal = strings::char_to_string(l.ch);
+            }
+        } else if l.ch == '(' {
+            tok.type = TokenType::LPAREN;
+            tok.literal = strings::char_to_string(l.ch);
+        } else if l.ch == ')' {
+            tok.type = TokenType::RPAREN;
+            tok.literal = strings::char_to_string(l.ch);
+        } else if l.ch == '{' {
+            tok.type = TokenType::LBRACE;
+            tok.literal = strings::char_to_string(l.ch);
+        } else if l.ch == '}' {
+            tok.type = TokenType::RBRACE;
+            tok.literal = strings::char_to_string(l.ch);
+        } else if l.ch == '[' {
+            tok.type = TokenType::LBRACKET;
+            tok.literal = strings::char_to_string(l.ch);
+        } else if l.ch == ']' {
+            tok.type = TokenType::RBRACKET;
+            tok.literal = strings::char_to_string(l.ch);
+        } else if l.ch == '&' {
+            tok.type = TokenType::AMPERSAND;
+            tok.literal = strings::char_to_string(l.ch);
+        } else if l.ch == '.' {
+            tok.type = TokenType::DOT;
+            tok.literal = strings::char_to_string(l.ch);
+        } else if l.ch == '"' {
+            tok.type = TokenType::STRING;
+            tok.literal = read_string(l);
+        } else if l.ch == 0 {
+            tok.literal = strings::from("");
+            tok.type = TokenType::EOF;
+        } else if is_letter(l.ch) {
+            tok.literal = read_identifier(l);
+            tok.type = lookup_ident(tok.literal);
+            return tok;
+        } else if is_digit(l.ch) {
+            tok.type = TokenType::INT;
+            tok.literal = read_number(l);
+            return tok;
+        } else {
+            tok.type = TokenType::ILLEGAL;
+            tok.literal = strings::char_to_string(l.ch);
+        }
+        
+        read_char(l);
+        return tok;
+    };
+};

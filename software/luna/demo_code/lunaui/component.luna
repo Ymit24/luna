@@ -1,0 +1,29 @@
+const component = mod {
+    const strings = use "strings";
+    const vdom = use "../lunaui/vdom.luna";
+    const core = use "../lunaui/core.luna";
+
+    const Ctx = struct {
+        schedule: fn(),
+    };
+
+    const Component = struct {
+        name: strings::string,
+        render: fn(ctx: *Ctx): vdom::VNode,
+        on_mount: fn(),
+        on_unmount: fn(),
+    };
+
+    const make = fn(name: strings::string, render: fn(ctx: *Ctx): vdom::VNode): Component {
+        return Component { name: name, render: render, on_mount: fn(){}, on_unmount: fn(){} };
+    };
+
+    const App = struct {
+        root: Component,
+        ctx: Ctx,
+        last_tree: vdom::VNode,
+    };
+
+    const mount = fn(self: *App) { self.root.on_mount(); };
+    const unmount = fn(self: *App) { self.root.on_unmount(); };
+};

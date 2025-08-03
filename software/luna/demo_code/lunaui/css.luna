@@ -1,0 +1,34 @@
+const css = mod {
+    const strings = use "strings";
+
+    const Rule = struct {
+        selector: strings::string,
+        body: strings::string,
+        next: *Rule,
+    };
+
+    const StyleSheet = struct {
+        first: *Rule,
+        len: u16,
+    };
+
+    const make = fn(): StyleSheet { return StyleSheet { first: nil, len: 0 } };
+
+    const add_rule = fn(self: *StyleSheet, selector: strings::string, body: strings::string) {
+        const rule = Rule { selector: selector, body: body, next: self.first };
+        self.first = &rule;
+        self.len += 1;
+    };
+
+    const stringify = fn(self: *StyleSheet): strings::string {
+        let out = strings::from("");
+        let r = self.first;
+        while r != nil {
+            out = strings::concat(out, strings::concat(r.selector, strings::from("{")));
+            out = strings::concat(out, r.body);
+            out = strings::concat(out, strings::from("}\n"));
+            r = r.next;
+        }
+        return out;
+    };
+};

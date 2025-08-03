@@ -1,0 +1,47 @@
+const renderer = mod {
+    const strings = use "strings";
+    const vdom = use "../lunaui/vdom.luna";
+
+    const DomNode = struct { id: u32 };
+
+    const DomAPI = struct {
+        create_text: fn(text: strings::string): DomNode,
+        create_elem: fn(tag: strings::string): DomNode,
+        set_prop: fn(node: *DomNode, key: strings::string, value: strings::string),
+        append: fn(parent: *DomNode, child: *DomNode),
+        replace: fn(parent: *DomNode, old: *DomNode, new: *DomNode),
+        remove: fn(parent: *DomNode, child: *DomNode),
+    };
+
+    const MountPoint = struct {
+        api: DomAPI,
+        root: DomNode,
+    };
+
+    const render = fn(mount: *MountPoint, node: vdom::VNode): DomNode {
+        if node.type == vdom::VNodeType::Text {
+            return mount.api.create_text(node.ptr.text.content);
+        }
+        if node.type == vdom::VNodeType::Element {
+            const e = node.ptr.elem;
+            const dom = mount.api.create_elem(e.tag);
+            let i: u16 = 0;
+            while i < e.props.len {
+                mount.api.set_prop(&dom, e.props.keys[i], e.props.values[i]);
+                i += 1;
+            }
+            let c = e.child;
+            while c != nil {
+                const child_dom = render(mount, c);
+                mount.api.append(&dom, &child_dom);
+                c = c.next;
+            }
+            return dom;
+        }
+        if node.type == vdom::VNodeType::Component {
+            const rendered = node.ptr.comp.render(node.ptr.comp.props);
+            return render(mount, rendered);
+        }
+        return DomNode { id: 0 };
+    };
+};

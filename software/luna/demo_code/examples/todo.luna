@@ -1,0 +1,22 @@
+const strings = use "strings";
+const core = use "../lunaui/core.luna";
+const vdom = use "../lunaui/vdom.luna";
+
+const TodoItem = struct { id: u32, text: strings::string, done: i1 };
+
+const Todo = mod {
+    const items = core::make_signal<*TodoItem>(nil);
+    const next_id = core::make_signal<u32>(1);
+
+    const add = fn(text: strings::string) {
+        const id = core::get(&next_id);
+        core::set(&next_id, id + 1);
+        const item = TodoItem { id: id, text: text, done: 0 };
+        // append to list (placeholder)
+    };
+
+    const view = fn(): vdom::VNode {
+        const props = vdom::Props { keys: nil, values: nil, len: 0 };
+        return vdom::h(strings::from("div"), props, nil);
+    };
+};

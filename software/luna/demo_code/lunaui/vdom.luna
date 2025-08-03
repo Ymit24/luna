@@ -1,0 +1,49 @@
+const vdom = mod {
+    const strings = use "strings";
+
+    const VNodeType = enum { Text, Element, Component };
+
+    const Props = struct {
+        keys: *strings::string,
+        values: *strings::string,
+        len: u16,
+    };
+
+    const VNodePtr = union {
+        text: *TextNode,
+        elem: *ElementNode,
+        comp: *ComponentNode,
+    };
+
+    const VNode = struct {
+        type: VNodeType,
+        ptr: VNodePtr,
+        next: *VNode,
+    };
+
+    const TextNode = struct { content: strings::string };
+
+    const ElementNode = struct {
+        tag: strings::string,
+        props: Props,
+        child: *VNode,
+    };
+
+    const ComponentNode = struct {
+        name: strings::string,
+        render: fn(props: Props): VNode,
+        props: Props,
+    };
+
+    const text = fn(content: strings::string): VNode {
+        return VNode { type: VNodeType::Text, ptr: TextNode { content: content }, next: nil };
+    };
+
+    const h = fn(tag: strings::string, props: Props, child: *VNode): VNode {
+        return VNode { type: VNodeType::Element, ptr: ElementNode { tag: tag, props: props, child: child }, next: nil };
+    };
+
+    const comp = fn(name: strings::string, render: fn(props: Props): VNode, props: Props): VNode {
+        return VNode { type: VNodeType::Component, ptr: ComponentNode { name: name, render: render, props: props }, next: nil };
+    };
+};

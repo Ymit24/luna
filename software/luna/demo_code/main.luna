@@ -1,0 +1,21 @@
+const strings = use "strings";
+const vdom = use "./lunaui/vdom.luna";
+const renderer = use "./lunaui/renderer.luna";
+const Counter = use "./examples/counter.luna";
+
+const main = fn() {
+    const props = vdom::Props { keys: nil, values: nil, len: 0 };
+    const tree = Counter::view();
+
+    const api = renderer::DomAPI {
+        create_text: fn(text: strings::string): renderer::DomNode { return renderer::DomNode { id: 1 }; },
+        create_elem: fn(tag: strings::string): renderer::DomNode { return renderer::DomNode { id: 2 }; },
+        set_prop: fn(node: *renderer::DomNode, key: strings::string, value: strings::string) {},
+        append: fn(parent: *renderer::DomNode, child: *renderer::DomNode) {},
+        replace: fn(parent: *renderer::DomNode, old: *renderer::DomNode, new: *renderer::DomNode) {},
+        remove: fn(parent: *renderer::DomNode, child: *renderer::DomNode) {},
+    };
+
+    const mount = renderer::MountPoint { api: api, root: renderer::DomNode { id: 0 } };
+    const dom = renderer::render(&mount, tree);
+};

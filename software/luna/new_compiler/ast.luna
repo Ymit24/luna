@@ -1,0 +1,351 @@
+const strings = use "strings";
+const lexer = use "./lexer.luna";
+
+const ast = mod {
+    const NodeType = enum {
+        // Statements
+        LET_STATEMENT,
+        CONST_STATEMENT,
+        RETURN_STATEMENT,
+        EXPRESSION_STATEMENT,
+        BLOCK_STATEMENT,
+        
+        // Expressions
+        IDENTIFIER,
+        INTEGER_LITERAL,
+        STRING_LITERAL,
+        BOOLEAN_LITERAL,
+        NIL_LITERAL,
+        PREFIX_EXPRESSION,
+        INFIX_EXPRESSION,
+        IF_EXPRESSION,
+        FUNCTION_LITERAL,
+        CALL_EXPRESSION,
+        INDEX_EXPRESSION,
+        STRUCT_LITERAL,
+        FIELD_ACCESS,
+        
+        // Types
+        TYPE_IDENTIFIER,
+        POINTER_TYPE,
+        GENERIC_TYPE,
+        
+        // Declarations
+        FUNCTION_DECLARATION,
+        STRUCT_DECLARATION,
+        ENUM_DECLARATION,
+        UNION_DECLARATION,
+        MODULE_DECLARATION,
+        USE_DECLARATION,
+        
+        // Module
+        MODULE_STATEMENT,
+    };
+    
+    const Node = struct {
+        type: NodeType,
+        token: lexer::Token,
+    };
+    
+    const Statement = struct {
+        node: Node,
+    };
+    
+    const Expression = struct {
+        node: Node,
+    };
+    
+    const Type = struct {
+        node: Node,
+    };
+    
+    // Statements
+    const LetStatement = struct {
+        node: Node,
+        name: *Identifier,
+        type_annotation: *Type,
+        value: *Expression,
+    };
+    
+    const ConstStatement = struct {
+        node: Node,
+        name: *Identifier,
+        type_annotation: *Type,
+        value: *Expression,
+    };
+    
+    const ReturnStatement = struct {
+        node: Node,
+        return_value: *Expression,
+    };
+    
+    const ExpressionStatement = struct {
+        node: Node,
+        expression: *Expression,
+    };
+    
+    const BlockStatement = struct {
+        node: Node,
+        statements: **Statement,
+        statement_count: u32,
+    };
+    
+    // Expressions
+    const Identifier = struct {
+        node: Node,
+        value: strings::string,
+    };
+    
+    const IntegerLiteral = struct {
+        node: Node,
+        value: i32,
+    };
+    
+    const StringLiteral = struct {
+        node: Node,
+        value: strings::string,
+    };
+    
+    const BooleanLiteral = struct {
+        node: Node,
+        value: i1,
+    };
+    
+    const NilLiteral = struct {
+        node: Node,
+    };
+    
+    const PrefixExpression = struct {
+        node: Node,
+        operator: strings::string,
+        right: *Expression,
+    };
+    
+    const InfixExpression = struct {
+        node: Node,
+        left: *Expression,
+        operator: strings::string,
+        right: *Expression,
+    };
+    
+    const IfExpression = struct {
+        node: Node,
+        condition: *Expression,
+        consequence: *BlockStatement,
+        alternative: *BlockStatement,
+    };
+    
+    const Parameter = struct {
+        name: *Identifier,
+        type_annotation: *Type,
+    };
+    
+    const FunctionLiteral = struct {
+        node: Node,
+        parameters: *Parameter,
+        parameter_count: u32,
+        return_type: *Type,
+        body: *BlockStatement,
+        is_generic: i1,
+        generic_params: **Identifier,
+        generic_param_count: u32,
+    };
+    
+    const CallExpression = struct {
+        node: Node,
+        function: *Expression,
+        arguments: **Expression,
+        argument_count: u32,
+    };
+    
+    const IndexExpression = struct {
+        node: Node,
+        left: *Expression,
+        index: *Expression,
+    };
+    
+    const StructField = struct {
+        name: *Identifier,
+        value: *Expression,
+    };
+    
+    const StructLiteral = struct {
+        node: Node,
+        type_name: *Identifier,
+        fields: *StructField,
+        field_count: u32,
+    };
+    
+    const FieldAccess = struct {
+        node: Node,
+        left: *Expression,
+        field: *Identifier,
+    };
+    
+    // Types
+    const TypeIdentifier = struct {
+        node: Node,
+        value: strings::string,
+    };
+    
+    const PointerType = struct {
+        node: Node,
+        element_type: *Type,
+    };
+    
+    const GenericType = struct {
+        node: Node,
+        base_type: *Type,
+        type_args: **Type,
+        type_arg_count: u32,
+    };
+    
+    // Declarations
+    const FunctionDeclaration = struct {
+        node: Node,
+        name: *Identifier,
+        function: *FunctionLiteral,
+    };
+    
+    const StructField_Decl = struct {
+        name: *Identifier,
+        field_type: *Type,
+    };
+    
+    const StructDeclaration = struct {
+        node: Node,
+        name: *Identifier,
+        fields: *StructField_Decl,
+        field_count: u32,
+        is_generic: i1,
+        generic_params: **Identifier,
+        generic_param_count: u32,
+    };
+    
+    const EnumVariant = struct {
+        name: *Identifier,
+        value: *Expression,
+    };
+    
+    const EnumDeclaration = struct {
+        node: Node,
+        name: *Identifier,
+        variants: *EnumVariant,
+        variant_count: u32,
+    };
+    
+    const UnionField = struct {
+        name: *Identifier,
+        field_type: *Type,
+    };
+    
+    const UnionDeclaration = struct {
+        node: Node,
+        name: *Identifier,
+        fields: *UnionField,
+        field_count: u32,
+    };
+    
+    const ModuleDeclaration = struct {
+        node: Node,
+        name: *Identifier,
+        body: *BlockStatement,
+    };
+    
+    const UseDeclaration = struct {
+        node: Node,
+        module_path: strings::string,
+        alias: *Identifier,
+    };
+    
+    const ModuleStatement = struct {
+        node: Node,
+        statements: **Statement,
+        statement_count: u32,
+    };
+    
+    // Helper functions
+    const new_identifier = fn(token: lexer::Token, value: strings::string): *Identifier {
+        let ident = Identifier {
+            node: Node { type: NodeType::IDENTIFIER, token: token },
+            value: value,
+        };
+        return &ident;
+    };
+    
+    const new_integer_literal = fn(token: lexer::Token, value: i32): *IntegerLiteral {
+        let lit = IntegerLiteral {
+            node: Node { type: NodeType::INTEGER_LITERAL, token: token },
+            value: value,
+        };
+        return &lit;
+    };
+    
+    const new_string_literal = fn(token: lexer::Token, value: strings::string): *StringLiteral {
+        let lit = StringLiteral {
+            node: Node { type: NodeType::STRING_LITERAL, token: token },
+            value: value,
+        };
+        return &lit;
+    };
+    
+    const new_boolean_literal = fn(token: lexer::Token, value: i1): *BooleanLiteral {
+        let lit = BooleanLiteral {
+            node: Node { type: NodeType::BOOLEAN_LITERAL, token: token },
+            value: value,
+        };
+        return &lit;
+    };
+    
+    const new_nil_literal = fn(token: lexer::Token): *NilLiteral {
+        let lit = NilLiteral {
+            node: Node { type: NodeType::NIL_LITERAL, token: token },
+        };
+        return &lit;
+    };
+    
+    const new_let_statement = fn(token: lexer::Token, name: *Identifier, type_annotation: *Type, value: *Expression): *LetStatement {
+        let stmt = LetStatement {
+            node: Node { type: NodeType::LET_STATEMENT, token: token },
+            name: name,
+            type_annotation: type_annotation,
+            value: value,
+        };
+        return &stmt;
+    };
+    
+    const new_const_statement = fn(token: lexer::Token, name: *Identifier, type_annotation: *Type, value: *Expression): *ConstStatement {
+        let stmt = ConstStatement {
+            node: Node { type: NodeType::CONST_STATEMENT, token: token },
+            name: name,
+            type_annotation: type_annotation,
+            value: value,
+        };
+        return &stmt;
+    };
+    
+    const new_return_statement = fn(token: lexer::Token, return_value: *Expression): *ReturnStatement {
+        let stmt = ReturnStatement {
+            node: Node { type: NodeType::RETURN_STATEMENT, token: token },
+            return_value: return_value,
+        };
+        return &stmt;
+    };
+    
+    const new_expression_statement = fn(token: lexer::Token, expression: *Expression): *ExpressionStatement {
+        let stmt = ExpressionStatement {
+            node: Node { type: NodeType::EXPRESSION_STATEMENT, token: token },
+            expression: expression,
+        };
+        return &stmt;
+    };
+    
+    const new_block_statement = fn(token: lexer::Token): *BlockStatement {
+        let stmt = BlockStatement {
+            node: Node { type: NodeType::BLOCK_STATEMENT, token: token },
+            statements: nil,
+            statement_count: 0,
+        };
+        return &stmt;
+    };
+};

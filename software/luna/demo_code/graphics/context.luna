@@ -1,0 +1,38 @@
+const gfx_ctx = mod {
+    const fbm = use "./framebuffer.luna";
+    const col = use "./color.luna";
+    const prim = use "./primitives.luna";
+    const text = use "./text.luna";
+    const font8 = use "./font8x8_basic.luna";
+
+    const GraphicsContext = struct {
+        fb: *fbm::FrameBuffer,
+        clip_x: i32,
+        clip_y: i32,
+        clip_w: i32,
+        clip_h: i32,
+        fg: col::Color,
+        bg: col::Color,
+        font: font8::Font,
+    };
+
+    const make = fn(fb: *fbm::FrameBuffer): GraphicsContext {
+        return GraphicsContext {
+            fb: fb,
+            clip_x: 0, clip_y: 0,
+            clip_w: fb.width as i32, clip_h: fb.height as i32,
+            fg: col::rgb(255,255,255),
+            bg: col::rgb(0,0,0),
+            font: font8::make_basic(),
+        };
+    };
+
+    const clear = fn(self: *GraphicsContext) { prim::clear(self.fb, self.bg); };
+
+    const rect = fn(self: *GraphicsContext, x: i32, y: i32, w: i32, h: i32) { prim::draw_rect(self.fb, x, y, w, h, self.fg); };
+    const fill_rect = fn(self: *GraphicsContext, x: i32, y: i32, w: i32, h: i32) { prim::fill_rect(self.fb, x, y, w, h, self.fg); };
+    const line = fn(self: *GraphicsContext, x0: i32, y0: i32, x1: i32, y1: i32) { prim::draw_line(self.fb, x0, y0, x1, y1, self.fg); };
+    const circle = fn(self: *GraphicsContext, cx: i32, cy: i32, r: i32) { prim::draw_circle(self.fb, cx, cy, r, self.fg); };
+
+    const text_at = fn(self: *GraphicsContext, x: i32, y: i32, s: strings::string) { text::draw_text(self.fb, x, y, s, &self.font, self.fg); };
+};

@@ -1,0 +1,12 @@
+const gfx_font8 = mod {
+    const Font = struct {
+        data: *u8,
+        w: u8,
+        h: u8,
+    };
+
+    // Placeholder: normally you'd fill with 8x8 glyphs for ASCII
+    const BASIC_DATA: [u8; 8] = [0,0,0,0,0,0,0,0];
+
+    const make_basic = fn(): Font { return Font { data: &BASIC_DATA[0], w: 8, h: 8 }; };
+};

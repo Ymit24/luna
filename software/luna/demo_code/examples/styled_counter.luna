@@ -1,0 +1,36 @@
+const strings = use "strings";
+const core = use "../lunaui/core.luna";
+const vdom = use "../lunaui/vdom.luna";
+const styles = use "../lunaui/styles.luna";
+
+const StyledCounter = mod {
+    const count = core::make_signal<i32>(0);
+
+    const btn_style = fn(primary: i1): strings::string {
+        let b = styles::style();
+        b = styles::p(&b, 2);
+        b = styles::px(&b, 4);
+        b = styles::rounded(&b, strings::from("lg"));
+        b = styles::transition(&b, strings::from("all"));
+        b = styles::duration(&b, 200);
+        if primary == 1 {
+            b = styles::bg(&b, strings::from("blue"), 600);
+            b = styles::text(&b, strings::from("white"), 0);
+        } else {
+            b = styles::bg(&b, strings::from("gray"), 200);
+            b = styles::text(&b, strings::from("black"), 0);
+        }
+        return styles::build(&b);
+    };
+
+    const view = fn(): vdom::VNode {
+        const base = styles::build(&styles::style());
+        const props = vdom::Props { keys: nil, values: nil, len: 0 };
+        const label = vdom::text(strings::concat(strings::from("Count: "), strings::itoa(core::get(&count))));
+        const minus = vdom::h(strings::from("button"), props, nil);
+        const plus = vdom::h(strings::from("button"), props, nil);
+        label.next = &minus;
+        minus.next = &plus;
+        return vdom::h(strings::from("div"), props, &label);
+    };
+};

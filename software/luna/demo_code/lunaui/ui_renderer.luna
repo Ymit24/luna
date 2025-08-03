@@ -1,0 +1,106 @@
+const ui_renderer = mod {
+    const strings = use "strings";
+    const vdom = use "./vdom.luna";
+    const styles = use "./styles.luna";
+
+    const fbm = use "../graphics/framebuffer.luna";
+    const col = use "../graphics/color.luna";
+    const prim = use "../graphics/primitives.luna";
+    const ctxm = use "../graphics/context.luna";
+
+    const Rect = struct { x: i32, y: i32, w: i32, h: i32 };
+
+    const ComputedStyle = struct {
+        bg: col::Color,
+        fg: col::Color,
+        padding_x: i32,
+        padding_y: i32,
+        margin_x: i32,
+        margin_y: i32,
+        border_width: i32,
+        border_color: col::Color,
+        radius: i32,
+    };
+
+    const default_style = fn(): ComputedStyle {
+        return ComputedStyle {
+            bg: col::rgba(0,0,0,0),
+            fg: col::rgb(255,255,255),
+            padding_x: 0, padding_y: 0,
+            margin_x: 0, margin_y: 0,
+            border_width: 0,
+            border_color: col::rgb(0,0,0),
+            radius: 0,
+        };
+    };
+
+    const parse_classes = fn(s: strings::string): ComputedStyle {
+        let out = default_style();
+        // extremely simplified class parsing: only few classes
+        if strings::contains(s, strings::from("bg-blue")) { out.bg = col::rgb(40, 120, 220); }
+        if strings::contains(s, strings::from("text-white")) { out.fg = col::rgb(255,255,255); }
+        if strings::contains(s, strings::from("p-")) { out.padding_x = 4; out.padding_y = 4; }
+        if strings::contains(s, strings::from("rounded-")) { out.radius = 4; }
+        if strings::contains(s, strings::from("border")) { out.border_width = 1; out.border_color = col::rgb(200,200,200); }
+        return out;
+    };
+
+    const draw_background = fn(g: *ctxm::GraphicsContext, rect: Rect, style: *ComputedStyle) {
+        if style.bg.a != 0 { ctxm::fill_rect(g, rect.x, rect.y, rect.w, rect.h); }
+    };
+
+    const draw_border = fn(g: *ctxm::GraphicsContext, rect: Rect, style: *ComputedStyle) {
+        if style.border_width <= 0 { return; }
+        const old = g.fg;
+        g.fg = style.border_color;
+        ctxm::rect(g, rect.x, rect.y, rect.w, rect.h);
+        g.fg = old;
+    };
+
+    const draw_text = fn(g: *ctxm::GraphicsContext, rect: Rect, text: strings::string, style: *ComputedStyle) {
+        const old = g.fg;
+        g.fg = style.fg;
+        ctxm::text_at(g, rect.x + style.padding_x, rect.y + style.padding_y, text);
+        g.fg = old;
+    };
+
+    const UIRenderer = struct {
+        gfx: *ctxm::GraphicsContext,
+    };
+
+    const render_node = fn(r: *UIRenderer, node: vdom::VNode, bounds: Rect) {
+        if node.type == vdom::VNodeType::Text {
+            const style = default_style();
+            draw_text(r.gfx, bounds, node.ptr.text.content, &style);
+            return;
+        }
+        if node.type == vdom::VNodeType::Element {
+            const e = node.ptr.elem;
+            const classes = strings::from("");
+            const cs = parse_classes(classes);
+            const inner = Rect { x: bounds.x, y: bounds.y, w: bounds.w, h: bounds.h };
+            const old_fg = r.gfx.fg; const old_bg = r.gfx.bg;
+            r.gfx.bg = cs.bg; r.gfx.fg = cs.fg;
+            draw_background(r.gfx, bounds, &cs);
+            draw_border(r.gfx, bounds, &cs);
+            let child = e.child; let cur_y = bounds.y + cs.padding_y;
+            while child != nil {
+                const child_rect = Rect { x: bounds.x + cs.padding_x, y: cur_y, w: bounds.w - 2*cs.padding_x, h: 16 };
+                render_node(r, child, child_rect);
+                cur_y += 16 + cs.padding_y;
+                child = child.next;
+            }
+            r.gfx.fg = old_fg; r.gfx.bg = old_bg;
+            return;
+        }
+        if node.type == vdom::VNodeType::Component {
+            const rendered = node.ptr.comp.render(node.ptr.comp.props);
+            render_node(r, rendered, bounds);
+            return;
+        }
+    };
+
+    const render = fn(r: *UIRenderer, root: vdom::VNode, x: i32, y: i32, w: i32, h: i32) {
+        render_node(r, root, Rect { x: x, y: y, w: w, h: h });
+    };
+};

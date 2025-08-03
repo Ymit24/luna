@@ -1,0 +1,39 @@
+const strings = use "strings";
+const fbm = use "./framebuffer.luna";
+const col = use "./color.luna";
+const prim = use "./primitives.luna";
+const ctxm = use "./context.luna";
+
+const VGA = mod {
+    const WIDTH: u16 = 320;
+    const HEIGHT: u16 = 240;
+    const PITCH: u16 = 320 * 4;
+    const ADDR: *u32 = (@ptr_from_int<u32>(0x00A0_0000));
+
+    const main = fn() {
+        const fb = fbm::make(ADDR, WIDTH, HEIGHT, PITCH);
+        let g = ctxm::make(&fb);
+        g.bg = col::rgb(10, 15, 25);
+        g.fg = col::rgb(220, 220, 235);
+        ctxm::clear(&g);
+
+        // Border
+        ctxm::rect(&g, 10, 10, WIDTH as i32 - 20, HEIGHT as i32 - 20);
+
+        // Filled rect
+        g.fg = col::rgb(40, 120, 220);
+        ctxm::fill_rect(&g, 20, 20, 120, 60);
+
+        // Line
+        g.fg = col::rgb(240, 80, 80);
+        ctxm::line(&g, 0, 0, WIDTH as i32 - 1, HEIGHT as i32 - 1);
+
+        // Circle
+        g.fg = col::rgb(90, 200, 120);
+        ctxm::circle(&g, WIDTH as i32 / 2, HEIGHT as i32 / 2, 40);
+
+        // Text
+        g.fg = col::rgb(255, 255, 255);
+        ctxm::text_at(&g, 24, HEIGHT as i32 - 24, strings::from("Luna VGA Demo"));
+    };
+};

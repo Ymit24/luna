@@ -1,0 +1,78 @@
+const styles = mod {
+    const strings = use "strings";
+
+    const StyleBuilder = struct {
+        classes: *strings::string,
+        classes_len: u16,
+        style_keys: *strings::string,
+        style_vals: *strings::string,
+        style_len: u16,
+    };
+
+    const style = fn(): StyleBuilder {
+        return StyleBuilder { classes: nil, classes_len: 0, style_keys: nil, style_vals: nil, style_len: 0 };
+    };
+
+    const push_class = fn(self: *StyleBuilder, cls: strings::string): *StyleBuilder {
+        // placeholder append
+        self.classes_len += 1;
+        return self;
+    };
+
+    const set_style = fn(self: *StyleBuilder, key: strings::string, val: strings::string): *StyleBuilder {
+        self.style_len += 1;
+        return self;
+    };
+
+    const build_classes = fn(self: *StyleBuilder): strings::string {
+        return strings::from("");
+    };
+
+    const bg = fn(self: *StyleBuilder, color: strings::string, shade: u16): *StyleBuilder {
+        return push_class(self, strings::concat(strings::concat(strings::from("bg-"), color), strings::concat(strings::from("-"), strings::itoa(shade))));
+    };
+
+    const text = fn(self: *StyleBuilder, color: strings::string, shade: u16 = 0): *StyleBuilder {
+        if shade == 0 { return push_class(self, strings::concat(strings::from("text-"), color)); }
+        return push_class(self, strings::concat(strings::concat(strings::from("text-"), color), strings::concat(strings::from("-"), strings::itoa(shade))));
+    };
+
+    const border_color = fn(self: *StyleBuilder, color: strings::string, shade: u16): *StyleBuilder {
+        return push_class(self, strings::concat(strings::concat(strings::from("border-"), color), strings::concat(strings::from("-"), strings::itoa(shade))));
+    };
+
+    const p = fn(self: *StyleBuilder, size: u16): *StyleBuilder { return push_class(self, strings::concat(strings::from("p-"), strings::itoa(size))); };
+    const px = fn(self: *StyleBuilder, size: u16): *StyleBuilder { return push_class(self, strings::concat(strings::from("px-"), strings::itoa(size))); };
+    const py = fn(self: *StyleBuilder, size: u16): *StyleBuilder { return push_class(self, strings::concat(strings::from("py-"), strings::itoa(size))); };
+    const m = fn(self: *StyleBuilder, size: u16): *StyleBuilder { return push_class(self, strings::concat(strings::from("m-"), strings::itoa(size))); };
+    const mx = fn(self: *StyleBuilder, size: u16): *StyleBuilder { return push_class(self, strings::concat(strings::from("mx-"), strings::itoa(size))); };
+    const my = fn(self: *StyleBuilder, size: u16): *StyleBuilder { return push_class(self, strings::concat(strings::from("my-"), strings::itoa(size))); };
+
+    const flex = fn(self: *StyleBuilder): *StyleBuilder { return push_class(self, strings::from("flex")); };
+    const grid = fn(self: *StyleBuilder): *StyleBuilder { return push_class(self, strings::from("grid")); };
+    const block = fn(self: *StyleBuilder): *StyleBuilder { return push_class(self, strings::from("block")); };
+    const hidden = fn(self: *StyleBuilder): *StyleBuilder { return push_class(self, strings::from("hidden")); };
+
+    const text_size = fn(self: *StyleBuilder, size: strings::string): *StyleBuilder { return push_class(self, strings::concat(strings::from("text-"), size)); };
+    const font_weight = fn(self: *StyleBuilder, weight: strings::string): *StyleBuilder { return push_class(self, strings::concat(strings::from("font-"), weight)); };
+
+    const border = fn(self: *StyleBuilder, width: u16): *StyleBuilder { return push_class(self, strings::concat(strings::from("border-"), strings::itoa(width))); };
+    const rounded = fn(self: *StyleBuilder, radius: strings::string): *StyleBuilder { return push_class(self, strings::concat(strings::from("rounded-"), radius)); };
+
+    const shadow = fn(self: *StyleBuilder, size: strings::string): *StyleBuilder { return push_class(self, strings::concat(strings::from("shadow-"), size)); };
+    const opacity = fn(self: *StyleBuilder, value: u16): *StyleBuilder { return push_class(self, strings::concat(strings::from("opacity-"), strings::itoa(value))); };
+
+    const transition = fn(self: *StyleBuilder, prop: strings::string): *StyleBuilder { return push_class(self, strings::concat(strings::from("transition-"), prop)); };
+    const duration = fn(self: *StyleBuilder, ms: u16): *StyleBuilder { return push_class(self, strings::concat(strings::from("duration-"), strings::itoa(ms))); };
+    const ease = fn(self: *StyleBuilder, name: strings::string): *StyleBuilder { return push_class(self, strings::concat(strings::from("ease-"), name)); };
+
+    const scale = fn(self: *StyleBuilder, factor: u16): *StyleBuilder { return push_class(self, strings::concat(strings::from("scale-"), strings::itoa(factor))); };
+    const rotate = fn(self: *StyleBuilder, deg: i16): *StyleBuilder { return push_class(self, strings::concat(strings::from("rotate-"), strings::itoa(deg as u16))); };
+    const translate_x = fn(self: *StyleBuilder, amt: i16): *StyleBuilder { return push_class(self, strings::concat(strings::from("translate-x-"), strings::itoa(amt as u16))); };
+
+    const hover = fn(self: *StyleBuilder, b: StyleBuilder): *StyleBuilder { return push_class(self, strings::from("hover:")); };
+    const focus = fn(self: *StyleBuilder, b: StyleBuilder): *StyleBuilder { return push_class(self, strings::from("focus:")); };
+    const active = fn(self: *StyleBuilder, b: StyleBuilder): *StyleBuilder { return push_class(self, strings::from("active:")); };
+
+    const build = fn(self: *StyleBuilder): strings::string { return build_classes(self); };
+};

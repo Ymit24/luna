@@ -1,0 +1,124 @@
+const strings = use "strings";
+const lexer = use "./lexer.luna";
+const parser = use "./parser.luna";
+const typechecker = use "./typechecker.luna";
+const codegen = use "./codegen.luna";
+
+const compiler = mod {
+    const CompilerOptions = struct {
+        input_file: strings::string,
+        output_file: strings::string,
+        verbose: i1,
+        optimize: i1,
+    };
+    
+    const CompilerResult = struct {
+        success: i1,
+        output: strings::string,
+        errors: **strings::string,
+        error_count: u32,
+    };
+    
+    const compile_source = fn(source: strings::string, options: CompilerOptions): CompilerResult {
+        let result = CompilerResult {
+            success: 0,
+            output: strings::from(""),
+            errors: nil,
+            error_count: 0,
+        };
+        
+        if options.verbose {
+            // TODO: Print compilation stages
+        }
+        
+        // Stage 1: Lexical Analysis
+        let l = lexer::new(source);
+        
+        // Stage 2: Parsing
+        let p = parser::new(&l);
+        let program = parser::parse_program(&p);
+        
+        if program == nil {
+            result.success = 0;
+            return result;
+        }
+        
+        // Stage 3: Type Checking
+        let tc = typechecker::new();
+        let type_check_success = typechecker::check_program(&tc, program);
+        
+        if !type_check_success {
+            result.success = 0;
+            return result;
+        }
+        
+        // Stage 4: Code Generation
+        let cg = codegen::new(&tc);
+        let generated_code = codegen::generate_program(&cg, program);
+        
+        result.success = 1;
+        result.output = generated_code;
+        return result;
+    };
+    
+    const compile_file = fn(input_path: strings::string, output_path: strings::string): CompilerResult {
+        let options = CompilerOptions {
+            input_file: input_path,
+            output_file: output_path,
+            verbose: 0,
+            optimize: 0,
+        };
+        
+        // TODO: Read file contents
+        let source = strings::from("const main = fn(): i32 { return 42; };");
+        
+        return compile_source(source, options);
+    };
+    
+    const write_output = fn(output: strings::string, filename: strings::string): i1 {
+        // TODO: Write output to file
+        // For now, just return success
+        return 1;
+    };
+    
+    const print_errors = fn(errors: **strings::string, error_count: u32) {
+        let i: u32 = 0;
+        while i < error_count {
+            // TODO: Print error messages
+            i += 1;
+        }
+    };
+    
+    const main = fn(): i32 {
+        // Simple test compilation
+        let test_source = strings::from(
+            "const add = fn(a: i32, b: i32): i32 { return a + b; };\n" +
+            "const main = fn(): i32 {\n" +
+            "    let result = add(5, 3);\n" +
+            "    return result;\n" +
+            "};"
+        );
+        
+        let options = CompilerOptions {
+            input_file: strings::from("test.luna"),
+            output_file: strings::from("test.c"),
+            verbose: 1,
+            optimize: 0,
+        };
+        
+        let result = compile_source(test_source, options);
+        
+        if result.success {
+            // TODO: Print success message and write output
+            let write_success = write_output(result.output, options.output_file);
+            if write_success {
+                return 0; // Success
+            } else {
+                return 2; // Write error
+            }
+        } else {
+            print_errors(result.errors, result.error_count);
+            return 1; // Compilation error
+        }
+    };
+};

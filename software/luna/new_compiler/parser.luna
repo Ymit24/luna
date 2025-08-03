@@ -1,0 +1,544 @@
+const strings = use "strings";
+const lexer = use "./lexer.luna";
+const ast = use "./ast.luna";
+
+const parser = mod {
+    const Precedence = enum {
+        LOWEST,
+        EQUALS,      // ==
+        LESSGREATER, // > or <
+        SUM,         // +
+        PRODUCT,     // *
+        PREFIX,      // -X or !X
+        CALL,        // myFunction(X)
+        INDEX,       // array[index]
+        FIELD,       // obj.field
+    };
+    
+    const Parser = struct {
+        lexer: *lexer::Lexer,
+        current_token: lexer::Token,
+        peek_token: lexer::Token,
+        errors: **strings::string,
+        error_count: u32,
+    };
+    
+    const new = fn(l: *lexer::Lexer): Parser {
+        let p = Parser {
+            lexer: l,
+            current_token: lexer::Token { type: lexer::TokenType::EOF, literal: strings::from(""), line: 0, column: 0 },
+            peek_token: lexer::Token { type: lexer::TokenType::EOF, literal: strings::from(""), line: 0, column: 0 },
+            errors: nil,
+            error_count: 0,
+        };
+        
+        next_token(&p);
+        next_token(&p);
+        
+        return p;
+    };
+    
+    const next_token = fn(p: *Parser) {
+        p.current_token = p.peek_token;
+        p.peek_token = lexer::next_token(p.lexer);
+    };
+    
+    const current_token_is = fn(p: *Parser, t: lexer::TokenType): i1 {
+        return p.current_token.type == t;
+    };
+    
+    const peek_token_is = fn(p: *Parser, t: lexer::TokenType): i1 {
+        return p.peek_token.type == t;
+    };
+    
+    const expect_peek = fn(p: *Parser, t: lexer::TokenType): i1 {
+        if peek_token_is(p, t) {
+            next_token(p);
+            return 1;
+        } else {
+            peek_error(p, t);
+            return 0;
+        }
+    };
+    
+    const peek_error = fn(p: *Parser, t: lexer::TokenType) {
+        // TODO: Add error to errors array
+    };
+    
+    const peek_precedence = fn(p: *Parser): Precedence {
+        if p.peek_token.type == lexer::TokenType::EQ { return Precedence::EQUALS; }
+        if p.peek_token.type == lexer::TokenType::NOT_EQ { return Precedence::EQUALS; }
+        if p.peek_token.type == lexer::TokenType::LT { return Precedence::LESSGREATER; }
+        if p.peek_token.type == lexer::TokenType::GT { return Precedence::LESSGREATER; }
+        if p.peek_token.type == lexer::TokenType::PLUS { return Precedence::SUM; }
+        if p.peek_token.type == lexer::TokenType::MINUS { return Precedence::SUM; }
+        if p.peek_token.type == lexer::TokenType::SLASH { return Precedence::PRODUCT; }
+        if p.peek_token.type == lexer::TokenType::ASTERISK { return Precedence::PRODUCT; }
+        if p.peek_token.type == lexer::TokenType::LPAREN { return Precedence::CALL; }
+        if p.peek_token.type == lexer::TokenType::LBRACKET { return Precedence::INDEX; }
+        if p.peek_token.type == lexer::TokenType::DOT { return Precedence::FIELD; }
+        return Precedence::LOWEST;
+    };
+    
+    const current_precedence = fn(p: *Parser): Precedence {
+        if p.current_token.type == lexer::TokenType::EQ { return Precedence::EQUALS; }
+        if p.current_token.type == lexer::TokenType::NOT_EQ { return Precedence::EQUALS; }
+        if p.current_token.type == lexer::TokenType::LT { return Precedence::LESSGREATER; }
+        if p.current_token.type == lexer::TokenType::GT { return Precedence::LESSGREATER; }
+        if p.current_token.type == lexer::TokenType::PLUS { return Precedence::SUM; }
+        if p.current_token.type == lexer::TokenType::MINUS { return Precedence::SUM; }
+        if p.current_token.type == lexer::TokenType::SLASH { return Precedence::PRODUCT; }
+        if p.current_token.type == lexer::TokenType::ASTERISK { return Precedence::PRODUCT; }
+        if p.current_token.type == lexer::TokenType::LPAREN { return Precedence::CALL; }
+        if p.current_token.type == lexer::TokenType::LBRACKET { return Precedence::INDEX; }
+        if p.current_token.type == lexer::TokenType::DOT { return Precedence::FIELD; }
+        return Precedence::LOWEST;
+    };
+    
+    // Parse program (module statements)
+    const parse_program = fn(p: *Parser): *ast::ModuleStatement {
+        let program = ast::ModuleStatement {
+            node: ast::Node { type: ast::NodeType::MODULE_STATEMENT, token: p.current_token },
+            statements: nil,
+            statement_count: 0,
+        };
+        
+        // TODO: Allocate statements array and parse statements
+        while !current_token_is(p, lexer::TokenType::EOF) {
+            let stmt = parse_statement(p);
+            if stmt != nil {
+                // TODO: Add statement to program.statements array
+                program.statement_count += 1;
+            }
+            next_token(p);
+        }
+        
+        return &program;
+    };
+    
+    const parse_statement = fn(p: *Parser): *ast::Statement {
+        if current_token_is(p, lexer::TokenType::LET) {
+            return parse_let_statement(p);
+        } else if current_token_is(p, lexer::TokenType::CONST) {
+            return parse_const_statement(p);
+        } else if current_token_is(p, lexer::TokenType::RETURN) {
+            return parse_return_statement(p);
+        } else {
+            return parse_expression_statement(p);
+        }
+    };
+    
+    const parse_let_statement = fn(p: *Parser): *ast::Statement {
+        let token = p.current_token;
+        
+        if !expect_peek(p, lexer::TokenType::IDENT) {
+            return nil;
+        }
+        
+        let name = ast::new_identifier(p.current_token, p.current_token.literal);
+        let type_annotation: *ast::Type = nil;
+        
+        // Optional type annotation
+        if peek_token_is(p, lexer::TokenType::COLON) {
+            next_token(p);
+            next_token(p);
+            type_annotation = parse_type(p);
+        }
+        
+        if !expect_peek(p, lexer::TokenType::ASSIGN) {
+            return nil;
+        }
+        
+        next_token(p);
+        let value = parse_expression(p, Precedence::LOWEST);
+        
+        if peek_token_is(p, lexer::TokenType::SEMICOLON) {
+            next_token(p);
+        }
+        
+        let stmt = ast::new_let_statement(token, name, type_annotation, value);
+        return stmt;
+    };
+    
+    const parse_const_statement = fn(p: *Parser): *ast::Statement {
+        let token = p.current_token;
+        
+        if !expect_peek(p, lexer::TokenType::IDENT) {
+            return nil;
+        }
+        
+        let name = ast::new_identifier(p.current_token, p.current_token.literal);
+        let type_annotation: *ast::Type = nil;
+        
+        // Optional type annotation
+        if peek_token_is(p, lexer::TokenType::COLON) {
+            next_token(p);
+            next_token(p);
+            type_annotation = parse_type(p);
+        }
+        
+        if !expect_peek(p, lexer::TokenType::ASSIGN) {
+            return nil;
+        }
+        
+        next_token(p);
+        let value = parse_expression(p, Precedence::LOWEST);
+        
+        if peek_token_is(p, lexer::TokenType::SEMICOLON) {
+            next_token(p);
+        }
+        
+        let stmt = ast::new_const_statement(token, name, type_annotation, value);
+        return stmt;
+    };
+    
+    const parse_return_statement = fn(p: *Parser): *ast::Statement {
+        let token = p.current_token;
+        
+        next_token(p);
+        let return_value = parse_expression(p, Precedence::LOWEST);
+        
+        if peek_token_is(p, lexer::TokenType::SEMICOLON) {
+            next_token(p);
+        }
+        
+        let stmt = ast::new_return_statement(token, return_value);
+        return stmt;
+    };
+    
+    const parse_expression_statement = fn(p: *Parser): *ast::Statement {
+        let token = p.current_token;
+        let expression = parse_expression(p, Precedence::LOWEST);
+        
+        if peek_token_is(p, lexer::TokenType::SEMICOLON) {
+            next_token(p);
+        }
+        
+        let stmt = ast::new_expression_statement(token, expression);
+        return stmt;
+    };
+    
+    const parse_expression = fn(p: *Parser, precedence: Precedence): *ast::Expression {
+        let left = parse_prefix_expression(p);
+        if left == nil {
+            return nil;
+        }
+        
+        while !peek_token_is(p, lexer::TokenType::SEMICOLON) and precedence < peek_precedence(p) {
+            left = parse_infix_expression(p, left);
+            if left == nil {
+                return left;
+            }
+        }
+        
+        return left;
+    };
+    
+    const parse_prefix_expression = fn(p: *Parser): *ast::Expression {
+        if current_token_is(p, lexer::TokenType::IDENT) {
+            return parse_identifier(p);
+        } else if current_token_is(p, lexer::TokenType::INT) {
+            return parse_integer_literal(p);
+        } else if current_token_is(p, lexer::TokenType::STRING) {
+            return parse_string_literal(p);
+        } else if current_token_is(p, lexer::TokenType::TRUE) or current_token_is(p, lexer::TokenType::FALSE) {
+            return parse_boolean_literal(p);
+        } else if current_token_is(p, lexer::TokenType::NIL) {
+            return parse_nil_literal(p);
+        } else if current_token_is(p, lexer::TokenType::BANG) or current_token_is(p, lexer::TokenType::MINUS) {
+            return parse_prefix_operator_expression(p);
+        } else if current_token_is(p, lexer::TokenType::LPAREN) {
+            return parse_grouped_expression(p);
+        } else if current_token_is(p, lexer::TokenType::IF) {
+            return parse_if_expression(p);
+        } else if current_token_is(p, lexer::TokenType::FUNCTION) {
+            return parse_function_literal(p);
+        } else {
+            return nil;
+        }
+    };
+    
+    const parse_infix_expression = fn(p: *Parser, left: *ast::Expression): *ast::Expression {
+        if peek_token_is(p, lexer::TokenType::PLUS) or 
+           peek_token_is(p, lexer::TokenType::MINUS) or
+           peek_token_is(p, lexer::TokenType::SLASH) or
+           peek_token_is(p, lexer::TokenType::ASTERISK) or
+           peek_token_is(p, lexer::TokenType::EQ) or
+           peek_token_is(p, lexer::TokenType::NOT_EQ) or
+           peek_token_is(p, lexer::TokenType::LT) or
+           peek_token_is(p, lexer::TokenType::GT) {
+            return parse_infix_operator_expression(p, left);
+        } else if peek_token_is(p, lexer::TokenType::LPAREN) {
+            return parse_call_expression(p, left);
+        } else if peek_token_is(p, lexer::TokenType::LBRACKET) {
+            return parse_index_expression(p, left);
+        } else if peek_token_is(p, lexer::TokenType::DOT) {
+            return parse_field_access_expression(p, left);
+        } else {
+            return left;
+        }
+    };
+    
+    const parse_identifier = fn(p: *Parser): *ast::Expression {
+        let ident = ast::new_identifier(p.current_token, p.current_token.literal);
+        return ident;
+    };
+    
+    const parse_integer_literal = fn(p: *Parser): *ast::Expression {
+        let value = strings::atoi(p.current_token.literal);
+        let lit = ast::new_integer_literal(p.current_token, value);
+        return lit;
+    };
+    
+    const parse_string_literal = fn(p: *Parser): *ast::Expression {
+        let lit = ast::new_string_literal(p.current_token, p.current_token.literal);
+        return lit;
+    };
+    
+    const parse_boolean_literal = fn(p: *Parser): *ast::Expression {
+        let value = current_token_is(p, lexer::TokenType::TRUE);
+        let lit = ast::new_boolean_literal(p.current_token, value);
+        return lit;
+    };
+    
+    const parse_nil_literal = fn(p: *Parser): *ast::Expression {
+        let lit = ast::new_nil_literal(p.current_token);
+        return lit;
+    };
+    
+    const parse_prefix_operator_expression = fn(p: *Parser): *ast::Expression {
+        let token = p.current_token;
+        let operator = p.current_token.literal;
+        
+        next_token(p);
+        let right = parse_expression(p, Precedence::PREFIX);
+        
+        let expr = ast::PrefixExpression {
+            node: ast::Node { type: ast::NodeType::PREFIX_EXPRESSION, token: token },
+            operator: operator,
+            right: right,
+        };
+        return &expr;
+    };
+    
+    const parse_infix_operator_expression = fn(p: *Parser, left: *ast::Expression): *ast::Expression {
+        next_token(p);
+        let token = p.current_token;
+        let operator = p.current_token.literal;
+        let precedence = current_precedence(p);
+        
+        next_token(p);
+        let right = parse_expression(p, precedence);
+        
+        let expr = ast::InfixExpression {
+            node: ast::Node { type: ast::NodeType::INFIX_EXPRESSION, token: token },
+            left: left,
+            operator: operator,
+            right: right,
+        };
+        return &expr;
+    };
+    
+    const parse_grouped_expression = fn(p: *Parser): *ast::Expression {
+        next_token(p);
+        let exp = parse_expression(p, Precedence::LOWEST);
+        
+        if !expect_peek(p, lexer::TokenType::RPAREN) {
+            return nil;
+        }
+        
+        return exp;
+    };
+    
+    const parse_if_expression = fn(p: *Parser): *ast::Expression {
+        let token = p.current_token;
+        
+        if !expect_peek(p, lexer::TokenType::LPAREN) {
+            return nil;
+        }
+        
+        next_token(p);
+        let condition = parse_expression(p, Precedence::LOWEST);
+        
+        if !expect_peek(p, lexer::TokenType::RPAREN) {
+            return nil;
+        }
+        
+        if !expect_peek(p, lexer::TokenType::LBRACE) {
+            return nil;
+        }
+        
+        let consequence = parse_block_statement(p);
+        let alternative: *ast::BlockStatement = nil;
+        
+        if peek_token_is(p, lexer::TokenType::ELSE) {
+            next_token(p);
+            
+            if !expect_peek(p, lexer::TokenType::LBRACE) {
+                return nil;
+            }
+            
+            alternative = parse_block_statement(p);
+        }
+        
+        let expr = ast::IfExpression {
+            node: ast::Node { type: ast::NodeType::IF_EXPRESSION, token: token },
+            condition: condition,
+            consequence: consequence,
+            alternative: alternative,
+        };
+        return &expr;
+    };
+    
+    const parse_function_literal = fn(p: *Parser): *ast::Expression {
+        let token = p.current_token;
+        
+        if !expect_peek(p, lexer::TokenType::LPAREN) {
+            return nil;
+        }
+        
+        // TODO: Parse parameters
+        let parameters: *ast::Parameter = nil;
+        let parameter_count: u32 = 0;
+        
+        if !expect_peek(p, lexer::TokenType::RPAREN) {
+            return nil;
+        }
+        
+        // Optional return type
+        let return_type: *ast::Type = nil;
+        if peek_token_is(p, lexer::TokenType::COLON) {
+            next_token(p);
+            next_token(p);
+            return_type = parse_type(p);
+        }
+        
+        if !expect_peek(p, lexer::TokenType::LBRACE) {
+            return nil;
+        }
+        
+        let body = parse_block_statement(p);
+        
+        let fn_lit = ast::FunctionLiteral {
+            node: ast::Node { type: ast::NodeType::FUNCTION_LITERAL, token: token },
+            parameters: parameters,
+            parameter_count: parameter_count,
+            return_type: return_type,
+            body: body,
+            is_generic: 0,
+            generic_params: nil,
+            generic_param_count: 0,
+        };
+        return &fn_lit;
+    };
+    
+    const parse_call_expression = fn(p: *Parser, fn_expr: *ast::Expression): *ast::Expression {
+        let token = p.peek_token;
+        next_token(p);
+        
+        // TODO: Parse arguments
+        let arguments: **ast::Expression = nil;
+        let argument_count: u32 = 0;
+        
+        if !expect_peek(p, lexer::TokenType::RPAREN) {
+            return nil;
+        }
+        
+        let call = ast::CallExpression {
+            node: ast::Node { type: ast::NodeType::CALL_EXPRESSION, token: token },
+            function: fn_expr,
+            arguments: arguments,
+            argument_count: argument_count,
+        };
+        return &call;
+    };
+    
+    const parse_index_expression = fn(p: *Parser, left: *ast::Expression): *ast::Expression {
+        let token = p.peek_token;
+        next_token(p);
+        next_token(p);
+        
+        let index = parse_expression(p, Precedence::LOWEST);
+        
+        if !expect_peek(p, lexer::TokenType::RBRACKET) {
+            return nil;
+        }
+        
+        let idx_expr = ast::IndexExpression {
+            node: ast::Node { type: ast::NodeType::INDEX_EXPRESSION, token: token },
+            left: left,
+            index: index,
+        };
+        return &idx_expr;
+    };
+    
+    const parse_field_access_expression = fn(p: *Parser, left: *ast::Expression): *ast::Expression {
+        let token = p.peek_token;
+        next_token(p);
+        
+        if !expect_peek(p, lexer::TokenType::IDENT) {
+            return nil;
+        }
+        
+        let field = ast::new_identifier(p.current_token, p.current_token.literal);
+        
+        let field_access = ast::FieldAccess {
+            node: ast::Node { type: ast::NodeType::FIELD_ACCESS, token: token },
+            left: left,
+            field: field,
+        };
+        return &field_access;
+    };
+    
+    const parse_block_statement = fn(p: *Parser): *ast::BlockStatement {
+        let token = p.current_token;
+        let block = ast::new_block_statement(token);
+        
+        next_token(p);
+        
+        while !current_token_is(p, lexer::TokenType::RBRACE) and !current_token_is(p, lexer::TokenType::EOF) {
+            let stmt = parse_statement(p);
+            if stmt != nil {
+                // TODO: Add statement to block.statements array
+                block.statement_count += 1;
+            }
+            next_token(p);
+        }
+        
+        return block;
+    };
+    
+    const parse_type = fn(p: *Parser): *ast::Type {
+        if current_token_is(p, lexer::TokenType::ASTERISK) {
+            return parse_pointer_type(p);
+        } else if current_token_is(p, lexer::TokenType::IDENT) or 
+                  current_token_is(p, lexer::TokenType::I32) or
+                  current_token_is(p, lexer::TokenType::U32) or
+                  current_token_is(p, lexer::TokenType::I1) or
+                  current_token_is(p, lexer::TokenType::U16) {
+            return parse_type_identifier(p);
+        } else {
+            return nil;
+        }
+    };
+    
+    const parse_pointer_type = fn(p: *Parser): *ast::Type {
+        let token = p.current_token;
+        next_token(p);
+        let element_type = parse_type(p);
+        
+        let ptr_type = ast::PointerType {
+            node: ast::Node { type: ast::NodeType::POINTER_TYPE, token: token },
+            element_type: element_type,
+        };
+        return &ptr_type;
+    };
+    
+    const parse_type_identifier = fn(p: *Parser): *ast::Type {
+        let type_id = ast::TypeIdentifier {
+            node: ast::Node { type: ast::NodeType::TYPE_IDENTIFIER, token: p.current_token },
+            value: p.current_token.literal,
+        };
+        return &type_id;
+    };
+};

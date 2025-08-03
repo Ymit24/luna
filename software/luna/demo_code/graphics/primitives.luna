@@ -1,0 +1,79 @@
+const gfx = mod {
+    const strings = use "strings";
+    const fbm = use "./framebuffer.luna";
+    const col = use "./color.luna";
+
+    const set_pixel = fn(fb: *fbm::FrameBuffer, x: i32, y: i32, c: col::Color) {
+        const idx = fbm::index_of(fb, x, y);
+        if idx == 0xffffffff { return; }
+        fb.data[idx] = col::to_u32(c);
+    };
+
+    const set_pixel_blend = fn(fb: *fbm::FrameBuffer, x: i32, y: i32, c: col::Color) {
+        const idx = fbm::index_of(fb, x, y);
+        if idx == 0xffffffff { return; }
+        fb.data[idx] = col::blend_over(fb.data[idx], c);
+    };
+
+    const clear = fn(fb: *fbm::FrameBuffer, c: col::Color) {
+        let y: i32 = 0;
+        while y < fb.height as i32 {
+            let x: i32 = 0;
+            while x < fb.width as i32 {
+                set_pixel(fb, x, y, c);
+                x += 1;
+            }
+            y += 1;
+        }
+    };
+
+    const draw_line = fn(fb: *fbm::FrameBuffer, x0: i32, y0: i32, x1: i32, y1: i32, c: col::Color) {
+        let dx = (x1 - x0);
+        let dy = (y1 - y0);
+        let sx = if x0 < x1 { 1 } else { -1 };
+        let sy = if y0 < y1 { 1 } else { -1 };
+        let err = (if dx > 0 { dx } else { -dx }) + (if dy > 0 { dy } else { -dy });
+        let x = x0; let y = y0;
+        while true {
+            set_pixel(fb, x, y, c);
+            if x == x1 and y == y1 { break; }
+            let e2 = 2 * err;
+            if e2 >= dy { err += dy; x += sx; }
+            if e2 <= dx { err += dx; y += sy; }
+        }
+    };
+
+    const draw_rect = fn(fb: *fbm::FrameBuffer, x: i32, y: i32, w: i32, h: i32, c: col::Color) {
+        draw_line(fb, x, y, x + w - 1, y, c);
+        draw_line(fb, x, y, x, y + h - 1, c);
+        draw_line(fb, x + w - 1, y, x + w - 1, y + h - 1, c);
+        draw_line(fb, x, y + h - 1, x + w - 1, y + h - 1, c);
+    };
+
+    const fill_rect = fn(fb: *fbm::FrameBuffer, x: i32, y: i32, w: i32, h: i32, c: col::Color) {
+        let yy: i32 = 0;
+        while yy < h {
+            let xx: i32 = 0;
+            while xx < w {
+                set_pixel(fb, x + xx, y + yy, c);
+                xx += 1;
+            }
+            yy += 1;
+        }
+    };
+
+    const draw_circle = fn(fb: *fbm::FrameBuffer, cx: i32, cy: i32, r: i32, c: col::Color) {
+        let x = -r;
+        let y = 0;
+        let err = 2 - 2 * r;
+        while x <= 0 {
+            set_pixel(fb, cx - x, cy + y, c);
+            set_pixel(fb, cx - y, cy - x, c);
+            set_pixel(fb, cx + x, cy - y, c);
+            set_pixel(fb, cx + y, cy + x, c);
+            r = err;
+            if r <= y { y += 1; err += y * 2 + 1; }
+            if r > x or err > y { x += 1; err += x * 2 + 1; }
+        }
+    };
+};

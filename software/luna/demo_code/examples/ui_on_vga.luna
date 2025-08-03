@@ -1,0 +1,33 @@
+const strings = use "strings";
+const fbm = use "../graphics/framebuffer.luna";
+const ctxm = use "../graphics/context.luna";
+const col = use "../graphics/color.luna";
+const vdom = use "../lunaui/vdom.luna";
+const ui_renderer = use "../lunaui/ui_renderer.luna";
+const styles = use "../lunaui/styles.luna";
+
+const VGA = mod {
+    const WIDTH: u16 = 320;
+    const HEIGHT: u16 = 240;
+    const PITCH: u16 = 320 * 4;
+    const ADDR: *u32 = (@ptr_from_int<u32>(0x00A0_0000));
+
+    const tree = fn(): vdom::VNode {
+        const props = vdom::Props { keys: nil, values: nil, len: 0 };
+        const label = vdom::text(strings::from("Hello Luna UI"));
+        const btn = vdom::h(strings::from("button"), props, nil);
+        label.next = &btn;
+        return vdom::h(strings::from("div"), props, &label);
+    };
+
+    const main = fn() {
+        const fb = fbm::make(ADDR, WIDTH, HEIGHT, PITCH);
+        let g = ctxm::make(&fb);
+        g.bg = col::rgb(16,16,24);
+        g.fg = col::rgb(255,255,255);
+        ctxm::clear(&g);
+
+        const r = ui_renderer::UIRenderer { gfx: &g };
+        ui_renderer::render(&r, tree(), 16, 16, WIDTH as i32 - 32, HEIGHT as i32 - 32);
+    };
+};

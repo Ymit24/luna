@@ -1,0 +1,20 @@
+const strings = use "strings";
+const core = use "../lunaui/core.luna";
+const vdom = use "../lunaui/vdom.luna";
+
+const Counter = mod {
+    const state = core::make_signal<i32>(0);
+
+    const inc = fn() { core::set(&state, core::get(&state) + 1); };
+    const dec = fn() { core::set(&state, core::get(&state) - 1); };
+
+    const view = fn(): vdom::VNode {
+        const props = vdom::Props { keys: nil, values: nil, len: 0 };
+        const label = vdom::text(strings::from("Count: ") + strings::itoa(core::get(&state)));
+        const minus = vdom::h(strings::from("button"), props, nil);
+        const plus = vdom::h(strings::from("button"), props, nil);
+        label.next = &minus;
+        minus.next = &plus;
+        return vdom::h(strings::from("div"), props, &label);
+    };
+};
