@@ -13,7 +13,7 @@ struct Lexer lexer_make(struct ArenaAllocator *allocator,
 }
 
 char lexer_peek(struct Lexer *lexer) {
-  if (lexer->position < 0 || lexer->position > lexer->source.length) {
+  if (lexer->position > lexer->source.length) {
     return 0;
   }
 

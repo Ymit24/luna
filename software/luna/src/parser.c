@@ -226,10 +226,23 @@ struct DataType *parse_data_type(struct Parser *parser) {
   case T_SYMBOL: {
     if (strncmp("int", token.value.symbol.data, 3) == 0) {
       parser->position++;
-      return &DT_INT;
+      return ast_promote(parser->allocator,
+                         &(struct DataType){
+                             .kind = DTK_PRIMITIVE,
+                             .value.primitive = P_INT,
+                             .next = NULL,
+                         },
+                         sizeof(struct DataType));
     } else if (strncmp("bool", token.value.symbol.data, 4) == 0) {
       parser->position++;
-      return &DT_BOOL;
+
+      return ast_promote(parser->allocator,
+                         &(struct DataType){
+                             .kind = DTK_PRIMITIVE,
+                             .value.primitive = P_BOOL,
+                             .next = NULL,
+                         },
+                         sizeof(struct DataType));
     } else {
       printf("Unknown primitive data type: %s\n", token.value.symbol.data);
       assert(0);

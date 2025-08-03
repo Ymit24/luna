@@ -7,18 +7,6 @@
 #include <stdio.h>
 #include <string.h>
 
-struct DataType DT_INT = (struct DataType){
-    .kind = DTK_PRIMITIVE,
-    .value.primitive = P_INT,
-    .next = NULL,
-};
-
-struct DataType DT_BOOL = (struct DataType){
-    .kind = DTK_PRIMITIVE,
-    .value.primitive = P_BOOL,
-    .next = NULL,
-};
-
 bool data_types_equal(struct DataType *left, struct DataType *right);
 void insert_symbol_entry(struct Annotator *annotator,
                          struct SymbolTableEntry entry);
@@ -346,4 +334,5 @@ bool data_types_equal(struct DataType *left, struct DataType *right) {
     return data_types_equal(left->value.function.return_type,
                             right->value.function.return_type);
   };
+  return false;
 }

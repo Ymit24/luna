@@ -27,9 +27,6 @@ struct DataTypeTable {
   struct DataType *head;
 };
 
-extern struct DataType DT_INT;
-extern struct DataType DT_BOOL;
-
 struct SymbolTableEntry {
   struct LunaString symbol;
   struct DataType *type;

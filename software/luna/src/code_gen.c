@@ -48,6 +48,7 @@ void cg_visit_expr(struct CodeGenerator *code_generator,
       assert(0);
       break;
     }
+    break;
   case EXPR_INTEGER_LITERAL:
     ib_push_push_index(code_generator->instruction_builder, MS_CONST,
                        expr->node.integer->value);
