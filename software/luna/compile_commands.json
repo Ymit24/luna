@@ -13,9 +13,9 @@
       "lunac",
       "main.c"
     ],
-    "directory": "/Users/christiansmith/dev/logisim/digital_computer/software/luna",
-    "file": "/Users/christiansmith/dev/logisim/digital_computer/software/luna/main.c",
-    "output": "/Users/christiansmith/dev/logisim/digital_computer/software/luna/lunac"
+    "directory": "/Users/chris/dev/luna/software/luna",
+    "file": "/Users/chris/dev/luna/software/luna/main.c",
+    "output": "/Users/chris/dev/luna/software/luna/lunac"
   },
   {
     "arguments": [
@@ -31,9 +31,9 @@
       "lunac",
       "src/luna_string.c"
     ],
-    "directory": "/Users/christiansmith/dev/logisim/digital_computer/software/luna",
-    "file": "/Users/christiansmith/dev/logisim/digital_computer/software/luna/src/luna_string.c",
-    "output": "/Users/christiansmith/dev/logisim/digital_computer/software/luna/lunac"
+    "directory": "/Users/chris/dev/luna/software/luna",
+    "file": "/Users/chris/dev/luna/software/luna/src/luna_string.c",
+    "output": "/Users/chris/dev/luna/software/luna/lunac"
   },
   {
     "arguments": [
@@ -49,9 +49,9 @@
       "lunac",
       "src/lexer.c"
     ],
-    "directory": "/Users/christiansmith/dev/logisim/digital_computer/software/luna",
-    "file": "/Users/christiansmith/dev/logisim/digital_computer/software/luna/src/lexer.c",
-    "output": "/Users/christiansmith/dev/logisim/digital_computer/software/luna/lunac"
+    "directory": "/Users/chris/dev/luna/software/luna",
+    "file": "/Users/chris/dev/luna/software/luna/src/lexer.c",
+    "output": "/Users/chris/dev/luna/software/luna/lunac"
   },
   {
     "arguments": [
@@ -67,9 +67,9 @@
       "lunac",
       "src/parser.c"
     ],
-    "directory": "/Users/christiansmith/dev/logisim/digital_computer/software/luna",
-    "file": "/Users/christiansmith/dev/logisim/digital_computer/software/luna/src/parser.c",
-    "output": "/Users/christiansmith/dev/logisim/digital_computer/software/luna/lunac"
+    "directory": "/Users/chris/dev/luna/software/luna",
+    "file": "/Users/chris/dev/luna/software/luna/src/parser.c",
+    "output": "/Users/chris/dev/luna/software/luna/lunac"
   },
   {
     "arguments": [
@@ -85,9 +85,9 @@
       "lunac",
       "src/ast.c"
     ],
-    "directory": "/Users/christiansmith/dev/logisim/digital_computer/software/luna",
-    "file": "/Users/christiansmith/dev/logisim/digital_computer/software/luna/src/ast.c",
-    "output": "/Users/christiansmith/dev/logisim/digital_computer/software/luna/lunac"
+    "directory": "/Users/chris/dev/luna/software/luna",
+    "file": "/Users/chris/dev/luna/software/luna/src/ast.c",
+    "output": "/Users/chris/dev/luna/software/luna/lunac"
   },
   {
     "arguments": [
@@ -103,9 +103,9 @@
       "lunac",
       "src/arena_allocator.c"
     ],
-    "directory": "/Users/christiansmith/dev/logisim/digital_computer/software/luna",
-    "file": "/Users/christiansmith/dev/logisim/digital_computer/software/luna/src/arena_allocator.c",
-    "output": "/Users/christiansmith/dev/logisim/digital_computer/software/luna/lunac"
+    "directory": "/Users/chris/dev/luna/software/luna",
+    "file": "/Users/chris/dev/luna/software/luna/src/arena_allocator.c",
+    "output": "/Users/chris/dev/luna/software/luna/lunac"
   },
   {
     "arguments": [
@@ -121,9 +121,9 @@
       "lunac",
       "src/interpreter.c"
     ],
-    "directory": "/Users/christiansmith/dev/logisim/digital_computer/software/luna",
-    "file": "/Users/christiansmith/dev/logisim/digital_computer/software/luna/src/interpreter.c",
-    "output": "/Users/christiansmith/dev/logisim/digital_computer/software/luna/lunac"
+    "directory": "/Users/chris/dev/luna/software/luna",
+    "file": "/Users/chris/dev/luna/software/luna/src/interpreter.c",
+    "output": "/Users/chris/dev/luna/software/luna/lunac"
   },
   {
     "arguments": [
@@ -139,9 +139,9 @@
       "lunac",
       "src/annotator.c"
     ],
-    "directory": "/Users/christiansmith/dev/logisim/digital_computer/software/luna",
-    "file": "/Users/christiansmith/dev/logisim/digital_computer/software/luna/src/annotator.c",
-    "output": "/Users/christiansmith/dev/logisim/digital_computer/software/luna/lunac"
+    "directory": "/Users/chris/dev/luna/software/luna",
+    "file": "/Users/chris/dev/luna/software/luna/src/annotator.c",
+    "output": "/Users/chris/dev/luna/software/luna/lunac"
   },
   {
     "arguments": [
@@ -157,9 +157,9 @@
       "lunac",
       "src/instruction_builder.c"
     ],
-    "directory": "/Users/christiansmith/dev/logisim/digital_computer/software/luna",
-    "file": "/Users/christiansmith/dev/logisim/digital_computer/software/luna/src/instruction_builder.c",
-    "output": "/Users/christiansmith/dev/logisim/digital_computer/software/luna/lunac"
+    "directory": "/Users/chris/dev/luna/software/luna",
+    "file": "/Users/chris/dev/luna/software/luna/src/instruction_builder.c",
+    "output": "/Users/chris/dev/luna/software/luna/lunac"
   },
   {
     "arguments": [
@@ -175,8 +175,8 @@
       "lunac",
       "src/code_gen.c"
     ],
-    "directory": "/Users/christiansmith/dev/logisim/digital_computer/software/luna",
-    "file": "/Users/christiansmith/dev/logisim/digital_computer/software/luna/src/code_gen.c",
-    "output": "/Users/christiansmith/dev/logisim/digital_computer/software/luna/lunac"
+    "directory": "/Users/chris/dev/luna/software/luna",
+    "file": "/Users/chris/dev/luna/software/luna/src/code_gen.c",
+    "output": "/Users/chris/dev/luna/software/luna/lunac"
   }
 ]
