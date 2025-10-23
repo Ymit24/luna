@@ -1,0 +1,182 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wall",
+      "-Wextra",
+      "-Wpedantic",
+      "-Werror",
+      "-std=c99",
+      "-Iinclude",
+      "-o",
+      "lunac",
+      "main.c"
+    ],
+    "directory": "/Users/chris/dev/luna/software/luna",
+    "file": "/Users/chris/dev/luna/software/luna/main.c",
+    "output": "/Users/chris/dev/luna/software/luna/lunac"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wall",
+      "-Wextra",
+      "-Wpedantic",
+      "-Werror",
+      "-std=c99",
+      "-Iinclude",
+      "-o",
+      "lunac",
+      "src/luna_string.c"
+    ],
+    "directory": "/Users/chris/dev/luna/software/luna",
+    "file": "/Users/chris/dev/luna/software/luna/src/luna_string.c",
+    "output": "/Users/chris/dev/luna/software/luna/lunac"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wall",
+      "-Wextra",
+      "-Wpedantic",
+      "-Werror",
+      "-std=c99",
+      "-Iinclude",
+      "-o",
+      "lunac",
+      "src/lexer.c"
+    ],
+    "directory": "/Users/chris/dev/luna/software/luna",
+    "file": "/Users/chris/dev/luna/software/luna/src/lexer.c",
+    "output": "/Users/chris/dev/luna/software/luna/lunac"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wall",
+      "-Wextra",
+      "-Wpedantic",
+      "-Werror",
+      "-std=c99",
+      "-Iinclude",
+      "-o",
+      "lunac",
+      "src/parser.c"
+    ],
+    "directory": "/Users/chris/dev/luna/software/luna",
+    "file": "/Users/chris/dev/luna/software/luna/src/parser.c",
+    "output": "/Users/chris/dev/luna/software/luna/lunac"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wall",
+      "-Wextra",
+      "-Wpedantic",
+      "-Werror",
+      "-std=c99",
+      "-Iinclude",
+      "-o",
+      "lunac",
+      "src/ast.c"
+    ],
+    "directory": "/Users/chris/dev/luna/software/luna",
+    "file": "/Users/chris/dev/luna/software/luna/src/ast.c",
+    "output": "/Users/chris/dev/luna/software/luna/lunac"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wall",
+      "-Wextra",
+      "-Wpedantic",
+      "-Werror",
+      "-std=c99",
+      "-Iinclude",
+      "-o",
+      "lunac",
+      "src/arena_allocator.c"
+    ],
+    "directory": "/Users/chris/dev/luna/software/luna",
+    "file": "/Users/chris/dev/luna/software/luna/src/arena_allocator.c",
+    "output": "/Users/chris/dev/luna/software/luna/lunac"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wall",
+      "-Wextra",
+      "-Wpedantic",
+      "-Werror",
+      "-std=c99",
+      "-Iinclude",
+      "-o",
+      "lunac",
+      "src/interpreter.c"
+    ],
+    "directory": "/Users/chris/dev/luna/software/luna",
+    "file": "/Users/chris/dev/luna/software/luna/src/interpreter.c",
+    "output": "/Users/chris/dev/luna/software/luna/lunac"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wall",
+      "-Wextra",
+      "-Wpedantic",
+      "-Werror",
+      "-std=c99",
+      "-Iinclude",
+      "-o",
+      "lunac",
+      "src/annotator.c"
+    ],
+    "directory": "/Users/chris/dev/luna/software/luna",
+    "file": "/Users/chris/dev/luna/software/luna/src/annotator.c",
+    "output": "/Users/chris/dev/luna/software/luna/lunac"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wall",
+      "-Wextra",
+      "-Wpedantic",
+      "-Werror",
+      "-std=c99",
+      "-Iinclude",
+      "-o",
+      "lunac",
+      "src/instruction_builder.c"
+    ],
+    "directory": "/Users/chris/dev/luna/software/luna",
+    "file": "/Users/chris/dev/luna/software/luna/src/instruction_builder.c",
+    "output": "/Users/chris/dev/luna/software/luna/lunac"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wall",
+      "-Wextra",
+      "-Wpedantic",
+      "-Werror",
+      "-std=c99",
+      "-Iinclude",
+      "-o",
+      "lunac",
+      "src/code_gen.c"
+    ],
+    "directory": "/Users/chris/dev/luna/software/luna",
+    "file": "/Users/chris/dev/luna/software/luna/src/code_gen.c",
+    "output": "/Users/chris/dev/luna/software/luna/lunac"
+  }
+]
