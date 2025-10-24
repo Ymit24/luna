@@ -19,6 +19,7 @@ struct Annotator annotator_make(struct ArenaAllocator *allocator) {
   struct Annotator annotator = (struct Annotator){
       .allocator = allocator,
       .data_type_table = (struct DataTypeTable){.head = NULL},
+      .current_function = NULL,
       .root_symbol_table = (struct SymbolTable){.head = NULL,
                                                 .is_function = false,
                                                 .parent = NULL,
@@ -100,7 +101,7 @@ void print_symbol_table(struct LunaString name,
         break;
       case DTK_VOID:
         printf("\t%s: void\n", symbol_table_entry->symbol.data);
-        
+
         break;
       }
     } else {
@@ -231,13 +232,17 @@ void annotator_visit_expr(struct Annotator *annotator,
   case EXPR_FN_DEF: {
     puts("Visiting function expression");
     struct SymbolTable *old_current = annotator->current_symbol_table;
+    struct FunctionType *old_function = annotator->current_function;
     expr->node.fn_def->symbol_table = (struct SymbolTable){
         .head = NULL,
         .is_function = true,
         .parent = find_parent_table(annotator->current_symbol_table),
     };
     annotator->current_symbol_table = &expr->node.fn_def->symbol_table;
+    annotator->current_function =
+        &expr->node.fn_def->function_type->value.function;
     annotator_visit_function_statements(annotator, expr->node.fn_def->body);
+    annotator->current_function = old_function;
     annotator->current_symbol_table = old_current;
     puts("Done visiting function expression");
     print_symbol_table(string_make("anon function"),
@@ -325,6 +330,13 @@ void annotator_visit_function_statement(
         infer_type(annotator, statement->node.assign->expression)));
 
     annotator_visit_expr(annotator, statement->node.assign->expression);
+    break;
+  }
+  case FN_STMT_RETURN: {
+    assert(data_types_equal(
+        annotator->current_function->return_type,
+        infer_type(annotator, statement->node.ret->expression)));
+
     break;
   }
   default:

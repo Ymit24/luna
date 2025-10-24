@@ -17,6 +17,7 @@ enum FunctionStatementType {
   FN_STMT_LET,
   FN_STMT_CONST,
   FN_STMT_ASSIGN,
+  FN_STMT_RETURN,
 };
 
 struct DeclarationStatementNode {
@@ -40,11 +41,16 @@ struct ModuleStatementNode {
   struct ModuleStatementNode *next;
 };
 
+struct ReturnStatementNode {
+  struct ExpressionNode *expression;
+};
+
 struct FunctionStatementNode {
   enum FunctionStatementType type;
   union {
     struct DeclarationStatementNode *decl;
     struct AssignStatementNode *assign;
+    struct ReturnStatementNode *ret;
   } node;
   struct FunctionStatementNode *next;
 };

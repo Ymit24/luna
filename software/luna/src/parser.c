@@ -332,6 +332,14 @@ struct DeclarationStatementNode *parse_decl_statement(struct Parser *parser,
                                                         .data_type = data_type},
                      sizeof(struct DeclarationStatementNode));
 }
+
+struct ReturnStatementNode *parse_ret_statement(struct Parser *parser) {
+  return ast_promote(
+      parser->allocator,
+      &(struct ReturnStatementNode){.expression = parse_expression(parser, 0)},
+      sizeof(struct DeclarationStatementNode));
+}
+
 struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
   switch (parser_peek(parser).type) {
   case T_LET: {
@@ -352,6 +360,21 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
                            .node.decl = decl,
                            .next = NULL,
                        },
+                       sizeof(struct FunctionStatementNode));
+  }
+  case T_RETURN: {
+    puts("found return.");
+    parser->position++;
+    struct ReturnStatementNode *ret = parse_ret_statement(parser);
+
+    assert(parser_peek(parser).type == T_SEMICOLON);
+    parser->position++;
+
+    puts("parsed ret");
+    return ast_promote(parser->allocator,
+                       &(struct FunctionStatementNode){.type = FN_STMT_RETURN,
+                                                       .node.ret = ret,
+                                                       .next = NULL},
                        sizeof(struct FunctionStatementNode));
   }
   default: {

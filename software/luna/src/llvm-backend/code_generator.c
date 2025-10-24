@@ -157,6 +157,12 @@ void cg_visit_module_statement(struct CodeGenerator *code_generator,
   }
 }
 
+void cg_visit_return(struct CodeGenerator *code_generator,
+                     struct ReturnStatementNode *ret) {
+  LLVMBuildRet(code_generator->builder,
+               cg_visit_expr(code_generator, ret->expression));
+}
+
 void cg_visit_function_statement(struct CodeGenerator *code_generator,
                                  struct FunctionStatementNode *stmt) {
   switch (stmt->type) {
@@ -175,6 +181,9 @@ void cg_visit_function_statement(struct CodeGenerator *code_generator,
            EXPR_BINARY);
     cg_visit_expr(code_generator, stmt->node.assign->expression);
     // TODO: Do we need something here?
+    break;
+  case FN_STMT_RETURN:
+    cg_visit_return(code_generator, stmt->node.ret);
     break;
   }
 }

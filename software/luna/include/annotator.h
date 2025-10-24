@@ -47,6 +47,7 @@ struct Annotator {
   struct SymbolTable *current_symbol_table;
   struct DataTypeTable data_type_table;
   struct ArenaAllocator *allocator;
+  struct FunctionType* current_function;
 };
 
 void annotator_initialize_primitives(struct Annotator *annotator);

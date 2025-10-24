@@ -41,8 +41,9 @@ entry:
   store ptr @3, ptr %deepinnerother, align 8
 }
 
-define void @3() {
+define i32 @3() {
 entry:
   %foo = alloca i32, align 4
   store i32 2, ptr %foo, align 4
+  ret i32 10
 }
