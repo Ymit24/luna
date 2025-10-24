@@ -10,61 +10,74 @@ _main:                                  ; @main
 	.cfi_offset w30, -8
 	.cfi_offset w29, -16
 Lloh0:
-	adrp	x8, ___unnamed_1@PAGE
+	adrp	x9, _puts@GOTPAGE
 Lloh1:
-	adrp	x9, ___unnamed_2@PAGE
+	adrp	x8, ___unnamed_1@PAGE
 Lloh2:
-	add	x9, x9, ___unnamed_2@PAGEOFF
-	adrp	x10, ___unnamed_3@PAGE
-	str	x9, [x8, ___unnamed_1@PAGEOFF]
+	adrp	x10, ___unnamed_2@PAGE
 Lloh3:
-	adrp	x8, ___unnamed_4@PAGE
+	ldr	x9, [x9, _puts@GOTPAGEOFF]
 Lloh4:
-	add	x8, x8, ___unnamed_4@PAGEOFF
-	str	x8, [x10, ___unnamed_3@PAGEOFF]
+	adrp	x11, ___unnamed_3@PAGE
+Lloh5:
+	add	x11, x11, ___unnamed_3@PAGEOFF
+	str	x11, [x10, ___unnamed_2@PAGEOFF]
+Lloh6:
+	adrp	x10, ___unnamed_4@PAGE
+	str	x9, [x8, ___unnamed_1@PAGEOFF]
+Lloh7:
+	adrp	x8, ___unnamed_5@PAGE
+Lloh8:
+	add	x8, x8, ___unnamed_5@PAGEOFF
+	str	x8, [x10, ___unnamed_4@PAGEOFF]
 	blr	x8
-	mov	w0, wzr
 	ldp	x29, x30, [sp], #16             ; 16-byte Folded Reload
 	ret
-	.loh AdrpAdd	Lloh3, Lloh4
-	.loh AdrpAdd	Lloh1, Lloh2
-	.loh AdrpAdrp	Lloh0, Lloh3
+	.loh AdrpAdd	Lloh7, Lloh8
+	.loh AdrpAdd	Lloh4, Lloh5
+	.loh AdrpAdrp	Lloh2, Lloh6
+	.loh AdrpAdrp	Lloh1, Lloh7
+	.loh AdrpLdrGot	Lloh0, Lloh3
 	.cfi_endproc
                                         ; -- End function
-	.globl	___unnamed_2                    ; -- Begin function 
+	.globl	___unnamed_3                    ; -- Begin function 
 	.p2align	2
-___unnamed_2:                           ; @2
+___unnamed_3:                           ; @3
 	.cfi_startproc
 ; %bb.0:                                ; %entry
 	sub	sp, sp, #16
 	.cfi_def_cfa_offset 16
 	mov	w8, #10                         ; =0xa
+	mov	w0, #10                         ; =0xa
 	str	w8, [sp, #12]
 	add	sp, sp, #16
 	ret
 	.cfi_endproc
                                         ; -- End function
-	.globl	___unnamed_4                    ; -- Begin function 
+	.globl	___unnamed_5                    ; -- Begin function 
 	.p2align	2
-___unnamed_4:                           ; @3
+___unnamed_5:                           ; @4
 	.cfi_startproc
 ; %bb.0:                                ; %entry
 	stp	x29, x30, [sp, #-16]!           ; 16-byte Folded Spill
 	.cfi_def_cfa_offset 16
 	.cfi_offset w30, -8
 	.cfi_offset w29, -16
-Lloh5:
-	adrp	x8, ___unnamed_1@PAGE
-Lloh6:
-	ldr	x8, [x8, ___unnamed_1@PAGEOFF]
+Lloh9:
+	adrp	x8, ___unnamed_2@PAGE
+Lloh10:
+	ldr	x8, [x8, ___unnamed_2@PAGEOFF]
 	blr	x8
+	mov	w0, #1                          ; =0x1
 	ldp	x29, x30, [sp], #16             ; 16-byte Folded Reload
 	ret
-	.loh AdrpLdr	Lloh5, Lloh6
+	.loh AdrpLdr	Lloh9, Lloh10
 	.cfi_endproc
                                         ; -- End function
 	.globl	___unnamed_1                    ; @0
 .zerofill __DATA,__common,___unnamed_1,8,3
-	.globl	___unnamed_3                    ; @1
-.zerofill __DATA,__common,___unnamed_3,8,3
+	.globl	___unnamed_2                    ; @1
+.zerofill __DATA,__common,___unnamed_2,8,3
+	.globl	___unnamed_4                    ; @2
+.zerofill __DATA,__common,___unnamed_4,8,3
 .subsections_via_symbols

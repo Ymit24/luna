@@ -201,7 +201,11 @@ void cg_visit_module_decl(struct CodeGenerator *code_generator,
   }
 
   LLVMValueRef variable = LLVMAddGlobal(code_generator->module, type, "");
-  LLVMSetInitializer(variable, LLVMConstPointerNull(type));
+  if (decl->data_type->kind == DTK_FUNCTION) {
+    LLVMSetInitializer(variable, LLVMConstPointerNull(type));
+  } else {
+    LLVMSetInitializer(variable, LLVMConstInt(LLVMInt32Type(), 0, 0));
+  }
 
   symbol->llvm_value = variable;
 
@@ -311,17 +315,19 @@ LLVMValueRef cg_visit_module_statements(struct CodeGenerator *code_generator,
     assert(main_symbol != NULL);
     assert(main_symbol->llvm_value != NULL);
 
-    LLVMTypeRef func_type = LLVMFunctionType(LLVMVoidType(), NULL, 0, 0);
+    LLVMTypeRef func_type = LLVMFunctionType(LLVMInt32Type(), NULL, 0, 0);
     LLVMTypeRef ptr_type = LLVMPointerType(func_type, 0);
 
     LLVMValueRef fn_pointer = LLVMBuildLoad2(code_generator->builder, ptr_type,
                                              main_symbol->llvm_value, "");
 
     if (main_symbol->type->value.function.return_type->kind == DTK_VOID) {
+      puts("\n\n------\nVOID\n");
       LLVMBuildCall2(code_generator->builder, func_type, fn_pointer, 0, 0, "");
       LLVMBuildRet(code_generator->builder,
                    LLVMConstInt(LLVMInt32Type(), 0, 0));
     } else {
+      puts("\n\n------\nNON VOID\n");
       LLVMValueRef main_ret = LLVMBuildCall2(code_generator->builder, func_type,
                                              fn_pointer, 0, 0, "");
       LLVMBuildRet(code_generator->builder, main_ret);

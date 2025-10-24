@@ -1,8 +1,9 @@
-const func = fn() {
+const puts = fn@extern["puts"]();
+const func = fn(): int {
     const a = 10;
-    return;
+    return a;
 };
-const main = fn() {
+const main = fn():int {
     func();
-    return;
+    return 1;
 };
