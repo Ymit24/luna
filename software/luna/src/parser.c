@@ -77,22 +77,23 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
     assert(parser_peek(parser).type == T_LPAREN);
     parser->position++;
     assert(parser_peek(parser).type == T_RPAREN);
-    printf("next token is: %d\n", parser_peek(parser).type);
+    parser->position++;
+    printf("a. next token is: %d\n", parser_peek(parser).type);
     if (parser_peek(parser).type == T_COLON) {
       puts("Found colon in func");
       parser->position++;
       return_type = parse_data_type(parser);
     } else {
+      return_type = make_void_data_type(parser->allocator);
       puts("Found NO colon in func");
     }
-    printf("next token is: %d\n", parser_peek(parser).type);
-    parser->position++;
     printf("next token is: %d\n", parser_peek(parser).type);
     assert(parser_peek(parser).type == T_LBRACE);
     parser->position++;
     struct FunctionStatementNode *result = parse_function_statements(parser);
     assert(parser_peek(parser).type == T_RBRACE);
     parser->position++; // consume the close brace.
+    printf("return type IS NULL?: %d\n", return_type == NULL);
     return ast_promote(parser->allocator,
                        &(struct ExpressionNode){
                            .type = EXPR_FN_DEF,
@@ -252,6 +253,16 @@ struct DataType *parse_data_type(struct Parser *parser) {
                              .next = NULL,
                          },
                          sizeof(struct DataType));
+    } else if (strncmp("void", token.value.symbol.data, 4) == 0) {
+      printf("\n\n\tVOID\n");
+      parser->position++;
+
+      return ast_promote(parser->allocator,
+                         &(struct DataType){
+                             .kind = DTK_VOID,
+                             .next = NULL,
+                         },
+                         sizeof(struct DataType));
     } else {
       printf("Unknown primitive data type: %s\n", token.value.symbol.data);
       assert(0);
@@ -259,7 +270,26 @@ struct DataType *parse_data_type(struct Parser *parser) {
     break;
   }
   case T_FN: {
-    break;
+    parser->position++;
+    assert(parser_peek(parser).type == T_LPAREN);
+    parser->position++;
+    assert(parser_peek(parser).type == T_RPAREN);
+    parser->position++;
+    struct DataType *return_type = NULL;
+    if (parser_peek(parser).type == T_COLON) {
+      puts("function had return type");
+      parser->position++;
+      return_type = parse_data_type(parser);
+      printf("got return type: %d\n", return_type->kind);
+    } else {
+      puts("function had NO return type");
+      return_type = make_void_data_type(parser->allocator);
+    }
+    puts("parsed function type here");
+    struct DataType *type =
+        make_function_data_type(parser->allocator, return_type);
+    printf("return type: is null: %d\n", type == NULL);
+    return type;
   }
   default:
     assert(0);

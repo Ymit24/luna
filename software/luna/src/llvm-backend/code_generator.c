@@ -51,6 +51,10 @@ LLVMTypeRef cg_get_type(struct DataType *data_type) {
     return function_type;
     // return LLVMPointerType(function_type, 0);
   }
+  case DTK_VOID: {
+    puts("cg_get_type: void");
+    return LLVMVoidType();
+  }
   default:
     puts("Unknown data type kind.");
     assert(0);
@@ -128,7 +132,7 @@ void cg_visit_decl(struct CodeGenerator *code_generator,
 
   LLVMTypeRef type = cg_get_type(decl->data_type);
   if (decl->data_type->kind == DTK_FUNCTION) {
-    type = LLVMPointerType(type,0);
+    type = LLVMPointerType(type, 0);
   }
 
   LLVMValueRef variable =

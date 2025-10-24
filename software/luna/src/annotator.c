@@ -27,6 +27,11 @@ struct Annotator annotator_make(struct ArenaAllocator *allocator) {
   return annotator;
 }
 
+struct DataType *make_void_data_type(struct ArenaAllocator *allocator) {
+  return ast_promote(allocator, &(struct DataType){.kind = DTK_VOID},
+                     sizeof(struct DataType));
+}
+
 struct DataType *make_primitive_data_type(struct Annotator *annotator,
                                           enum PrimitiveType type) {
   return ast_promote(
@@ -93,6 +98,10 @@ void print_symbol_table(struct LunaString name,
       case DTK_FUNCTION:
         printf("\t%s: fn\n", symbol_table_entry->symbol.data);
         break;
+      case DTK_VOID:
+        printf("\t%s: void\n", symbol_table_entry->symbol.data);
+        
+        break;
       }
     } else {
       printf("\t%s: unknown\n", symbol_table_entry->symbol.data);
@@ -117,6 +126,9 @@ void print_data_types(struct Annotator *annotator) {
     case DTK_FUNCTION:
       printf("\tfn\n");
       break;
+    case DTK_VOID:
+      printf("\tvoid\n");
+      break;
     }
     data_type = data_type->next;
   }
@@ -132,6 +144,7 @@ struct SymbolTableEntry *lookup_symbol_in(struct LunaString symbol,
     entry = entry->next;
   }
 
+  puts("done");
   return entry;
 }
 
@@ -161,6 +174,10 @@ struct DataType *infer_type(struct Annotator *annotator,
     return left;
   }
   case EXPR_FN_DEF:
+    printf("get expr fn def. is null: %d. ret is null: %d\n",
+           expr->node.fn_def->function_type == NULL,
+           expr->node.fn_def->function_type->value.function.return_type ==
+               NULL);
     return expr->node.fn_def->function_type;
   }
 
@@ -234,12 +251,24 @@ void annotator_visit_decl(struct Annotator *annotator,
                           struct DeclarationStatementNode *decl) {
   assert(lookup_symbol(annotator, decl->symbol) == NULL);
   struct DataType *type = infer_type(annotator, decl->expression);
+  printf("got type infer done for %s. has type: %d.. type inferd: %d\n",
+         decl->symbol.data, decl->has_type, type == NULL);
   if (decl->has_type) {
+    puts("has type, about to check equality");
+    printf("is TYPE null?: %d : %d\n", type != NULL, decl->data_type != NULL);
+    assert(type != NULL);
+
+    printf("1. type: %p :: %d\n", (void *)type, type == NULL);
     assert(data_types_equal(type, decl->data_type));
+    puts("types matched.");
+    printf("type: %d\n", type->kind);
   } else {
+    puts("no type");
     decl->data_type = type;
     decl->has_type = true;
   }
+  puts("insert decl");
+  printf("\n-----\nsymb: %s\n++++\n", decl->symbol.data);
   insert_symbol_entry(annotator, (struct SymbolTableEntry){
                                      .symbol = decl->symbol,
                                      .type = type,
@@ -320,6 +349,10 @@ void annotator_visit_module_statements(struct Annotator *annotator,
 }
 
 bool data_types_equal(struct DataType *left, struct DataType *right) {
+  printf("2. left: %p :: %d\n", (void *)left, left == NULL);
+  assert(left != NULL);
+  puts("pass");
+  assert(right != NULL);
   if (left->kind != right->kind) {
     return false;
   }
@@ -331,8 +364,13 @@ bool data_types_equal(struct DataType *left, struct DataType *right) {
     }
     return true;
   case DTK_FUNCTION:
+    puts("recurse case");
+    printf("left: %d, %d\n", left->value.function.return_type == NULL,
+           right->value.function.return_type == NULL);
     return data_types_equal(left->value.function.return_type,
                             right->value.function.return_type);
+  case DTK_VOID:
+    return true;
   };
   return false;
 }

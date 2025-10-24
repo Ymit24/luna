@@ -2,10 +2,16 @@ let a = 5 - (2 + 1);
 let x = 3;
 let g: int = 5;
 let other = 100;
-let main = fn() {
+let main = fn(): void {
   const thing = 10;
-  const inner = fn() {
+    const inner: fn(): void = fn(): void {
     const otheragain = 20;
+    const deepinner = fn() {
+        const foo = 1;
+    };
+    const deepinnerother = fn() {
+        let foo = 2;
+    };
   };
   const next = 9;
 };

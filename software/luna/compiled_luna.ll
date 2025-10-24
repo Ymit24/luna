@@ -29,4 +29,20 @@ define void @1() {
 entry:
   %otheragain = alloca i32, align 4
   store i32 20, ptr %otheragain, align 4
+  %deepinner = alloca ptr, align 8
+  store ptr @2, ptr %deepinner, align 8
+  %deepinnerother = alloca ptr, align 8
+}
+
+define void @2() {
+entry:
+  %foo = alloca i32, align 4
+  store i32 1, ptr %foo, align 4
+  store ptr @3, ptr %deepinnerother, align 8
+}
+
+define void @3() {
+entry:
+  %foo = alloca i32, align 4
+  store i32 2, ptr %foo, align 4
 }

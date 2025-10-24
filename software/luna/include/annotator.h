@@ -7,7 +7,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-enum DataTypeKind { DTK_PRIMITIVE, DTK_FUNCTION };
+enum DataTypeKind { DTK_PRIMITIVE, DTK_FUNCTION, DTK_VOID };
 enum PrimitiveType { P_INT, P_BOOL };
 
 struct FunctionType {
@@ -61,6 +61,8 @@ struct SymbolTableEntry *lookup_symbol_in(struct LunaString symbol,
                                           struct SymbolTable *symbol_table);
 struct SymbolTableEntry *lookup_symbol(struct Annotator *annotator,
                                        struct LunaString symbol);
+
+struct DataType *make_void_data_type(struct ArenaAllocator *allocator);
 struct DataType *make_function_data_type(struct ArenaAllocator *allocator,
                                          struct DataType *return_type);
 #endif
