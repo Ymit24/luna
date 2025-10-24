@@ -36,8 +36,6 @@ LLVMTypeRef cg_get_type(struct DataType *data_type) {
       return LLVMInt32Type();
     case P_BOOL:
       return LLVMInt1Type();
-    case P_STRING:
-      return LLVMPointerType(LLVMInt8Type(), 0);
     default:
       puts("Unknown primitive data type.");
       assert(0);
@@ -59,6 +57,10 @@ LLVMTypeRef cg_get_type(struct DataType *data_type) {
   case DTK_VOID: {
     puts("cg_get_type: void");
     return LLVMVoidType();
+  }
+  case DTK_POINTER: {
+    LLVMTypeRef inner = cg_get_type(data_type->value.pointer_inner);
+    return LLVMPointerType(inner, 0);
   }
   default:
     puts("Unknown data type kind.");

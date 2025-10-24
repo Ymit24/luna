@@ -41,6 +41,14 @@ struct DataType *make_primitive_data_type(struct Annotator *annotator,
       sizeof(struct DataType));
 }
 
+struct DataType *make_pointer_data_type(struct Annotator *annotator,
+                                        struct DataType *inner) {
+  return ast_promote(
+      annotator->allocator,
+      &(struct DataType){.kind = DTK_POINTER, .value.pointer_inner = inner},
+      sizeof(struct DataType));
+}
+
 struct DataType *make_function_data_type(struct ArenaAllocator *allocator,
                                          struct DataType *return_type,
                                          struct LunaString *extern_name) {
@@ -109,7 +117,9 @@ void print_symbol_table(struct LunaString name,
         break;
       case DTK_VOID:
         printf("\t%s: void\n", symbol_table_entry->symbol.data);
-
+        break;
+      case DTK_POINTER:
+        printf("\t%s: ptr\n", symbol_table_entry->symbol.data);
         break;
       }
     } else {
@@ -137,6 +147,9 @@ void print_data_types(struct Annotator *annotator) {
       break;
     case DTK_VOID:
       printf("\tvoid\n");
+      break;
+    case DTK_POINTER:
+      printf("\tptr\n");
       break;
     }
     data_type = data_type->next;
@@ -195,7 +208,8 @@ struct DataType *infer_type(struct Annotator *annotator,
   }
   case EXPR_STRING_LITERAL: {
     puts("infered string");
-    return make_primitive_data_type(annotator, P_STRING);
+    return make_pointer_data_type(annotator,
+                                  make_primitive_data_type(annotator, P_I8));
   }
   case EXPR_BINARY: {
     puts("Infering on binary..");
@@ -430,9 +444,6 @@ bool data_types_equal(struct DataType *left, struct DataType *right) {
 
   switch (left->kind) {
   case DTK_PRIMITIVE:
-    // TODO: check
-    // if (left->value.primitive == P_I32) {
-    // }
     if ((left->value.primitive == P_I8 || left->value.primitive == P_I32) &&
         (right->value.primitive == P_I8 || right->value.primitive == P_I32)) {
       if (left->value.primitive == P_I8) {
@@ -456,6 +467,9 @@ bool data_types_equal(struct DataType *left, struct DataType *right) {
       return false;
     }
     return true;
+  case DTK_POINTER:
+    return data_types_equal(left->value.pointer_inner,
+                            right->value.pointer_inner);
   case DTK_FUNCTION:
     puts("recurse case");
     printf("left: %d, %d\n", left->value.function.return_type == NULL,

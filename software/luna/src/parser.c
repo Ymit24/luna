@@ -299,6 +299,21 @@ struct FunctionStatementNode *parse_function_statements(struct Parser *parser) {
 struct DataType *parse_data_type(struct Parser *parser) {
   struct Token token = parser_peek(parser);
   switch (token.type) {
+  case T_STAR: {
+    puts("\n\t\tFOUND POINTER TYPE!\n");
+    parser->position++;
+    struct DataType *inner = parse_data_type(parser);
+
+    assert(inner != NULL);
+
+    return ast_promote(parser->allocator,
+                       &(struct DataType){
+                           .kind = DTK_POINTER,
+                           .value.pointer_inner = inner,
+                           .next = NULL,
+                       },
+                       sizeof(struct DataType));
+  }
   case T_SYMBOL: {
     if (strncmp("i8", token.value.symbol.data, 2) == 0) {
       parser->position++;

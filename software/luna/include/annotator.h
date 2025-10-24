@@ -8,9 +8,9 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-enum DataTypeKind { DTK_PRIMITIVE, DTK_FUNCTION, DTK_VOID };
+enum DataTypeKind { DTK_PRIMITIVE, DTK_FUNCTION, DTK_VOID, DTK_POINTER };
 // TODO: strings arent primitives, i/u8 is prim
-enum PrimitiveType { P_I8, P_I32, P_BOOL, P_STRING };
+enum PrimitiveType { P_I8, P_I32, P_BOOL };
 
 struct FunctionType {
   struct DataType *return_type;
@@ -22,6 +22,7 @@ struct DataType {
   union {
     struct FunctionType function;
     enum PrimitiveType primitive;
+    struct DataType *pointer_inner;
   } value;
   struct DataType *next;
 };
