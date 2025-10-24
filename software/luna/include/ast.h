@@ -98,7 +98,6 @@ struct StringLiteralNode {
 
 struct FunctionDefinitionExpressionNode {
   struct FunctionStatementNode *body;
-  struct FunctionArgumentNode *arguments;
   struct DataType *function_type;
   struct SymbolTable symbol_table;
 };

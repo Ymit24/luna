@@ -11,6 +11,19 @@
 void cg_visit_function_statements(struct CodeGenerator *code_generator,
                                   struct FunctionStatementNode *stmt);
 
+size_t count_function_arguments(struct FunctionArgumentNode *argument) {
+  if (argument == NULL) {
+    return 0;
+  }
+  size_t count = 0;
+  struct FunctionArgumentNode *current = argument;
+  while (current != NULL) {
+    count++;
+    current = current->next;
+  }
+  return count;
+}
+
 struct CodeGenerator cg_make(struct ArenaAllocator *allocator,
                              struct Annotator *annotator) {
   LLVMModuleRef module = LLVMModuleCreateWithName("m");
@@ -26,7 +39,8 @@ struct CodeGenerator cg_make(struct ArenaAllocator *allocator,
   };
 }
 
-LLVMTypeRef cg_get_type(struct DataType *data_type) {
+LLVMTypeRef cg_get_type(struct CodeGenerator *code_generator,
+                        struct DataType *data_type) {
   switch (data_type->kind) {
   case DTK_PRIMITIVE:
     switch (data_type->value.primitive) {
@@ -47,19 +61,44 @@ LLVMTypeRef cg_get_type(struct DataType *data_type) {
     if (data_type->value.function.return_type == NULL) {
       return_type = LLVMVoidType();
     } else {
-      return_type = cg_get_type(data_type->value.function.return_type);
+      return_type =
+          cg_get_type(code_generator, data_type->value.function.return_type);
     }
 
-    LLVMTypeRef function_type = LLVMFunctionType(return_type, NULL, 0, 0);
+    size_t argument_count =
+        count_function_arguments(data_type->value.function.arguments);
+
+    LLVMTypeRef function_type = NULL;
+    if (argument_count != 0) {
+      assert(data_type->value.function.arguments != NULL);
+
+      LLVMTypeRef *argument_types = (LLVMTypeRef *)arena_alloc(
+          code_generator->allocator, argument_count * sizeof(LLVMTypeRef));
+
+      struct FunctionArgumentNode *current =
+          data_type->value.function.arguments;
+
+      size_t index = 0;
+      while (current != NULL) {
+        LLVMTypeRef type = cg_get_type(code_generator, current->data_type);
+        argument_types[index++] = type;
+        current = current->next;
+      }
+
+      function_type =
+          LLVMFunctionType(return_type, argument_types, argument_count, 0);
+    } else {
+      function_type = LLVMFunctionType(return_type, NULL, 0, 0);
+    }
     return function_type;
-    // return LLVMPointerType(function_type, 0);
   }
   case DTK_VOID: {
     puts("cg_get_type: void");
     return LLVMVoidType();
   }
   case DTK_POINTER: {
-    LLVMTypeRef inner = cg_get_type(data_type->value.pointer_inner);
+    LLVMTypeRef inner =
+        cg_get_type(code_generator, data_type->value.pointer_inner);
     return LLVMPointerType(inner, 0);
   }
   default:
@@ -79,7 +118,11 @@ LLVMValueRef cg_visit_function_call(struct CodeGenerator *code_generator,
   printf("type kind: %d\n", symbol->type->kind);
   assert(symbol->llvm_value != NULL);
 
-  LLVMTypeRef type = cg_get_type(symbol->type);
+  if (expr->arguments != NULL) {
+    puts("cg: function call has arguments.");
+  }
+
+  LLVMTypeRef type = cg_get_type(code_generator, symbol->type);
   LLVMTypeRef ptr_type = LLVMPointerType(type, 0);
 
   LLVMValueRef fn_pointer =
@@ -120,7 +163,8 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
     struct SymbolTableEntry *symbol = lookup_symbol_in(
         expr->node.symbol->value, code_generator->current_symbol_table);
     assert(symbol != NULL);
-    return LLVMBuildLoad2(code_generator->builder, cg_get_type(symbol->type),
+    return LLVMBuildLoad2(code_generator->builder,
+                          cg_get_type(code_generator, symbol->type),
                           symbol->llvm_value, "");
   }
   case EXPR_STRING_LITERAL: {
@@ -142,10 +186,11 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
       function = LLVMAddFunction(
           code_generator->module,
           expr->node.fn_def->function_type->value.function.extern_name->data,
-          cg_get_type(expr->node.fn_def->function_type));
+          cg_get_type(code_generator, expr->node.fn_def->function_type));
     } else {
-      function = LLVMAddFunction(code_generator->module, "",
-                                 cg_get_type(expr->node.fn_def->function_type));
+      function = LLVMAddFunction(
+          code_generator->module, "",
+          cg_get_type(code_generator, expr->node.fn_def->function_type));
       LLVMBasicBlockRef block = LLVMAppendBasicBlock(function, "entry");
       LLVMPositionBuilderAtEnd(code_generator->builder, block);
 
@@ -176,7 +221,7 @@ void cg_visit_decl(struct CodeGenerator *code_generator,
   assert(symbol != NULL);
   printf("Code genning decl %s.\n", symbol->symbol.data);
 
-  LLVMTypeRef type = cg_get_type(decl->data_type);
+  LLVMTypeRef type = cg_get_type(code_generator, decl->data_type);
   if (decl->data_type->kind == DTK_FUNCTION) {
     type = LLVMPointerType(type, 0);
   }
@@ -199,7 +244,7 @@ void cg_visit_module_decl(struct CodeGenerator *code_generator,
   assert(symbol != NULL);
   printf("Code genning MODULE decl %s.\n", symbol->symbol.data);
 
-  LLVMTypeRef type = cg_get_type(decl->data_type);
+  LLVMTypeRef type = cg_get_type(code_generator, decl->data_type);
   if (decl->data_type->kind == DTK_FUNCTION) {
     type = LLVMPointerType(type, 0);
   }

@@ -16,7 +16,7 @@ entry:
   ret i32 %1
 }
 
-declare void @puts()
+declare void @puts(ptr)
 
 define ptr @4() {
 entry:

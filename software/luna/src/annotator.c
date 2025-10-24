@@ -50,6 +50,7 @@ struct DataType *make_pointer_data_type(struct Annotator *annotator,
 }
 
 struct DataType *make_function_data_type(struct ArenaAllocator *allocator,
+                                         struct FunctionArgumentNode *arguments,
                                          struct DataType *return_type,
                                          struct LunaString *extern_name) {
   return ast_promote(allocator,
@@ -57,6 +58,7 @@ struct DataType *make_function_data_type(struct ArenaAllocator *allocator,
                          .kind = DTK_FUNCTION,
                          .value.function.return_type = return_type,
                          .value.function.extern_name = extern_name,
+                         .value.function.arguments = arguments,
                          .next = NULL,
                      },
                      sizeof(struct DataType));

@@ -14,6 +14,7 @@ enum PrimitiveType { P_I8, P_I32, P_BOOL };
 
 struct FunctionType {
   struct DataType *return_type;
+  struct FunctionArgumentNode *arguments;
   struct LunaString *extern_name;
 };
 
@@ -70,6 +71,7 @@ struct SymbolTableEntry *lookup_symbol(struct Annotator *annotator,
 
 struct DataType *make_void_data_type(struct ArenaAllocator *allocator);
 struct DataType *make_function_data_type(struct ArenaAllocator *allocator,
+                                         struct FunctionArgumentNode *arguments,
                                          struct DataType *return_type,
                                          struct LunaString *extern_name);
 #endif

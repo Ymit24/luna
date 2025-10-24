@@ -185,15 +185,15 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
           parser->allocator,
           &(struct ExpressionNode){
               .type = EXPR_FN_DEF,
-              .node.fn_def = ast_promote(
-                  parser->allocator,
-                  &(struct FunctionDefinitionExpressionNode){
-                      .body = NULL,
-                      .arguments = arguments,
-                      .function_type = make_function_data_type(
-                          parser->allocator, return_type, extern_name),
-                  },
-                  sizeof(struct FunctionDefinitionExpressionNode)),
+              .node.fn_def =
+                  ast_promote(parser->allocator,
+                              &(struct FunctionDefinitionExpressionNode){
+                                  .body = NULL,
+                                  .function_type = make_function_data_type(
+                                      parser->allocator, arguments, return_type,
+                                      extern_name),
+                              },
+                              sizeof(struct FunctionDefinitionExpressionNode)),
           },
           sizeof(struct ExpressionNode));
     }
@@ -203,20 +203,20 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
     assert(parser_peek(parser).type == T_RBRACE);
     parser->position++; // consume the close brace.
     printf("return type IS NULL?: %d\n", return_type == NULL);
-    return ast_promote(parser->allocator,
-                       &(struct ExpressionNode){
-                           .type = EXPR_FN_DEF,
-                           .node.fn_def = ast_promote(
-                               parser->allocator,
-                               &(struct FunctionDefinitionExpressionNode){
-                                   .body = result,
-                                   .arguments = arguments,
-                                   .function_type = make_function_data_type(
-                                       parser->allocator, return_type, NULL),
-                               },
-                               sizeof(struct FunctionDefinitionExpressionNode)),
-                       },
-                       sizeof(struct ExpressionNode));
+    return ast_promote(
+        parser->allocator,
+        &(struct ExpressionNode){
+            .type = EXPR_FN_DEF,
+            .node.fn_def = ast_promote(
+                parser->allocator,
+                &(struct FunctionDefinitionExpressionNode){
+                    .body = result,
+                    .function_type = make_function_data_type(
+                        parser->allocator, arguments, return_type, NULL),
+                },
+                sizeof(struct FunctionDefinitionExpressionNode)),
+        },
+        sizeof(struct ExpressionNode));
   }
   default:
     printf("Found type: %d\n", token.type);
@@ -423,6 +423,7 @@ struct DataType *parse_data_type(struct Parser *parser) {
     }
     assert(parser_peek(parser).type == T_LPAREN);
     parser->position++;
+    struct FunctionArgumentNode *arguments = parse_function_arguments(parser);
     assert(parser_peek(parser).type == T_RPAREN);
     parser->position++;
     struct DataType *return_type = NULL;
@@ -437,8 +438,8 @@ struct DataType *parse_data_type(struct Parser *parser) {
     }
 
     puts("parsed function type here");
-    struct DataType *type =
-        make_function_data_type(parser->allocator, return_type, extern_name);
+    struct DataType *type = make_function_data_type(
+        parser->allocator, arguments, return_type, extern_name);
     printf("return type: is null: %d\n", type == NULL);
     return type;
   }
