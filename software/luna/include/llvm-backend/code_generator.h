@@ -11,7 +11,7 @@ struct CodeGenerator {
   struct SymbolTable *current_symbol_table;
   LLVMModuleRef module;
   LLVMBuilderRef builder;
-  LLVMBasicBlockRef current_module_block;
+  LLVMBasicBlockRef current_block;
 };
 
 struct CodeGenerator cg_make(struct ArenaAllocator *allocator,

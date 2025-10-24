@@ -24,7 +24,9 @@ int main(void) {
                                                           "let x = 3;"
                                                           "let g: int = 5;"
                                                           "let other = 100;"
-                                                          "let main = fn() {};"));
+                                                          "let main = fn() {"
+                                                          "  const thing = 10;"
+                                                          "};"));
 
   struct Token toks[1024];
   uint16_t tok_index = 0;

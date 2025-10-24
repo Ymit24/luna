@@ -91,14 +91,31 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
     return NULL;
   case EXPR_FN_DEF:
     puts("pushing function");
+
     struct SymbolTable *old_current = code_generator->current_symbol_table;
+    LLVMBasicBlockRef previous_block = code_generator->current_block;
+
+    LLVMValueRef function =
+        LLVMAddFunction(code_generator->module, "",
+                        cg_get_type(expr->node.fn_def->function_type));
+
+    LLVMBasicBlockRef block = LLVMAppendBasicBlock(function, "entry");
+    LLVMPositionBuilderAtEnd(code_generator->builder, block);
+
+    code_generator->current_block = block;
+
     code_generator->current_symbol_table = &expr->node.fn_def->symbol_table;
     cg_visit_function_statements(code_generator, expr->node.fn_def->body);
     code_generator->current_symbol_table = old_current;
+
+    if (previous_block != NULL) {
+      LLVMPositionBuilderAtEnd(code_generator->builder, previous_block);
+    }
+
     puts("popping function");
 
-    return LLVMAddFunction(code_generator->module, "",
-                           cg_get_type(expr->node.fn_def->function_type));
+    return function;
+
     // return LLVMConstInt(LLVMInt32Type(), 3, 0);
   }
 }
@@ -168,7 +185,7 @@ void cg_visit_function_statements(struct CodeGenerator *code_generator,
 
 void cg_visit_module_statements(struct CodeGenerator *code_generator,
                                 struct ModuleStatementNode *stmt) {
-  LLVMBasicBlockRef previous_block = code_generator->current_module_block;
+  LLVMBasicBlockRef previous_block = code_generator->current_block;
 
   LLVMValueRef module_initialization_function =
       LLVMAddFunction(code_generator->module, "module_function",
@@ -177,7 +194,7 @@ void cg_visit_module_statements(struct CodeGenerator *code_generator,
       LLVMAppendBasicBlock(module_initialization_function, "entry");
   LLVMPositionBuilderAtEnd(code_generator->builder, block);
 
-  code_generator->current_module_block = block;
+  code_generator->current_block = block;
 
   struct ModuleStatementNode *curr = stmt;
   while (curr != NULL) {

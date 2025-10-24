@@ -15,4 +15,8 @@ entry:
   store ptr @0, ptr %main, align 8
 }
 
-declare void @0()
+define void @0() {
+entry:
+  %thing = alloca i32, align 4
+  store i32 10, ptr %thing, align 4
+}
