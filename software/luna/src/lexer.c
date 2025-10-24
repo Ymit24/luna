@@ -1,6 +1,7 @@
 #include "lexer.h"
 #include "arena_allocator.h"
 #include "luna_string.h"
+#include "token.h"
 
 #include <assert.h>
 #include <ctype.h>
@@ -116,6 +117,9 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
     break;
   case ':':
     out_token->type = T_COLON;
+    break;
+  case ',':
+    out_token->type = T_COMMA;
     break;
   case '=':
     out_token->type = T_EQUALS;

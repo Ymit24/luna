@@ -21,6 +21,12 @@ enum FunctionStatementType {
   FN_STMT_FN_CALL, // TODO: maybe this becomes general expression
 };
 
+struct FunctionArgumentNode {
+  struct LunaString symbol;
+  struct DataType *data_type;
+  struct FunctionArgumentNode *next;
+};
+
 struct DeclarationStatementNode {
   struct LunaString symbol;
   struct DataType *data_type; // NOTE: May be unused (e.g. uninitialized)
@@ -92,12 +98,19 @@ struct StringLiteralNode {
 
 struct FunctionDefinitionExpressionNode {
   struct FunctionStatementNode *body;
+  struct FunctionArgumentNode *arguments;
   struct DataType *function_type;
   struct SymbolTable symbol_table;
 };
 
+struct FunctionCallArgumentExpressionsNode {
+  struct ExpressionNode *argument;
+  struct FunctionCallArgumentExpressionsNode *next;
+};
+
 struct FunctionCallExpressionNode {
   struct LunaString name;
+  struct FunctionCallArgumentExpressionsNode *arguments;
 };
 
 enum BinaryExpressionType {

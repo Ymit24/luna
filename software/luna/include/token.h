@@ -20,6 +20,7 @@ enum TokenType {
   T_RBRACK,
   T_SEMICOLON,
   T_COLON,
+  T_COMMA,
   T_LET,
   T_CONST,
   T_EQUALS,

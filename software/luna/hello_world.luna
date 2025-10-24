@@ -1,7 +1,8 @@
-const puts = fn@extern["puts"]();
+const puts = fn@extern["puts"](str: *i8);
 const func = fn(): *i8 {
     const a = 10;
     const str = "abc";
+    puts("hello world!");
     return str;
 };
 const main = fn(): i32 {

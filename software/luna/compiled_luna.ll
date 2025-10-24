@@ -24,8 +24,10 @@ entry:
   store i32 10, ptr %a, align 4
   %str = alloca ptr, align 8
   store ptr @2, ptr %str, align 8
-  %0 = load ptr, ptr %str, align 8
-  ret ptr %0
+  %0 = load ptr, ptr @0, align 8
+  call void %0()
+  %1 = load ptr, ptr %str, align 8
+  ret ptr %1
 }
 
 define i32 @5() {
