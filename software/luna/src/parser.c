@@ -446,6 +446,28 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
                        },
                        sizeof(struct FunctionStatementNode));
   }
+  case T_SYMBOL: {
+    struct SymbolLiteralNode *symbol = parse_symbol_literal(parser);
+
+    assert(parser_peek(parser).type == T_LPAREN);
+    parser->position++;
+
+    assert(parser_peek(parser).type == T_RPAREN);
+    parser->position++;
+
+    return ast_promote(
+        parser->allocator,
+        &(struct FunctionStatementNode){
+            .type = FN_STMT_FN_CALL,
+            .node.fn_call = ast_promote(
+                parser->allocator,
+                &(struct FunctionCallExpressionNode){.name = symbol->value},
+                sizeof(struct FunctionCallExpressionNode)),
+            .next = NULL,
+
+        },
+        sizeof(struct FunctionStatementNode));
+  }
   case T_RETURN: {
     puts("found return.");
     parser->position++;

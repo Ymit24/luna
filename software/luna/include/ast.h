@@ -18,6 +18,7 @@ enum FunctionStatementType {
   FN_STMT_CONST,
   FN_STMT_ASSIGN,
   FN_STMT_RETURN,
+  FN_STMT_FN_CALL, // TODO: maybe this becomes general expression
 };
 
 struct DeclarationStatementNode {
@@ -51,6 +52,7 @@ struct FunctionStatementNode {
     struct DeclarationStatementNode *decl;
     struct AssignStatementNode *assign;
     struct ReturnStatementNode *ret;
+    struct FunctionCallExpressionNode *fn_call;
   } node;
   struct FunctionStatementNode *next;
 };
@@ -87,7 +89,6 @@ struct SymbolLiteralNode {
 struct StringLiteralNode {
   struct LunaString value;
 };
-
 
 struct FunctionDefinitionExpressionNode {
   struct FunctionStatementNode *body;

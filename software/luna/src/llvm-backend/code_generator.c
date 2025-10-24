@@ -64,6 +64,23 @@ LLVMTypeRef cg_get_type(struct DataType *data_type) {
   }
 }
 
+LLVMValueRef cg_visit_function_call(struct CodeGenerator *code_generator,
+                                    struct FunctionCallExpressionNode *expr) {
+
+  puts("Code genning function call.");
+  struct SymbolTableEntry *symbol =
+      lookup_symbol_in(expr->name, code_generator->current_symbol_table);
+  assert(symbol != NULL);
+  printf("type kind: %d\n", symbol->type->kind);
+  assert(symbol->llvm_value != NULL);
+
+  LLVMTypeRef type = cg_get_type(symbol->type);
+
+  puts("returnning build call");
+  return LLVMBuildCall2(code_generator->builder, type, symbol->llvm_value, NULL,
+                        0, "");
+}
+
 LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
                            struct ExpressionNode *expr) {
   printf("[cg_visit_expr] %d\n", expr->type);
@@ -139,20 +156,8 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
     puts("popping function");
 
     return function;
-  case EXPR_FN_CALL: {
-    puts("Code genning function call.");
-    struct SymbolTableEntry *symbol = lookup_symbol_in(
-        expr->node.fn_call->name, code_generator->current_symbol_table);
-    assert(symbol != NULL);
-    printf("type kind: %d\n", symbol->type->kind);
-    assert(symbol->llvm_value != NULL);
-
-    LLVMTypeRef type = cg_get_type(symbol->type);
-
-    puts("returnning build call");
-    return LLVMBuildCall2(code_generator->builder, type, symbol->llvm_value,
-                          NULL, 0, "");
-  }
+  case EXPR_FN_CALL:
+    return cg_visit_function_call(code_generator, expr->node.fn_call);
   }
 }
 
@@ -243,6 +248,9 @@ void cg_visit_function_statement(struct CodeGenerator *code_generator,
     break;
   case FN_STMT_RETURN:
     cg_visit_return(code_generator, stmt->node.ret);
+    break;
+  case FN_STMT_FN_CALL:
+    cg_visit_function_call(code_generator, stmt->node.fn_call);
     break;
   }
 }
