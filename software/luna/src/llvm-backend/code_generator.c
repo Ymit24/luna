@@ -33,6 +33,8 @@ LLVMTypeRef cg_get_type(struct DataType *data_type) {
       return LLVMInt32Type();
     case P_BOOL:
       return LLVMInt1Type();
+    case P_STRING:
+      return LLVMPointerType(LLVMInt8Type(), 0);
     default:
       puts("Unknown primitive data type.");
       assert(0);
@@ -96,6 +98,11 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
     assert(symbol != NULL);
     return LLVMBuildLoad2(code_generator->builder, cg_get_type(symbol->type),
                           symbol->llvm_value, "");
+  }
+  case EXPR_STRING_LITERAL: {
+    return LLVMBuildGlobalStringPtr(code_generator->builder,
+                                    expr->node.string->value.data, "");
+    break;
   }
   case EXPR_FN_DEF:
     puts("pushing function");

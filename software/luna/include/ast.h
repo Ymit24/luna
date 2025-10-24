@@ -59,6 +59,7 @@ enum ExpressionType {
   EXPR_BINARY,
   EXPR_INTEGER_LITERAL,
   EXPR_SYMBOL_LITERAL,
+  EXPR_STRING_LITERAL,
   EXPR_FN_DEF,
   EXPR_FN_CALL,
 };
@@ -68,6 +69,7 @@ struct ExpressionNode {
   union {
     struct IntegerLiteralNode *integer;
     struct SymbolLiteralNode *symbol;
+    struct StringLiteralNode *string;
     struct BinaryExpressionNode *binary;
     struct FunctionDefinitionExpressionNode *fn_def;
     struct FunctionCallExpressionNode *fn_call;
@@ -81,6 +83,11 @@ struct IntegerLiteralNode {
 struct SymbolLiteralNode {
   struct LunaString value;
 };
+
+struct StringLiteralNode {
+  struct LunaString value;
+};
+
 
 struct FunctionDefinitionExpressionNode {
   struct FunctionStatementNode *body;

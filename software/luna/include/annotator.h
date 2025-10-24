@@ -9,7 +9,8 @@
 #include <stddef.h>
 
 enum DataTypeKind { DTK_PRIMITIVE, DTK_FUNCTION, DTK_VOID };
-enum PrimitiveType { P_INT, P_BOOL };
+// TODO: strings arent primitives, i/u8 is prim
+enum PrimitiveType { P_INT, P_BOOL, P_STRING };
 
 struct FunctionType {
   struct DataType *return_type;

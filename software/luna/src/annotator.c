@@ -183,6 +183,10 @@ struct DataType *infer_type(struct Annotator *annotator,
     assert(entry != NULL);
     return entry->type;
   }
+  case EXPR_STRING_LITERAL: {
+    puts("infered string");
+    return make_primitive_data_type(annotator, P_STRING);
+  }
   case EXPR_BINARY: {
     puts("Infering on binary..");
     struct DataType *left = infer_type(annotator, expr->node.binary->left);
@@ -254,6 +258,8 @@ void annotator_visit_expr(struct Annotator *annotator,
   case EXPR_INTEGER_LITERAL:
     break;
   case EXPR_SYMBOL_LITERAL:
+    break;
+  case EXPR_STRING_LITERAL:
     break;
   case EXPR_FN_DEF: {
     puts("Visiting function expression");

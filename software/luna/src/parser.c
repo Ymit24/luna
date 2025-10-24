@@ -81,6 +81,22 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
                 sizeof(struct FunctionCallExpressionNode))},
         sizeof(struct ExpressionNode));
   }
+  case T_STRING: {
+    parser->position++;
+
+    puts("STIRNG");
+    printf("%s\n", token.value.symbol.data);
+    return ast_promote(
+        parser->allocator,
+        &(struct ExpressionNode){
+            .type = EXPR_STRING_LITERAL,
+            .node.string = ast_promote(
+                parser->allocator,
+                &(struct StringLiteralNode){.value = token.value.symbol},
+                sizeof(struct StringLiteralNode))},
+        sizeof(struct ExpressionNode));
+    break;
+  }
   case T_LPAREN: {
     assert(parser_peek(parser).type == T_LPAREN);
     parser->position++;

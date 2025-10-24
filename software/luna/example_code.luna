@@ -6,6 +6,7 @@ let other = 100;
 let getseven = fn(): int {
   return 300;
 };
+const test = "foo";
 let putsa = fn@extern["puts"](): int;
 let bigger: int = getseven();
 let main = fn() {
