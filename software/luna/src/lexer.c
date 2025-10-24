@@ -126,6 +126,12 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
         out_token->type = T_RETURN;
         lexer->position += 6;
         return true;
+      } else if (lexer->source.length - lexer->position >= 6 &&
+                 strncmp("extern", &lexer->source.data[lexer->position], 6) ==
+                     0) {
+        out_token->type = T_EXTERN;
+        lexer->position += 6;
+        return true;
       } else {
         out_token->type = T_SYMBOL;
         out_token->value.symbol = lexer_read_symbol(lexer);

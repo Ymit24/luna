@@ -4,20 +4,23 @@ let y = x;
 let g: int = 5;
 let other = 100;
 let getseven = fn(): int {
-    return 300;
+  return 300;
 };
+let puts = fn() {};
 let bigger: int = getseven();
 let main = fn() {
+  const two = getseven();
   const thing = 10;
-    const inner = fn() {
+  const inner = fn() {
     const otheragain = 20;
     const deepinner = fn(): int {
-        const foo = 1;
-        return foo;
+      const foo = 1;
+      return foo;
     };
+    const abcab = deepinner();
     const deepinnerother = fn(): int {
-        let foo = 2;
-        return 10;
+      let foo = 2;
+      return 10;
     };
   };
   const next = 9;

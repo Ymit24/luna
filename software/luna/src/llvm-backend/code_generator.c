@@ -163,12 +163,35 @@ void cg_visit_decl(struct CodeGenerator *code_generator,
   LLVMBuildStore(code_generator->builder, result, variable);
 }
 
+void cg_visit_module_decl(struct CodeGenerator *code_generator,
+                          struct DeclarationStatementNode *decl) {
+
+  struct SymbolTableEntry *symbol =
+      lookup_symbol_in(decl->symbol, code_generator->current_symbol_table);
+  assert(symbol != NULL);
+  printf("Code genning MODULE decl %s.\n", symbol->symbol.data);
+
+  LLVMTypeRef type = cg_get_type(decl->data_type);
+  if (decl->data_type->kind == DTK_FUNCTION) {
+    type = LLVMPointerType(type, 0);
+  }
+
+  LLVMValueRef variable =
+      LLVMAddGlobal(code_generator->module, type, decl->symbol.data);
+
+  symbol->llvm_value = variable;
+
+  LLVMValueRef result = cg_visit_expr(code_generator, decl->expression);
+
+  LLVMBuildStore(code_generator->builder, result, variable);
+}
+
 void cg_visit_module_statement(struct CodeGenerator *code_generator,
                                struct ModuleStatementNode *stmt) {
   switch (stmt->type) {
   case MOD_STMT_LET:
   case MOD_STMT_CONST:
-    cg_visit_decl(code_generator, stmt->node.decl);
+    cg_visit_module_decl(code_generator, stmt->node.decl);
     break;
   default:
     puts("Unknown module statement type.");
@@ -222,7 +245,7 @@ void cg_visit_module_statements(struct CodeGenerator *code_generator,
   LLVMBasicBlockRef previous_block = code_generator->current_block;
 
   LLVMValueRef module_initialization_function =
-      LLVMAddFunction(code_generator->module, "main",
+      LLVMAddFunction(code_generator->module, "global_module_intializer",
                       LLVMFunctionType(LLVMVoidType(), NULL, 0, 0));
   LLVMBasicBlockRef block =
       LLVMAppendBasicBlock(module_initialization_function, "entry");

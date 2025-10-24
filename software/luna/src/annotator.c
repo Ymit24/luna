@@ -147,6 +147,18 @@ struct SymbolTableEntry *lookup_symbol_in(struct LunaString symbol,
     entry = entry->next;
   }
 
+  if (entry == NULL) {
+    struct SymbolTable *current_symbol_table = symbol_table;
+    while (current_symbol_table->parent != NULL) {
+      current_symbol_table = current_symbol_table->parent;
+      if (current_symbol_table->is_function) {
+        continue;
+      }
+      puts("in non function symbol table, searching here.");
+      return lookup_symbol_in(symbol, current_symbol_table);
+    }
+  }
+
   puts("done");
   return entry;
 }

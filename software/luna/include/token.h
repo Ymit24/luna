@@ -24,6 +24,7 @@ enum TokenType {
   T_SYMBOL,
   T_FN,
   T_RETURN,
+  T_EXTERN,
 };
 
 struct Token {
