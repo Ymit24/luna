@@ -76,7 +76,7 @@ struct SymbolLiteralNode {
 
 struct FunctionDefinitionExpressionNode {
   struct FunctionStatementNode *body;
-  struct DataType *return_type;
+  struct DataType *function_type;
   struct SymbolTable symbol_table;
 };
 

@@ -35,9 +35,9 @@ struct DataType *make_primitive_data_type(struct Annotator *annotator,
       sizeof(struct DataType));
 }
 
-struct DataType *make_function_data_type(struct Annotator *annotator,
+struct DataType *make_function_data_type(struct ArenaAllocator *allocator,
                                          struct DataType *return_type) {
-  return ast_promote(annotator->allocator,
+  return ast_promote(allocator,
                      &(struct DataType){
                          .kind = DTK_FUNCTION,
                          .value.function.return_type = return_type,
@@ -161,7 +161,7 @@ struct DataType *infer_type(struct Annotator *annotator,
     return left;
   }
   case EXPR_FN_DEF:
-    return make_function_data_type(annotator, expr->node.fn_def->return_type);
+    return expr->node.fn_def->function_type;
   }
 
   puts("Failed to infer type.");

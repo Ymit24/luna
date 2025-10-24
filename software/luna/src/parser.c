@@ -77,7 +77,7 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
     assert(parser_peek(parser).type == T_LPAREN);
     parser->position++;
     assert(parser_peek(parser).type == T_RPAREN);
-    parser->position++;
+    printf("next token is: %d\n", parser_peek(parser).type);
     if (parser_peek(parser).type == T_COLON) {
       puts("Found colon in func");
       parser->position++;
@@ -85,6 +85,9 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
     } else {
       puts("Found NO colon in func");
     }
+    printf("next token is: %d\n", parser_peek(parser).type);
+    parser->position++;
+    printf("next token is: %d\n", parser_peek(parser).type);
     assert(parser_peek(parser).type == T_LBRACE);
     parser->position++;
     struct FunctionStatementNode *result = parse_function_statements(parser);
@@ -97,7 +100,8 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
                                parser->allocator,
                                &(struct FunctionDefinitionExpressionNode){
                                    .body = result,
-                                   .return_type = return_type,
+                                   .function_type = make_function_data_type(
+                                       parser->allocator, return_type),
                                },
                                sizeof(struct FunctionDefinitionExpressionNode)),
                        },
@@ -207,6 +211,11 @@ struct ModuleStatementNode *parse_module_statements(struct Parser *parser) {
 
 struct FunctionStatementNode *parse_function_statements(struct Parser *parser) {
   assert(parser_peek(parser).type != T_EOF);
+
+  if (parser_peek(parser).type == T_RBRACE) {
+    puts("Found empty function");
+    return NULL;
+  }
 
   struct FunctionStatementNode *head = parse_function_statement(parser);
   struct FunctionStatementNode *curr = head;
@@ -375,6 +384,7 @@ struct ModuleStatementNode *parse_module_statement(struct Parser *parser) {
                        sizeof(struct ModuleStatementNode));
   }
   default: {
+    puts("Unexpected token in module.");
     assert(0);
     break;
   }
