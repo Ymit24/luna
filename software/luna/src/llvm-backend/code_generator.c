@@ -89,10 +89,14 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
     break;
   case EXPR_INTEGER_LITERAL:
     return LLVMConstInt(LLVMInt32Type(), expr->node.integer->value, false);
-  case EXPR_SYMBOL_LITERAL:
-    puts("unsupported variables type");
-    assert(0);
-    return NULL;
+  case EXPR_SYMBOL_LITERAL: {
+    puts("getting variable");
+    struct SymbolTableEntry *symbol = lookup_symbol_in(
+        expr->node.symbol->value, code_generator->current_symbol_table);
+    assert(symbol != NULL);
+    return LLVMBuildLoad2(code_generator->builder, cg_get_type(symbol->type),
+                          symbol->llvm_value, "");
+  }
   case EXPR_FN_DEF:
     puts("pushing function");
 
@@ -107,14 +111,14 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
     LLVMPositionBuilderAtEnd(code_generator->builder, block);
 
     code_generator->current_block = block;
-
     code_generator->current_symbol_table = &expr->node.fn_def->symbol_table;
-    cg_visit_function_statements(code_generator, expr->node.fn_def->body);
-    code_generator->current_symbol_table = old_current;
 
-    if (previous_block != NULL) {
-      LLVMPositionBuilderAtEnd(code_generator->builder, previous_block);
-    }
+    cg_visit_function_statements(code_generator, expr->node.fn_def->body);
+
+    code_generator->current_symbol_table = old_current;
+    code_generator->current_block = previous_block;
+
+    LLVMPositionBuilderAtEnd(code_generator->builder, previous_block);
 
     puts("popping function");
 
@@ -137,6 +141,8 @@ void cg_visit_decl(struct CodeGenerator *code_generator,
 
   LLVMValueRef variable =
       LLVMBuildAlloca(code_generator->builder, type, decl->symbol.data);
+
+  symbol->llvm_value = variable;
 
   LLVMValueRef result = cg_visit_expr(code_generator, decl->expression);
 

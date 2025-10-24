@@ -74,12 +74,14 @@ void annotator_initialize_primitives(struct Annotator *annotator) {
   insert_symbol_entry(annotator, (struct SymbolTableEntry){
                                      .symbol = string_make("true"),
                                      .type = primitives[1],
+                                     .llvm_value = NULL,
                                      .next = NULL,
                                      .memory_segment = MS_STATIC,
                                  });
   insert_symbol_entry(annotator, (struct SymbolTableEntry){
                                      .symbol = string_make("false"),
                                      .type = primitives[1],
+                                     .llvm_value = NULL,
                                      .next = NULL,
                                      .memory_segment = MS_STATIC,
                                  });
@@ -277,6 +279,7 @@ void annotator_visit_decl(struct Annotator *annotator,
   insert_symbol_entry(annotator, (struct SymbolTableEntry){
                                      .symbol = decl->symbol,
                                      .type = type,
+                                     .llvm_value = NULL,
                                      .next = NULL,
                                  });
   annotator_visit_expr(annotator, decl->expression);
@@ -336,7 +339,6 @@ void annotator_visit_function_statement(
     assert(data_types_equal(
         annotator->current_function->return_type,
         infer_type(annotator, statement->node.ret->expression)));
-
     break;
   }
   default:

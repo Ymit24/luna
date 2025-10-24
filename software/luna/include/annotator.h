@@ -4,6 +4,7 @@
 #include "arena_allocator.h"
 #include "instructions.h"
 #include "luna_string.h"
+#include "llvm-c/Types.h"
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -30,6 +31,7 @@ struct DataTypeTable {
 struct SymbolTableEntry {
   struct LunaString symbol;
   struct DataType *type;
+  LLVMValueRef llvm_value;
   struct SymbolTableEntry *next;
   enum MemorySegment memory_segment;
   uint16_t index;
@@ -47,7 +49,7 @@ struct Annotator {
   struct SymbolTable *current_symbol_table;
   struct DataTypeTable data_type_table;
   struct ArenaAllocator *allocator;
-  struct FunctionType* current_function;
+  struct FunctionType *current_function;
 };
 
 void annotator_initialize_primitives(struct Annotator *annotator);

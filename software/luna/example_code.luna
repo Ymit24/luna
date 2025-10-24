@@ -1,13 +1,18 @@
 let a = 5 - (2 + 1);
-let x = 3;
+let x = 3 - a;
+let y = x;
 let g: int = 5;
 let other = 100;
+let getseven = fn(): int {
+    return 300;
+};
 let main = fn() {
   const thing = 10;
     const inner = fn() {
     const otheragain = 20;
-    const deepinner = fn() {
+    const deepinner = fn(): int {
         const foo = 1;
+        return foo;
     };
     const deepinnerother = fn(): int {
         let foo = 2;
