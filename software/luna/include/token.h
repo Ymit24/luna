@@ -16,6 +16,8 @@ enum TokenType {
   T_RPAREN,
   T_LBRACE,
   T_RBRACE,
+  T_LBRACK,
+  T_RBRACK,
   T_SEMICOLON,
   T_COLON,
   T_LET,
@@ -25,6 +27,7 @@ enum TokenType {
   T_FN,
   T_RETURN,
   T_EXTERN,
+  T_STRING,
 };
 
 struct Token {

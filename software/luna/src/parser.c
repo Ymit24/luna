@@ -93,6 +93,22 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
     struct DataType *return_type = NULL;
     assert(parser_peek(parser).type == T_FN);
     parser->position++;
+    struct LunaString *extern_name = NULL;
+    if (parser_peek(parser).type == T_EXTERN) {
+      parser->position++;
+
+      assert(parser_peek(parser).type == T_LBRACK);
+      parser->position++;
+
+      assert(parser_peek(parser).type == T_STRING);
+      struct LunaString name = parser_peek(parser).value.symbol;
+      extern_name =
+          ast_promote(parser->allocator, &name, sizeof(struct LunaString));
+      parser->position++;
+
+      assert(parser_peek(parser).type == T_RBRACK);
+      parser->position++;
+    }
     assert(parser_peek(parser).type == T_LPAREN);
     parser->position++;
     assert(parser_peek(parser).type == T_RPAREN);
@@ -107,6 +123,22 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
       puts("Found NO colon in func");
     }
     printf("next token is: %d\n", parser_peek(parser).type);
+    if (extern_name != NULL) {
+      return ast_promote(
+          parser->allocator,
+          &(struct ExpressionNode){
+              .type = EXPR_FN_DEF,
+              .node.fn_def = ast_promote(
+                  parser->allocator,
+                  &(struct FunctionDefinitionExpressionNode){
+                      .body = NULL,
+                      .function_type = make_function_data_type(
+                          parser->allocator, return_type, extern_name),
+                  },
+                  sizeof(struct FunctionDefinitionExpressionNode)),
+          },
+          sizeof(struct ExpressionNode));
+    }
     assert(parser_peek(parser).type == T_LBRACE);
     parser->position++;
     struct FunctionStatementNode *result = parse_function_statements(parser);
@@ -121,7 +153,7 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
                                &(struct FunctionDefinitionExpressionNode){
                                    .body = result,
                                    .function_type = make_function_data_type(
-                                       parser->allocator, return_type),
+                                       parser->allocator, return_type, NULL),
                                },
                                sizeof(struct FunctionDefinitionExpressionNode)),
                        },
@@ -289,6 +321,23 @@ struct DataType *parse_data_type(struct Parser *parser) {
   }
   case T_FN: {
     parser->position++;
+
+    struct LunaString *extern_name = NULL;
+    if (parser_peek(parser).type == T_EXTERN) {
+      parser->position++;
+
+      assert(parser_peek(parser).type == T_LBRACK);
+      parser->position++;
+
+      assert(parser_peek(parser).type == T_STRING);
+      struct LunaString name = parser_peek(parser).value.symbol;
+      extern_name =
+          ast_promote(parser->allocator, &name, sizeof(struct LunaString));
+      parser->position++;
+
+      assert(parser_peek(parser).type == T_RBRACK);
+      parser->position++;
+    }
     assert(parser_peek(parser).type == T_LPAREN);
     parser->position++;
     assert(parser_peek(parser).type == T_RPAREN);
@@ -303,9 +352,10 @@ struct DataType *parse_data_type(struct Parser *parser) {
       puts("function had NO return type");
       return_type = make_void_data_type(parser->allocator);
     }
+
     puts("parsed function type here");
     struct DataType *type =
-        make_function_data_type(parser->allocator, return_type);
+        make_function_data_type(parser->allocator, return_type, extern_name);
     printf("return type: is null: %d\n", type == NULL);
     return type;
   }

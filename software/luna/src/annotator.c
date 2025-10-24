@@ -42,11 +42,13 @@ struct DataType *make_primitive_data_type(struct Annotator *annotator,
 }
 
 struct DataType *make_function_data_type(struct ArenaAllocator *allocator,
-                                         struct DataType *return_type) {
+                                         struct DataType *return_type,
+                                         struct LunaString *extern_name) {
   return ast_promote(allocator,
                      &(struct DataType){
                          .kind = DTK_FUNCTION,
                          .value.function.return_type = return_type,
+                         .value.function.extern_name = extern_name,
                          .next = NULL,
                      },
                      sizeof(struct DataType));
@@ -412,6 +414,21 @@ bool data_types_equal(struct DataType *left, struct DataType *right) {
     puts("recurse case");
     printf("left: %d, %d\n", left->value.function.return_type == NULL,
            right->value.function.return_type == NULL);
+    if (left->value.function.extern_name != NULL ||
+        right->value.function.extern_name != NULL) {
+      if (left->value.function.extern_name == NULL ||
+          right->value.function.extern_name == NULL) {
+        return false;
+      } else {
+        if (left->value.function.extern_name->length !=
+            right->value.function.extern_name->length) {
+          return false;
+        }
+        return strncmp(left->value.function.extern_name->data,
+                       right->value.function.extern_name->data,
+                       left->value.function.extern_name->length) == 0;
+      }
+    }
     return data_types_equal(left->value.function.return_type,
                             right->value.function.return_type);
   case DTK_VOID:

@@ -103,22 +103,31 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
     struct SymbolTable *old_current = code_generator->current_symbol_table;
     LLVMBasicBlockRef previous_block = code_generator->current_block;
 
-    LLVMValueRef function =
-        LLVMAddFunction(code_generator->module, "",
-                        cg_get_type(expr->node.fn_def->function_type));
+    LLVMValueRef function = NULL;
 
-    LLVMBasicBlockRef block = LLVMAppendBasicBlock(function, "entry");
-    LLVMPositionBuilderAtEnd(code_generator->builder, block);
+    if (expr->node.fn_def->function_type->value.function.extern_name != NULL) {
+      puts("code genning extern function.");
 
-    code_generator->current_block = block;
-    code_generator->current_symbol_table = &expr->node.fn_def->symbol_table;
+      function = LLVMAddFunction(
+          code_generator->module,
+          expr->node.fn_def->function_type->value.function.extern_name->data,
+          cg_get_type(expr->node.fn_def->function_type));
+    } else {
+      function = LLVMAddFunction(code_generator->module, "",
+                                 cg_get_type(expr->node.fn_def->function_type));
+      LLVMBasicBlockRef block = LLVMAppendBasicBlock(function, "entry");
+      LLVMPositionBuilderAtEnd(code_generator->builder, block);
 
-    cg_visit_function_statements(code_generator, expr->node.fn_def->body);
+      code_generator->current_block = block;
+      code_generator->current_symbol_table = &expr->node.fn_def->symbol_table;
 
-    code_generator->current_symbol_table = old_current;
-    code_generator->current_block = previous_block;
+      cg_visit_function_statements(code_generator, expr->node.fn_def->body);
 
-    LLVMPositionBuilderAtEnd(code_generator->builder, previous_block);
+      code_generator->current_symbol_table = old_current;
+      code_generator->current_block = previous_block;
+
+      LLVMPositionBuilderAtEnd(code_generator->builder, previous_block);
+    }
 
     puts("popping function");
 

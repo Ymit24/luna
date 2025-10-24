@@ -2,6 +2,7 @@
 #include "arena_allocator.h"
 #include "luna_string.h"
 
+#include <assert.h>
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
@@ -32,6 +33,19 @@ uint16_t lexer_read_integer(struct Lexer *lexer) {
   buf[index] = 0;
 
   return atoi(buf);
+}
+
+struct LunaString lexer_read_string(struct Lexer *lexer) {
+  char *buf = arena_alloc(lexer->allocator, 64 * sizeof(char));
+  uint8_t index = 0;
+
+  while (lexer_peek(lexer) != '"' && index < 64) {
+    buf[index++] = lexer_peek(lexer);
+    lexer->position++;
+  }
+
+  buf[index] = 0;
+  return (struct LunaString){.data = &buf[0], .length = index};
 }
 
 struct LunaString lexer_read_symbol(struct Lexer *lexer) {
@@ -89,6 +103,12 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
   case '}':
     out_token->type = T_RBRACE;
     break;
+  case '[':
+    out_token->type = T_LBRACK;
+    break;
+  case ']':
+    out_token->type = T_RBRACK;
+    break;
   case ';':
     out_token->type = T_SEMICOLON;
     break;
@@ -97,6 +117,23 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
     break;
   case '=':
     out_token->type = T_EQUALS;
+    break;
+  case '"':
+    out_token->type = T_STRING;
+    lexer->position++;
+
+    out_token->value.symbol = lexer_read_string(lexer);
+    assert(lexer_peek(lexer) == '"');
+    lexer->position++;
+    return true;
+  case '@':
+    lexer->position++;
+    if (lexer->source.length - lexer->position >= 6 &&
+        strncmp("extern", &lexer->source.data[lexer->position], 6) == 0) {
+      out_token->type = T_EXTERN;
+      lexer->position += 6;
+      return true;
+    }
     break;
   default: {
     if (isdigit(current)) {
@@ -124,12 +161,6 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
                  strncmp("return", &lexer->source.data[lexer->position], 6) ==
                      0) {
         out_token->type = T_RETURN;
-        lexer->position += 6;
-        return true;
-      } else if (lexer->source.length - lexer->position >= 6 &&
-                 strncmp("extern", &lexer->source.data[lexer->position], 6) ==
-                     0) {
-        out_token->type = T_EXTERN;
         lexer->position += 6;
         return true;
       } else {

@@ -6,10 +6,11 @@ let other = 100;
 let getseven = fn(): int {
   return 300;
 };
-let puts = fn() {};
+let putsa = fn@extern["puts"](): int;
 let bigger: int = getseven();
 let main = fn() {
   const two = getseven();
+  const three = puts();
   const thing = 10;
   const inner = fn() {
     const otheragain = 20;
