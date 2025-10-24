@@ -1,7 +1,7 @@
 let a = 5 - (2 + 1);
 let x = 3;
 let g: int = 5;
-let other = 100;"
+let other = 100;
 let main = fn() {
   const thing = 10;
   const inner = fn() {

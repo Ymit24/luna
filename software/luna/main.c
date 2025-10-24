@@ -13,24 +13,40 @@
 #include "token.h"
 #include "llvm-c/Core.h"
 
-int main(void) {
+struct LunaString read_file(const char *path, struct ArenaAllocator *alloc) {
+  FILE *file = fopen(path, "rb");
+  if (!file) {
+    fprintf(stderr, "could not open file: %s\n", path);
+    assert(0);
+  }
+  fseek(file, 0, SEEK_END);
+  long size = ftell(file);
+  fseek(file, 0, SEEK_SET);
+  char *buffer = arena_alloc(alloc, (uint16_t)size + 1);
+  if (!buffer) {
+    fprintf(stderr, "not enough arena space for source\n");
+    assert(0);
+  }
+  size_t n = fread(buffer, 1, (size_t)size, file);
+  fclose(file);
+  buffer[n] = 0;
+  return (struct LunaString){.data = buffer, .length = (uint16_t)n};
+}
+
+int main(int argc, char **argv) {
   puts("Luna Compiler");
 
   uint8_t arena[UINT16_MAX];
 
   struct ArenaAllocator allocator = arena_make(&arena, UINT16_MAX);
 
-  struct Lexer lexer = lexer_make(&allocator, string_make("let a = 5 - (2 + 1);"
-                                                          "let x = 3;"
-                                                          "let g: int = 5;"
-                                                          "let other = 100;"
-                                                          "let main = fn() {"
-                                                          "  const thing = 10;"
-                                                          "  const inner = fn() {"
-                                                          "    const otheragain = 20;"
-                                                          "  };"
-                                                          "  const next = 9;"
-                                                          "};"));
+  if (argc < 2) {
+    fprintf(stderr, "usage: %s <source.luna>\n", argv[0]);
+    return 1;
+  }
+
+  struct LunaString src = read_file(argv[1], &allocator);
+  struct Lexer lexer = lexer_make(&allocator, src);
 
   struct Token toks[1024];
   uint16_t tok_index = 0;
