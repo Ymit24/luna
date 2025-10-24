@@ -182,6 +182,16 @@ struct DataType *infer_type(struct Annotator *annotator,
            expr->node.fn_def->function_type->value.function.return_type ==
                NULL);
     return expr->node.fn_def->function_type;
+  case EXPR_FN_CALL: {
+    struct SymbolTableEntry *entry =
+        lookup_symbol(annotator, expr->node.symbol->value);
+    assert(entry != NULL);
+    assert(entry->type->kind == DTK_FUNCTION);
+
+    printf("type infer on function call: '%s' %d\n", entry->symbol.data,
+           entry->type->kind);
+    return entry->type->value.function.return_type;
+  }
   }
 
   puts("Failed to infer type.");
@@ -251,6 +261,10 @@ void annotator_visit_expr(struct Annotator *annotator,
                        &expr->node.fn_def->symbol_table);
     break;
   }
+  case EXPR_FN_CALL:
+    puts("deleteme: Got to this spot and not sure if needed.");
+    // TODO: Do we need to do anything here?
+    break;
   }
 }
 
@@ -258,8 +272,13 @@ void annotator_visit_decl(struct Annotator *annotator,
                           struct DeclarationStatementNode *decl) {
   assert(lookup_symbol(annotator, decl->symbol) == NULL);
   struct DataType *type = infer_type(annotator, decl->expression);
-  printf("got type infer done for %s. has type: %d.. type inferd: %d\n",
-         decl->symbol.data, decl->has_type, type == NULL);
+  printf("got type infer done for %s\n", decl->symbol.data);
+  if (decl->data_type != NULL) {
+    printf("decl type: %d\n", decl->data_type->kind);
+  }
+  if (type != NULL) {
+    printf("infered type: %d\n", type->kind);
+  }
   if (decl->has_type) {
     puts("has type, about to check equality");
     printf("is TYPE null?: %d : %d\n", type != NULL, decl->data_type != NULL);

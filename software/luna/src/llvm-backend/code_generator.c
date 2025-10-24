@@ -123,6 +123,20 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
     puts("popping function");
 
     return function;
+  case EXPR_FN_CALL: {
+    puts("Code genning function call.");
+    struct SymbolTableEntry *symbol = lookup_symbol_in(
+        expr->node.fn_call->name, code_generator->current_symbol_table);
+    assert(symbol != NULL);
+    printf("type kind: %d\n", symbol->type->kind);
+    assert(symbol->llvm_value != NULL);
+
+    LLVMTypeRef type = cg_get_type(symbol->type);
+
+    puts("returnning build call");
+    return LLVMBuildCall2(code_generator->builder, type, symbol->llvm_value,
+                          NULL, 0, "");
+  }
   }
 }
 

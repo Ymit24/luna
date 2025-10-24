@@ -18,6 +18,9 @@ entry:
   store i32 100, ptr %other, align 4
   %getseven = alloca ptr, align 8
   store ptr @0, ptr %getseven, align 8
+  %bigger = alloca i32, align 4
+  %3 = call i32 %getseven()
+  store i32 %3, ptr %bigger, align 4
   %main = alloca ptr, align 8
   store ptr @1, ptr %main, align 8
 }

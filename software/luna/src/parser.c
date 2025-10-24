@@ -57,11 +57,30 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
         parser->allocator,
         (struct ExpressionNode){.type = EXPR_INTEGER_LITERAL,
                                 .node.integer = parse_integer_literal(parser)});
-  case T_SYMBOL:
-    return ast_promote_expression_node(
+  case T_SYMBOL: {
+    struct SymbolLiteralNode *symbol = parse_symbol_literal(parser);
+
+    if (parser_peek(parser).type != T_LPAREN) {
+      return ast_promote_expression_node(
+          parser->allocator,
+          (struct ExpressionNode){.type = EXPR_SYMBOL_LITERAL,
+                                  .node.symbol = symbol});
+    }
+
+    parser->position++;
+    assert(parser_peek(parser).type == T_RPAREN);
+    parser->position++;
+
+    return ast_promote(
         parser->allocator,
-        (struct ExpressionNode){.type = EXPR_SYMBOL_LITERAL,
-                                .node.symbol = parse_symbol_literal(parser)});
+        &(struct ExpressionNode){
+            .type = EXPR_FN_CALL,
+            .node.fn_call = ast_promote(
+                parser->allocator,
+                &(struct FunctionCallExpressionNode){.name = symbol->value},
+                sizeof(struct FunctionCallExpressionNode))},
+        sizeof(struct ExpressionNode));
+  }
   case T_LPAREN: {
     assert(parser_peek(parser).type == T_LPAREN);
     parser->position++;
@@ -184,7 +203,6 @@ struct IntegerLiteralNode *parse_integer_literal(struct Parser *parser) {
 }
 
 struct SymbolLiteralNode *parse_symbol_literal(struct Parser *parser) {
-
   struct Token token = parser_peek(parser);
   assert(token.type == T_SYMBOL);
 
