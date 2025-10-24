@@ -57,7 +57,7 @@ int main(void) {
   cg_visit_module_statements(&code_generator, stmt);
   puts("Done code gen");
 
-  // LLVMDumpModule(code_generator.module);
+  LLVMDumpModule(code_generator.module);
 
   char *error = NULL;
   if (LLVMPrintModuleToFile(code_generator.module, "compiled_luna.ll",

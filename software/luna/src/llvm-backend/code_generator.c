@@ -48,7 +48,8 @@ LLVMTypeRef cg_get_type(struct DataType *data_type) {
     }
 
     LLVMTypeRef function_type = LLVMFunctionType(return_type, NULL, 0, 0);
-    return LLVMPointerType(function_type, 0);
+    return function_type;
+    // return LLVMPointerType(function_type, 0);
   }
   default:
     puts("Unknown data type kind.");
@@ -89,19 +90,16 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
     assert(0);
     return NULL;
   case EXPR_FN_DEF:
-
-    // struct LunaString label =
-    // ib_push_fn(code_generator->instruction_builder);
-
     puts("pushing function");
     struct SymbolTable *old_current = code_generator->current_symbol_table;
     code_generator->current_symbol_table = &expr->node.fn_def->symbol_table;
-    // cg_visit_function_statements(code_generator, expr->node.fn_def->body);
+    cg_visit_function_statements(code_generator, expr->node.fn_def->body);
     code_generator->current_symbol_table = old_current;
     puts("popping function");
 
-    return LLVMAddFunction(code_generator->module, "foo",
+    return LLVMAddFunction(code_generator->module, "",
                            cg_get_type(expr->node.fn_def->function_type));
+    // return LLVMConstInt(LLVMInt32Type(), 3, 0);
   }
 }
 
