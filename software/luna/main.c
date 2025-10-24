@@ -26,6 +26,10 @@ int main(void) {
                                                           "let other = 100;"
                                                           "let main = fn() {"
                                                           "  const thing = 10;"
+                                                          "  const inner = fn() {"
+                                                          "    const otheragain = 20;"
+                                                          "  };"
+                                                          "  const next = 9;"
                                                           "};"));
 
   struct Token toks[1024];

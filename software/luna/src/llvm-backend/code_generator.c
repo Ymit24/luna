@@ -115,8 +115,6 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
     puts("popping function");
 
     return function;
-
-    // return LLVMConstInt(LLVMInt32Type(), 3, 0);
   }
 }
 
@@ -129,6 +127,9 @@ void cg_visit_decl(struct CodeGenerator *code_generator,
   printf("Code genning decl %s.\n", symbol->symbol.data);
 
   LLVMTypeRef type = cg_get_type(decl->data_type);
+  if (decl->data_type->kind == DTK_FUNCTION) {
+    type = LLVMPointerType(type,0);
+  }
 
   LLVMValueRef variable =
       LLVMBuildAlloca(code_generator->builder, type, decl->symbol.data);
@@ -188,7 +189,7 @@ void cg_visit_module_statements(struct CodeGenerator *code_generator,
   LLVMBasicBlockRef previous_block = code_generator->current_block;
 
   LLVMValueRef module_initialization_function =
-      LLVMAddFunction(code_generator->module, "module_function",
+      LLVMAddFunction(code_generator->module, "main",
                       LLVMFunctionType(LLVMVoidType(), NULL, 0, 0));
   LLVMBasicBlockRef block =
       LLVMAppendBasicBlock(module_initialization_function, "entry");
