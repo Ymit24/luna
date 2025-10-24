@@ -4,35 +4,40 @@ source_filename = "m"
 @0 = global ptr null
 @1 = global ptr null
 @2 = private unnamed_addr constant [4 x i8] c"abc\00", align 1
-@3 = global ptr null
+@3 = private unnamed_addr constant [13 x i8] c"hello world!\00", align 1
+@4 = global ptr null
 
 define i32 @main() {
 entry:
   store ptr @puts, ptr @0, align 8
-  store ptr @4, ptr @1, align 8
-  store ptr @5, ptr @3, align 8
-  %0 = load ptr, ptr @3, align 8
+  store ptr @5, ptr @1, align 8
+  store ptr @6, ptr @4, align 8
+  %0 = load ptr, ptr @4, align 8
   %1 = call i32 %0()
   ret i32 %1
 }
 
 declare void @puts(ptr)
 
-define ptr @4() {
+define ptr @5() {
 entry:
   %a = alloca i8, align 1
   store i32 10, ptr %a, align 4
   %str = alloca ptr, align 8
   store ptr @2, ptr %str, align 8
   %0 = load ptr, ptr @0, align 8
-  call void %0()
+  call void %0(ptr @3)
   %1 = load ptr, ptr %str, align 8
   ret ptr %1
 }
 
-define i32 @5() {
+define i32 @6() {
 entry:
   %0 = load ptr, ptr @1, align 8
   %1 = call ptr %0()
+  %2 = load ptr, ptr @0, align 8
+  %3 = load ptr, ptr @1, align 8
+  %4 = call ptr %3()
+  call void %2(ptr %4)
   ret i32 1
 }

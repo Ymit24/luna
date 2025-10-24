@@ -8,6 +8,9 @@
 #include <assert.h>
 #include <stdio.h>
 
+LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
+                           struct ExpressionNode *expr);
+
 void cg_visit_function_statements(struct CodeGenerator *code_generator,
                                   struct FunctionStatementNode *stmt);
 
@@ -17,6 +20,20 @@ size_t count_function_arguments(struct FunctionArgumentNode *argument) {
   }
   size_t count = 0;
   struct FunctionArgumentNode *current = argument;
+  while (current != NULL) {
+    count++;
+    current = current->next;
+  }
+  return count;
+}
+
+size_t count_function_call_arguments(
+    struct FunctionCallArgumentExpressionsNode *argument) {
+  if (argument == NULL) {
+    return 0;
+  }
+  size_t count = 0;
+  struct FunctionCallArgumentExpressionsNode *current = argument;
   while (current != NULL) {
     count++;
     current = current->next;
@@ -118,15 +135,32 @@ LLVMValueRef cg_visit_function_call(struct CodeGenerator *code_generator,
   printf("type kind: %d\n", symbol->type->kind);
   assert(symbol->llvm_value != NULL);
 
-  if (expr->arguments != NULL) {
-    puts("cg: function call has arguments.");
-  }
-
   LLVMTypeRef type = cg_get_type(code_generator, symbol->type);
   LLVMTypeRef ptr_type = LLVMPointerType(type, 0);
 
   LLVMValueRef fn_pointer =
       LLVMBuildLoad2(code_generator->builder, ptr_type, symbol->llvm_value, "");
+
+  size_t argument_count = count_function_call_arguments(expr->arguments);
+  if (argument_count != 0) {
+    assert(expr->arguments != NULL);
+    puts("cg: function call has arguments.");
+
+    LLVMValueRef *arguments = (LLVMValueRef *)arena_alloc(
+        code_generator->allocator, argument_count * sizeof(LLVMValueRef));
+
+    struct FunctionCallArgumentExpressionsNode *current = expr->arguments;
+
+    size_t index = 0;
+    while (current != NULL) {
+      LLVMValueRef value = cg_visit_expr(code_generator, current->argument);
+      arguments[index++] = value;
+      current = current->next;
+    }
+
+    return LLVMBuildCall2(code_generator->builder, type, fn_pointer, arguments,
+                          argument_count, "");
+  }
 
   return LLVMBuildCall2(code_generator->builder, type, fn_pointer, NULL, 0, "");
 }

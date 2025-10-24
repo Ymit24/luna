@@ -42,41 +42,67 @@ Lloh8:
                                         ; -- End function
 	.globl	___unnamed_3                    ; -- Begin function 
 	.p2align	2
-___unnamed_3:                           ; @4
+___unnamed_3:                           ; @5
 	.cfi_startproc
 ; %bb.0:                                ; %entry
-	sub	sp, sp, #16
-	.cfi_def_cfa_offset 16
+	sub	sp, sp, #32
+	stp	x29, x30, [sp, #16]             ; 16-byte Folded Spill
+	.cfi_def_cfa_offset 32
+	.cfi_offset w30, -8
+	.cfi_offset w29, -16
 	mov	w8, #10                         ; =0xa
-	mov	w0, #10                         ; =0xa
-	stur	w8, [sp, #15]
 Lloh9:
-	adrp	x8, l___unnamed_6@PAGE
+	adrp	x9, ___unnamed_1@PAGE
 Lloh10:
-	add	x8, x8, l___unnamed_6@PAGEOFF
-	str	x8, [sp], #16
+	adrp	x0, l___unnamed_6@PAGE
+Lloh11:
+	add	x0, x0, l___unnamed_6@PAGEOFF
+	stur	w8, [sp, #15]
+Lloh12:
+	ldr	x8, [x9, ___unnamed_1@PAGEOFF]
+Lloh13:
+	adrp	x9, l___unnamed_7@PAGE
+Lloh14:
+	add	x9, x9, l___unnamed_7@PAGEOFF
+	str	x9, [sp]
+	blr	x8
+	ldp	x29, x30, [sp, #16]             ; 16-byte Folded Reload
+	ldr	x0, [sp]
+	add	sp, sp, #32
 	ret
-	.loh AdrpAdd	Lloh9, Lloh10
+	.loh AdrpAdd	Lloh13, Lloh14
+	.loh AdrpAdd	Lloh10, Lloh11
+	.loh AdrpAdrp	Lloh9, Lloh13
+	.loh AdrpLdr	Lloh9, Lloh12
 	.cfi_endproc
                                         ; -- End function
 	.globl	___unnamed_5                    ; -- Begin function 
 	.p2align	2
-___unnamed_5:                           ; @5
+___unnamed_5:                           ; @6
 	.cfi_startproc
 ; %bb.0:                                ; %entry
-	stp	x29, x30, [sp, #-16]!           ; 16-byte Folded Spill
-	.cfi_def_cfa_offset 16
+	stp	x20, x19, [sp, #-32]!           ; 16-byte Folded Spill
+	stp	x29, x30, [sp, #16]             ; 16-byte Folded Spill
+	.cfi_def_cfa_offset 32
 	.cfi_offset w30, -8
 	.cfi_offset w29, -16
-Lloh11:
-	adrp	x8, ___unnamed_2@PAGE
-Lloh12:
-	ldr	x8, [x8, ___unnamed_2@PAGEOFF]
+	.cfi_offset w19, -24
+	.cfi_offset w20, -32
+	adrp	x19, ___unnamed_2@PAGE
+	ldr	x8, [x19, ___unnamed_2@PAGEOFF]
 	blr	x8
+Lloh15:
+	adrp	x8, ___unnamed_1@PAGE
+Lloh16:
+	ldr	x20, [x8, ___unnamed_1@PAGEOFF]
+	ldr	x8, [x19, ___unnamed_2@PAGEOFF]
+	blr	x8
+	blr	x20
+	ldp	x29, x30, [sp, #16]             ; 16-byte Folded Reload
 	mov	w0, #1                          ; =0x1
-	ldp	x29, x30, [sp], #16             ; 16-byte Folded Reload
+	ldp	x20, x19, [sp], #32             ; 16-byte Folded Reload
 	ret
-	.loh AdrpLdr	Lloh11, Lloh12
+	.loh AdrpLdr	Lloh15, Lloh16
 	.cfi_endproc
                                         ; -- End function
 	.globl	___unnamed_1                    ; @0
@@ -84,9 +110,12 @@ Lloh12:
 	.globl	___unnamed_2                    ; @1
 .zerofill __DATA,__common,___unnamed_2,8,3
 	.section	__TEXT,__cstring,cstring_literals
-l___unnamed_6:                          ; @2
+l___unnamed_7:                          ; @2
 	.asciz	"abc"
 
-	.globl	___unnamed_4                    ; @3
+l___unnamed_6:                          ; @3
+	.asciz	"hello world!"
+
+	.globl	___unnamed_4                    ; @4
 .zerofill __DATA,__common,___unnamed_4,8,3
 .subsections_via_symbols

@@ -7,5 +7,6 @@ const func = fn(): *i8 {
 };
 const main = fn(): i32 {
     func();
+    puts(func());
     return 1;
 };
