@@ -418,6 +418,12 @@ struct DeclarationStatementNode *parse_decl_statement(struct Parser *parser,
 }
 
 struct ReturnStatementNode *parse_ret_statement(struct Parser *parser) {
+  if (parser_peek(parser).type == T_SEMICOLON) {
+
+    return ast_promote(parser->allocator,
+                       &(struct ReturnStatementNode){.expression = NULL},
+                       sizeof(struct DeclarationStatementNode));
+  }
   return ast_promote(
       parser->allocator,
       &(struct ReturnStatementNode){.expression = parse_expression(parser, 0)},

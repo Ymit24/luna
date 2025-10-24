@@ -375,6 +375,10 @@ void annotator_visit_function_statement(
     break;
   }
   case FN_STMT_RETURN: {
+    if (statement->node.ret->expression == NULL) {
+      assert(annotator->current_function->return_type->kind == DTK_VOID);
+      break;
+    }
     assert(data_types_equal(
         annotator->current_function->return_type,
         infer_type(annotator, statement->node.ret->expression)));

@@ -2,6 +2,7 @@
 #include "annotator.h"
 #include "arena_allocator.h"
 #include "ast.h"
+#include "luna_string.h"
 #include "llvm-c/Core.h"
 #include "llvm-c/Types.h"
 #include <assert.h>
@@ -75,10 +76,12 @@ LLVMValueRef cg_visit_function_call(struct CodeGenerator *code_generator,
   assert(symbol->llvm_value != NULL);
 
   LLVMTypeRef type = cg_get_type(symbol->type);
+  LLVMTypeRef ptr_type = LLVMPointerType(type, 0);
 
-  puts("returnning build call");
-  return LLVMBuildCall2(code_generator->builder, type, symbol->llvm_value, NULL,
-                        0, "");
+  LLVMValueRef fn_pointer =
+      LLVMBuildLoad2(code_generator->builder, ptr_type, symbol->llvm_value, "");
+
+  return LLVMBuildCall2(code_generator->builder, type, fn_pointer, NULL, 0, "");
 }
 
 LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
@@ -197,8 +200,8 @@ void cg_visit_module_decl(struct CodeGenerator *code_generator,
     type = LLVMPointerType(type, 0);
   }
 
-  LLVMValueRef variable =
-      LLVMAddGlobal(code_generator->module, type, decl->symbol.data);
+  LLVMValueRef variable = LLVMAddGlobal(code_generator->module, type, "");
+  LLVMSetInitializer(variable, LLVMConstPointerNull(type));
 
   symbol->llvm_value = variable;
 
@@ -223,8 +226,12 @@ void cg_visit_module_statement(struct CodeGenerator *code_generator,
 
 void cg_visit_return(struct CodeGenerator *code_generator,
                      struct ReturnStatementNode *ret) {
-  LLVMBuildRet(code_generator->builder,
-               cg_visit_expr(code_generator, ret->expression));
+  if (ret->expression == NULL) {
+    LLVMBuildRetVoid(code_generator->builder);
+  } else {
+    LLVMBuildRet(code_generator->builder,
+                 cg_visit_expr(code_generator, ret->expression));
+  }
 }
 
 void cg_visit_function_statement(struct CodeGenerator *code_generator,
@@ -264,13 +271,23 @@ void cg_visit_function_statements(struct CodeGenerator *code_generator,
   }
 }
 
-void cg_visit_module_statements(struct CodeGenerator *code_generator,
-                                struct ModuleStatementNode *stmt) {
+// TODO/NOTE: return module initialization function. if root then we should add
+// "main" to end of our own initiailzier
+LLVMValueRef cg_visit_module_statements(struct CodeGenerator *code_generator,
+                                        struct ModuleStatementNode *stmt,
+                                        bool is_root) {
   LLVMBasicBlockRef previous_block = code_generator->current_block;
 
-  LLVMValueRef module_initialization_function =
-      LLVMAddFunction(code_generator->module, "global_module_intializer",
-                      LLVMFunctionType(LLVMVoidType(), NULL, 0, 0));
+  LLVMValueRef module_initialization_function = NULL;
+  if (is_root) {
+    module_initialization_function =
+        LLVMAddFunction(code_generator->module, "main",
+                        LLVMFunctionType(LLVMInt32Type(), NULL, 0, 0));
+  } else {
+    module_initialization_function =
+        LLVMAddFunction(code_generator->module, "",
+                        LLVMFunctionType(LLVMVoidType(), NULL, 0, 0));
+  }
   LLVMBasicBlockRef block =
       LLVMAppendBasicBlock(module_initialization_function, "entry");
   LLVMPositionBuilderAtEnd(code_generator->builder, block);
@@ -286,4 +303,33 @@ void cg_visit_module_statements(struct CodeGenerator *code_generator,
   if (previous_block != NULL) {
     LLVMPositionBuilderAtEnd(code_generator->builder, previous_block);
   }
+
+  if (is_root) {
+    struct SymbolTableEntry *main_symbol = lookup_symbol_in(
+        string_make("main"), code_generator->current_symbol_table);
+
+    assert(main_symbol != NULL);
+    assert(main_symbol->llvm_value != NULL);
+
+    LLVMTypeRef func_type = LLVMFunctionType(LLVMVoidType(), NULL, 0, 0);
+    LLVMTypeRef ptr_type = LLVMPointerType(func_type, 0);
+
+    LLVMValueRef fn_pointer = LLVMBuildLoad2(code_generator->builder, ptr_type,
+                                             main_symbol->llvm_value, "");
+
+    if (main_symbol->type->value.function.return_type->kind == DTK_VOID) {
+      LLVMBuildCall2(code_generator->builder, func_type, fn_pointer, 0, 0, "");
+      LLVMBuildRet(code_generator->builder,
+                   LLVMConstInt(LLVMInt32Type(), 0, 0));
+    } else {
+      LLVMValueRef main_ret = LLVMBuildCall2(code_generator->builder, func_type,
+                                             fn_pointer, 0, 0, "");
+      LLVMBuildRet(code_generator->builder, main_ret);
+    }
+
+  } else {
+    LLVMBuildRetVoid(code_generator->builder);
+  }
+
+  return module_initialization_function;
 }

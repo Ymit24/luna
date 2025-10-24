@@ -12,6 +12,7 @@
 #include "parser.h"
 #include "token.h"
 #include "llvm-c/Core.h"
+#include "llvm-c/Types.h"
 
 struct LunaString read_file(const char *path, struct ArenaAllocator *alloc) {
   FILE *file = fopen(path, "rb");
@@ -76,7 +77,7 @@ int main(int argc, char **argv) {
   struct CodeGenerator code_generator = cg_make(&allocator, &annotator);
 
   puts("Start code gen");
-  cg_visit_module_statements(&code_generator, stmt);
+  cg_visit_module_statements(&code_generator, stmt, true);
   puts("Done code gen");
 
   LLVMDumpModule(code_generator.module);

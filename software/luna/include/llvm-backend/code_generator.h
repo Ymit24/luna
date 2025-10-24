@@ -17,7 +17,8 @@ struct CodeGenerator {
 struct CodeGenerator cg_make(struct ArenaAllocator *allocator,
                              struct Annotator *annotator);
 
-void cg_visit_module_statements(struct CodeGenerator *code_generator,
-                                struct ModuleStatementNode *stmt);
+LLVMValueRef cg_visit_module_statements(struct CodeGenerator *code_generator,
+                                        struct ModuleStatementNode *stmt,
+                                        bool is_root);
 
 #endif

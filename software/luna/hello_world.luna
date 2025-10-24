@@ -1,4 +1,8 @@
-const externalputs = fn@extern["puts"]();
+const func = fn() {
+    const a = 10;
+    return;
+};
 const main = fn() {
-    externalputs();
+    func();
+    return;
 };
