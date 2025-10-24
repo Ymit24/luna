@@ -447,6 +447,7 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
                        sizeof(struct FunctionStatementNode));
   }
   case T_SYMBOL: {
+    puts("FOUND SYM");
     struct SymbolLiteralNode *symbol = parse_symbol_literal(parser);
 
     assert(parser_peek(parser).type == T_LPAREN);
@@ -455,6 +456,10 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
     assert(parser_peek(parser).type == T_RPAREN);
     parser->position++;
 
+    assert(parser_peek(parser).type == T_SEMICOLON);
+    parser->position++;
+
+    printf("val: %s\n", symbol->value.data);
     return ast_promote(
         parser->allocator,
         &(struct FunctionStatementNode){

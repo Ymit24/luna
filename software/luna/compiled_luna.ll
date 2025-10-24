@@ -14,4 +14,5 @@ declare void @puts()
 
 define void @0() {
 entry:
+  call void @externalputs()
 }

@@ -380,6 +380,10 @@ void annotator_visit_function_statement(
         infer_type(annotator, statement->node.ret->expression)));
     break;
   }
+  case FN_STMT_FN_CALL: {
+    // TODO: check types
+    break;
+  }
   default:
     assert(0);
     break;
