@@ -52,7 +52,9 @@ struct LunaString lexer_read_symbol(struct Lexer *lexer) {
   char *buf = arena_alloc(lexer->allocator, 64 * sizeof(char));
   uint8_t index = 0;
 
-  while (isalpha(lexer_peek(lexer)) && index < 64) {
+  while ((isalpha(lexer_peek(lexer)) || isdigit(lexer_peek(lexer)) ||
+          lexer_peek(lexer) == '_') &&
+         index < 64) {
     buf[index++] = lexer_peek(lexer);
     lexer->position++;
   }

@@ -10,7 +10,7 @@
 
 enum DataTypeKind { DTK_PRIMITIVE, DTK_FUNCTION, DTK_VOID };
 // TODO: strings arent primitives, i/u8 is prim
-enum PrimitiveType { P_INT, P_BOOL, P_STRING };
+enum PrimitiveType { P_I8, P_I32, P_BOOL, P_STRING };
 
 struct FunctionType {
   struct DataType *return_type;
@@ -70,5 +70,5 @@ struct SymbolTableEntry *lookup_symbol(struct Annotator *annotator,
 struct DataType *make_void_data_type(struct ArenaAllocator *allocator);
 struct DataType *make_function_data_type(struct ArenaAllocator *allocator,
                                          struct DataType *return_type,
-                                         struct LunaString* extern_name);
+                                         struct LunaString *extern_name);
 #endif

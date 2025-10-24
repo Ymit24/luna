@@ -30,7 +30,9 @@ LLVMTypeRef cg_get_type(struct DataType *data_type) {
   switch (data_type->kind) {
   case DTK_PRIMITIVE:
     switch (data_type->value.primitive) {
-    case P_INT:
+    case P_I8:
+      return LLVMInt8Type();
+    case P_I32:
       return LLVMInt32Type();
     case P_BOOL:
       return LLVMInt1Type();

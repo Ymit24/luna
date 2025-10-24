@@ -59,7 +59,11 @@ void annotator_initialize_primitives(struct Annotator *annotator) {
   struct DataType *primitives[] = {
       ast_promote(
           annotator->allocator,
-          &(struct DataType){.kind = DTK_PRIMITIVE, .value.primitive = P_INT},
+          &(struct DataType){.kind = DTK_PRIMITIVE, .value.primitive = P_I8},
+          sizeof(struct DataType)),
+      ast_promote(
+          annotator->allocator,
+          &(struct DataType){.kind = DTK_PRIMITIVE, .value.primitive = P_I32},
           sizeof(struct DataType)),
       ast_promote(
           annotator->allocator,
@@ -175,8 +179,14 @@ struct DataType *infer_type(struct Annotator *annotator,
                             struct ExpressionNode *expr) {
   switch (expr->type) {
   case EXPR_INTEGER_LITERAL:
-    puts("infered int");
-    return make_primitive_data_type(annotator, P_INT);
+    // TODO: Do we want to auto downsize to I8? we need to handle implicit
+    // casting
+    if (expr->node.integer->value < 256) {
+      puts("infered i8");
+      return make_primitive_data_type(annotator, P_I8);
+    }
+    puts("infered i32");
+    return make_primitive_data_type(annotator, P_I32);
   case EXPR_SYMBOL_LITERAL: {
     struct SymbolTableEntry *entry =
         lookup_symbol(annotator, expr->node.symbol->value);
@@ -368,8 +378,8 @@ void annotator_visit_function_statement(
     assert(entry != NULL);
 
     assert(data_types_equal(
-        entry->type,
-        infer_type(annotator, statement->node.assign->expression)));
+        infer_type(annotator, statement->node.assign->expression),
+        entry->type));
 
     annotator_visit_expr(annotator, statement->node.assign->expression);
     break;
@@ -379,9 +389,9 @@ void annotator_visit_function_statement(
       assert(annotator->current_function->return_type->kind == DTK_VOID);
       break;
     }
-    assert(data_types_equal(
-        annotator->current_function->return_type,
-        infer_type(annotator, statement->node.ret->expression)));
+    assert(
+        data_types_equal(infer_type(annotator, statement->node.ret->expression),
+                         annotator->current_function->return_type));
     break;
   }
   case FN_STMT_FN_CALL: {
@@ -409,10 +419,10 @@ void annotator_visit_module_statements(struct Annotator *annotator,
   puts("Finished module annotation.");
 }
 
+// NOTE: This really means, can i store left into right.
+// e.g. i8 -> i32 is safe but i32 -> i8 is not safe
 bool data_types_equal(struct DataType *left, struct DataType *right) {
-  printf("2. left: %p :: %d\n", (void *)left, left == NULL);
   assert(left != NULL);
-  puts("pass");
   assert(right != NULL);
   if (left->kind != right->kind) {
     return false;
@@ -420,6 +430,28 @@ bool data_types_equal(struct DataType *left, struct DataType *right) {
 
   switch (left->kind) {
   case DTK_PRIMITIVE:
+    // TODO: check
+    // if (left->value.primitive == P_I32) {
+    // }
+    if ((left->value.primitive == P_I8 || left->value.primitive == P_I32) &&
+        (right->value.primitive == P_I8 || right->value.primitive == P_I32)) {
+      if (left->value.primitive == P_I8) {
+        puts("left is i8");
+      } else {
+        puts("left is i32");
+      }
+      if (right->value.primitive == P_I8) {
+        puts("right is i8");
+      } else {
+        puts("right is i32");
+      }
+      if (left->value.primitive == P_I32 && right->value.primitive == P_I8) {
+        puts("Tried to put i32 into an i8 storage.");
+        return false;
+      }
+      puts("compatible int to int storage.");
+      return true;
+    }
     if (left->value.primitive != right->value.primitive) {
       return false;
     }

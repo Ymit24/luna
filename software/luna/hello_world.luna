@@ -1,9 +1,9 @@
 const puts = fn@extern["puts"]();
-const func = fn(): int {
+const func = fn(): i8 {
     const a = 10;
     return a;
 };
-const main = fn():int {
+const main = fn(): i32 {
     func();
     return 1;
 };

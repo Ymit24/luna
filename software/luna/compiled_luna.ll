@@ -17,17 +17,17 @@ entry:
 
 declare void @puts()
 
-define i32 @3() {
+define i8 @3() {
 entry:
-  %a = alloca i32, align 4
+  %a = alloca i8, align 1
   store i32 10, ptr %a, align 4
-  %0 = load i32, ptr %a, align 4
-  ret i32 %0
+  %0 = load i8, ptr %a, align 1
+  ret i8 %0
 }
 
 define i32 @4() {
 entry:
   %0 = load ptr, ptr @1, align 8
-  %1 = call i32 %0()
+  %1 = call i8 %0()
   ret i32 1
 }

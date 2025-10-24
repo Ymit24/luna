@@ -300,12 +300,21 @@ struct DataType *parse_data_type(struct Parser *parser) {
   struct Token token = parser_peek(parser);
   switch (token.type) {
   case T_SYMBOL: {
-    if (strncmp("int", token.value.symbol.data, 3) == 0) {
+    if (strncmp("i8", token.value.symbol.data, 2) == 0) {
       parser->position++;
       return ast_promote(parser->allocator,
                          &(struct DataType){
                              .kind = DTK_PRIMITIVE,
-                             .value.primitive = P_INT,
+                             .value.primitive = P_I8,
+                             .next = NULL,
+                         },
+                         sizeof(struct DataType));
+    } else if (strncmp("i32", token.value.symbol.data, 3) == 0) {
+      parser->position++;
+      return ast_promote(parser->allocator,
+                         &(struct DataType){
+                             .kind = DTK_PRIMITIVE,
+                             .value.primitive = P_I32,
                              .next = NULL,
                          },
                          sizeof(struct DataType));
