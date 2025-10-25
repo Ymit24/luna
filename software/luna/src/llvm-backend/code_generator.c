@@ -282,6 +282,8 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
     return symbol->llvm_value;
   }
   }
+  assert(0);
+  return NULL;
 }
 
 LLVMValueRef cg_coerce(struct CodeGenerator *cg, LLVMValueRef val,
