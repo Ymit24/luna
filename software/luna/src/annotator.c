@@ -111,21 +111,9 @@ void print_symbol_table(struct LunaString name,
   printf("Symbol Table (%s):\n", name.data);
   while (symbol_table_entry != NULL) {
     if (symbol_table_entry->type != NULL) {
-      switch (symbol_table_entry->type->kind) {
-      case DTK_PRIMITIVE:
-        printf("\t%s: %d\n", symbol_table_entry->symbol.data,
-               symbol_table_entry->type->value.primitive);
-        break;
-      case DTK_FUNCTION:
-        printf("\t%s: fn\n", symbol_table_entry->symbol.data);
-        break;
-      case DTK_VOID:
-        printf("\t%s: void\n", symbol_table_entry->symbol.data);
-        break;
-      case DTK_POINTER:
-        printf("\t%s: ptr\n", symbol_table_entry->symbol.data);
-        break;
-      }
+      printf("\t%s: ", symbol_table_entry->symbol.data);
+      print_data_type(symbol_table_entry->type);
+      printf("\n");
     } else {
       printf("\t%s: unknown\n", symbol_table_entry->symbol.data);
     }
@@ -142,20 +130,7 @@ void print_data_types(struct Annotator *annotator) {
   struct DataType *data_type = annotator->data_type_table.head;
   puts("Type Table:");
   while (data_type != NULL) {
-    switch (data_type->kind) {
-    case DTK_PRIMITIVE:
-      printf("\t%d\n", data_type->value.primitive);
-      break;
-    case DTK_FUNCTION:
-      printf("\tfn\n");
-      break;
-    case DTK_VOID:
-      printf("\tvoid\n");
-      break;
-    case DTK_POINTER:
-      printf("\tptr\n");
-      break;
-    }
+    print_data_type(data_type);
     data_type = data_type->next;
   }
 }
@@ -543,4 +518,59 @@ bool data_types_equal(struct DataType *left, struct DataType *right) {
     return true;
   };
   return false;
+}
+
+void print_data_type(struct DataType *data_type) {
+  switch (data_type->kind) {
+  case DTK_VOID:
+    printf("void");
+    break;
+  case DTK_PRIMITIVE:
+    switch (data_type->value.primitive) {
+    case P_I8:
+      printf("i8");
+      break;
+    case P_I32:
+      printf("i32");
+      break;
+    case P_BOOL:
+      printf("bool");
+      break;
+      ;
+    }
+    break;
+  case DTK_POINTER:
+    printf("*");
+    print_data_type(data_type->value.pointer_inner);
+    break;
+  case DTK_FUNCTION: {
+    printf("fn");
+    struct FunctionType function = data_type->value.function;
+    if (function.extern_name != NULL) {
+      printf("@extern[%s]", function.extern_name->data);
+    }
+    if (function.is_variadic == true) {
+      printf("@variadic");
+    }
+    struct FunctionArgumentNode *argument = function.arguments;
+    if (argument != NULL) {
+      printf("(");
+
+      while (argument != NULL) {
+        print_data_type(argument->data_type);
+        argument = argument->next;
+        if (argument != NULL) {
+          printf(",");
+        }
+      }
+
+      printf(")");
+    }
+    if (function.return_type != NULL) {
+      printf(":");
+      print_data_type(function.return_type);
+    }
+    break;
+  }
+  }
 }

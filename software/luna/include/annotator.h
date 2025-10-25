@@ -76,4 +76,6 @@ struct DataType *make_function_data_type(struct ArenaAllocator *allocator,
                                          struct DataType *return_type,
                                          struct LunaString *extern_name,
                                          bool is_variadic);
+
+void print_data_type(struct DataType *data_type);
 #endif
