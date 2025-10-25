@@ -12,7 +12,6 @@
 #include "parser.h"
 #include "token.h"
 #include "llvm-c/Core.h"
-#include "llvm-c/Types.h"
 
 struct LunaString read_file(const char *path, struct ArenaAllocator *alloc) {
   FILE *file = fopen(path, "rb");

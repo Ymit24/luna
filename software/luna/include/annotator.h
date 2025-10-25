@@ -16,6 +16,7 @@ struct FunctionType {
   struct DataType *return_type;
   struct FunctionArgumentNode *arguments;
   struct LunaString *extern_name;
+  bool is_variadic;
 };
 
 struct DataType {
@@ -73,5 +74,6 @@ struct DataType *make_void_data_type(struct ArenaAllocator *allocator);
 struct DataType *make_function_data_type(struct ArenaAllocator *allocator,
                                          struct FunctionArgumentNode *arguments,
                                          struct DataType *return_type,
-                                         struct LunaString *extern_name);
+                                         struct LunaString *extern_name,
+                                         bool is_variadic);
 #endif

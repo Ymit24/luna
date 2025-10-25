@@ -41,7 +41,44 @@ struct LunaString lexer_read_string(struct Lexer *lexer) {
   uint8_t index = 0;
 
   while (lexer_peek(lexer) != '"' && index < 64) {
-    buf[index++] = lexer_peek(lexer);
+    char c = lexer_peek(lexer);
+    if (c == '\\') {
+      lexer->position++;
+      switch (lexer_peek(lexer)) {
+      case 'n':
+        buf[index++] = '\n';
+        break;
+      case 't':
+        buf[index++] = '\t';
+        break;
+      case 'r':
+        buf[index++] = '\r';
+        break;
+      case 'b':
+        buf[index++] = '\b';
+        break;
+      case 'f':
+        buf[index++] = '\f';
+        break;
+      case 'v':
+        buf[index++] = '\v';
+        break;
+      case 'a':
+        buf[index++] = '\a';
+        break;
+      case '\\':
+        buf[index++] = '\\';
+        break;
+      case '\'':
+        buf[index++] = '\'';
+        break;
+      case '"':
+        buf[index++] = '"';
+        break;
+      }
+    } else {
+      buf[index++] = c;
+    }
     lexer->position++;
   }
 
@@ -141,6 +178,12 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
         strncmp("extern", &lexer->source.data[lexer->position], 6) == 0) {
       out_token->type = T_EXTERN;
       lexer->position += 6;
+      return true;
+    } else if (lexer->source.length - lexer->position >= 8 &&
+               strncmp("variadic", &lexer->source.data[lexer->position], 8) ==
+                   0) {
+      out_token->type = T_VARIADIC;
+      lexer->position += 8;
       return true;
     }
     break;

@@ -29,6 +29,7 @@ enum TokenType {
   T_FN,
   T_RETURN,
   T_EXTERN,
+  T_VARIADIC,
   T_STRING,
 };
 

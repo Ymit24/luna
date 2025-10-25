@@ -103,9 +103,11 @@ LLVMTypeRef cg_get_type(struct CodeGenerator *code_generator,
       }
 
       function_type =
-          LLVMFunctionType(return_type, argument_types, argument_count, 0);
+          LLVMFunctionType(return_type, argument_types, argument_count,
+                           data_type->value.function.is_variadic);
     } else {
-      function_type = LLVMFunctionType(return_type, NULL, 0, 0);
+      function_type = LLVMFunctionType(return_type, NULL, 0,
+                                       data_type->value.function.is_variadic);
     }
     return function_type;
   }
@@ -201,7 +203,8 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
 
     LLVMTypeRef type = LLVMTypeOf(symbol->llvm_value);
     if (LLVMGetTypeKind(type) == LLVMPointerTypeKind) {
-
+      printf("\n\n\t\tBUILDING LOAD FOR POINTER TYPE: %s\n\n\n",
+             symbol->symbol.data);
       return LLVMBuildLoad2(code_generator->builder,
                             cg_get_type(code_generator, symbol->type),
                             symbol->llvm_value, "");
@@ -314,7 +317,8 @@ void cg_visit_module_decl(struct CodeGenerator *code_generator,
   }
 
   LLVMValueRef variable = LLVMAddGlobal(code_generator->module, type, "");
-  if (decl->data_type->kind == DTK_FUNCTION) {
+  if (decl->data_type->kind == DTK_FUNCTION ||
+      decl->data_type->kind == DTK_POINTER) {
     LLVMSetInitializer(variable, LLVMConstPointerNull(type));
   } else {
     LLVMSetInitializer(variable, LLVMConstInt(LLVMInt32Type(), 0, 0));

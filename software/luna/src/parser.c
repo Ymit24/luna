@@ -208,6 +208,7 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
     assert(parser_peek(parser).type == T_FN);
     parser->position++;
     struct LunaString *extern_name = NULL;
+    bool is_variadic = false;
     if (parser_peek(parser).type == T_EXTERN) {
       parser->position++;
 
@@ -222,6 +223,11 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
 
       assert(parser_peek(parser).type == T_RBRACK);
       parser->position++;
+
+      if (parser_peek(parser).type == T_VARIADIC) {
+        parser->position++;
+        is_variadic = true;
+      }
     }
     assert(parser_peek(parser).type == T_LPAREN);
     parser->position++;
@@ -249,7 +255,7 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
                                   .body = NULL,
                                   .function_type = make_function_data_type(
                                       parser->allocator, arguments, return_type,
-                                      extern_name),
+                                      extern_name, is_variadic),
                               },
                               sizeof(struct FunctionDefinitionExpressionNode)),
           },
@@ -261,20 +267,20 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
     assert(parser_peek(parser).type == T_RBRACE);
     parser->position++; // consume the close brace.
     printf("return type IS NULL?: %d\n", return_type == NULL);
-    return ast_promote(
-        parser->allocator,
-        &(struct ExpressionNode){
-            .type = EXPR_FN_DEF,
-            .node.fn_def = ast_promote(
-                parser->allocator,
-                &(struct FunctionDefinitionExpressionNode){
-                    .body = result,
-                    .function_type = make_function_data_type(
-                        parser->allocator, arguments, return_type, NULL),
-                },
-                sizeof(struct FunctionDefinitionExpressionNode)),
-        },
-        sizeof(struct ExpressionNode));
+    return ast_promote(parser->allocator,
+                       &(struct ExpressionNode){
+                           .type = EXPR_FN_DEF,
+                           .node.fn_def = ast_promote(
+                               parser->allocator,
+                               &(struct FunctionDefinitionExpressionNode){
+                                   .body = result,
+                                   .function_type = make_function_data_type(
+                                       parser->allocator, arguments,
+                                       return_type, NULL, is_variadic),
+                               },
+                               sizeof(struct FunctionDefinitionExpressionNode)),
+                       },
+                       sizeof(struct ExpressionNode));
   }
   default:
     printf("Found type: %d\n", token.type);
@@ -464,6 +470,7 @@ struct DataType *parse_data_type(struct Parser *parser) {
     parser->position++;
 
     struct LunaString *extern_name = NULL;
+    bool is_variadic = false;
     if (parser_peek(parser).type == T_EXTERN) {
       parser->position++;
 
@@ -478,6 +485,11 @@ struct DataType *parse_data_type(struct Parser *parser) {
 
       assert(parser_peek(parser).type == T_RBRACK);
       parser->position++;
+
+      if (parser_peek(parser).type == T_VARIADIC) {
+        parser->position++;
+        is_variadic = true;
+      }
     }
     assert(parser_peek(parser).type == T_LPAREN);
     parser->position++;
@@ -497,7 +509,7 @@ struct DataType *parse_data_type(struct Parser *parser) {
 
     puts("parsed function type here");
     struct DataType *type = make_function_data_type(
-        parser->allocator, arguments, return_type, extern_name);
+        parser->allocator, arguments, return_type, extern_name, is_variadic);
     printf("return type: is null: %d\n", type == NULL);
     return type;
   }
