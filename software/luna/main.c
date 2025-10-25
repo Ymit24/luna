@@ -40,8 +40,8 @@ int main(int argc, char **argv) {
 
   struct ArenaAllocator allocator = arena_make(&arena, UINT16_MAX);
 
-  if (argc < 2) {
-    fprintf(stderr, "usage: %s <source.luna>\n", argv[0]);
+  if (argc < 3) {
+    fprintf(stderr, "usage: %s <source.luna> <output.ll>\n", argv[0]);
     return 1;
   }
 
@@ -82,8 +82,7 @@ int main(int argc, char **argv) {
   LLVMDumpModule(code_generator.module);
 
   char *error = NULL;
-  if (LLVMPrintModuleToFile(code_generator.module, "compiled_luna.ll",
-                            &error) != 0) {
+  if (LLVMPrintModuleToFile(code_generator.module, argv[2], &error) != 0) {
     fprintf(stderr, "Failed to write module: %s", error);
     LLVMDisposeMessage(error);
   }
