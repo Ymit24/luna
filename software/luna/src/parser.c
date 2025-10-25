@@ -413,13 +413,17 @@ struct DataType *parse_data_type(struct Parser *parser) {
 
     assert(inner != NULL);
 
-    return ast_promote(parser->allocator,
-                       &(struct DataType){
-                           .kind = DTK_POINTER,
-                           .value.pointer_inner = inner,
-                           .next = NULL,
-                       },
-                       sizeof(struct DataType));
+    struct DataType *data_type = ast_promote(parser->allocator,
+                                             &(struct DataType){
+                                                 .kind = DTK_POINTER,
+                                                 .value.pointer_inner = inner,
+                                                 .next = NULL,
+                                             },
+                                             sizeof(struct DataType));
+    printf("parsed data type: ");
+    print_data_type(data_type);
+    printf("\n");
+    return data_type;
   }
   case T_SYMBOL: {
     if (strncmp("i8", token.value.symbol.data, 2) == 0) {

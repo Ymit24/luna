@@ -388,6 +388,13 @@ void cg_gen_assignment(struct CodeGenerator *code_generator,
   LLVMValueRef result = cg_visit_expr(code_generator, expression);
 
   LLVMTypeRef type = cg_get_type(code_generator, symbol->type);
+
+  printf("[cg_gen_assignment]: ");
+  print_data_type(symbol->type);
+  char *type_str = LLVMPrintTypeToString(type);
+  printf(" -> %s\n", type_str);
+  LLVMDisposeMessage(type_str);
+
   if (symbol->type->kind == DTK_FUNCTION) {
     type = LLVMPointerType(type, 0);
   } else if (symbol->type->kind == DTK_POINTER) {

@@ -321,6 +321,15 @@ void annotator_visit_decl(struct Annotator *annotator,
                           struct DeclarationStatementNode *decl) {
   assert(lookup_symbol(annotator, decl->symbol) == NULL);
   struct DataType *type = infer_type(annotator, decl->expression);
+
+  printf("\n");
+  printf("[annotator_visit_decl] symbol (%s) has infered type: (",
+         decl->symbol.data);
+  print_data_type(decl->data_type);
+  printf(") and the decl expression type is inferred as (");
+  print_data_type(type);
+  printf(")\n");
+
   printf("got type infer done for %s\n", decl->symbol.data);
   if (decl->data_type != NULL) {
     printf("decl type: %d\n", decl->data_type->kind);
@@ -347,7 +356,7 @@ void annotator_visit_decl(struct Annotator *annotator,
   // TODO: Memory segment here.
   insert_symbol_entry(annotator, (struct SymbolTableEntry){
                                      .symbol = decl->symbol,
-                                     .type = type,
+                                     .type = decl->data_type,
                                      .llvm_value = NULL,
                                      .next = NULL,
                                  });
@@ -521,6 +530,10 @@ bool data_types_equal(struct DataType *left, struct DataType *right) {
 }
 
 void print_data_type(struct DataType *data_type) {
+  if (data_type == NULL) {
+    printf("[null data_type]");
+    return;
+  }
   switch (data_type->kind) {
   case DTK_VOID:
     printf("void");

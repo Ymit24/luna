@@ -1,6 +1,9 @@
+const printf = fn@extern["printf"]@variadic(fmt: *i8);
 const main = fn(): i32 {
     let a: *i32 = 100;
+    printf("a: %d -- %p\n", a, a);
     a = 50;
+    printf("a: %d -- %p\n", a, a);
     let b: i32 = 200;
     b = 30;
     return 1;
