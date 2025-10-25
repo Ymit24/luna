@@ -1,0 +1,16 @@
+const puts = fn@extern["puts"](str: *i8);
+const putchar = fn@extern["putchar"](val: i8): i8;
+const incr_pointer = fn(foo: *i32) {
+    foo = 52;
+    return;
+};
+const main = fn(): i32 {
+    puts("pointer test.");
+    const var = 48;
+    putchar(var);
+    incr_pointer(&var);
+    putchar(var);
+    let test = "hello world!";
+    puts(test);
+    return 1;
+};

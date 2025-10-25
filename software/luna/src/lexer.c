@@ -91,6 +91,9 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
   case '*':
     out_token->type = T_STAR;
     break;
+  case '&':
+    out_token->type = T_AMPERSAND;
+    break;
   case '/':
     out_token->type = T_SLASH;
     break;

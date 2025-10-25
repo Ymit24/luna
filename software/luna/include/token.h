@@ -11,6 +11,7 @@ enum TokenType {
   T_PLUS,
   T_MINUS,
   T_STAR,
+  T_AMPERSAND,
   T_SLASH,
   T_LPAREN,
   T_RPAREN,

@@ -22,6 +22,8 @@ const main = fn(): i32 {
         deepinner();
         return;
     };
+    const a = 10;
+    const b: *i32 = &a;
     inner();
     puts(func());
     puts("computing..");

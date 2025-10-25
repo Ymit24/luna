@@ -265,6 +265,15 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
     return function;
   case EXPR_FN_CALL:
     return cg_visit_function_call(code_generator, expr->node.fn_call);
+  case EXPR_REF: {
+    struct SymbolTableEntry *symbol = lookup_symbol_in(
+        expr->node.symbol->value, code_generator->current_symbol_table);
+
+    assert(symbol != NULL);
+    assert(symbol->llvm_value != NULL);
+
+    return symbol->llvm_value;
+  }
   }
 }
 
@@ -351,16 +360,20 @@ void cg_visit_function_statement(struct CodeGenerator *code_generator,
   case FN_STMT_CONST:
     cg_visit_decl(code_generator, stmt->node.decl);
     break;
-  case FN_STMT_ASSIGN:
-    assert(lookup_symbol_in(stmt->node.assign->symbol,
-                            code_generator->current_symbol_table) != NULL);
+  case FN_STMT_ASSIGN: {
+    struct SymbolTableEntry *symbol = lookup_symbol_in(
+        stmt->node.assign->symbol, code_generator->current_symbol_table);
+    assert(symbol != NULL);
     puts("assign safe.");
     printf("assign type: %s -> %d (bin is %d)\n",
            stmt->node.assign->symbol.data, stmt->node.assign->expression->type,
            EXPR_BINARY);
-    cg_visit_expr(code_generator, stmt->node.assign->expression);
+    LLVMValueRef result =
+        cg_visit_expr(code_generator, stmt->node.assign->expression);
+    LLVMBuildStore(code_generator->builder, result, symbol->llvm_value);
     // TODO: Do we need something here?
     break;
+  }
   case FN_STMT_RETURN:
     cg_visit_return(code_generator, stmt->node.ret);
     break;

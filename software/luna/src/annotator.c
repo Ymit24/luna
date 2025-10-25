@@ -236,6 +236,12 @@ struct DataType *infer_type(struct Annotator *annotator,
            entry->type->kind);
     return entry->type->value.function.return_type;
   }
+  case EXPR_REF: {
+    struct SymbolTableEntry *entry =
+        lookup_symbol(annotator, expr->node.symbol->value);
+    assert(entry != NULL);
+    return make_pointer_data_type(annotator, entry->type);
+  }
   }
 
   puts("Failed to infer type.");
@@ -323,6 +329,10 @@ void annotator_visit_expr(struct Annotator *annotator,
     break;
   }
   case EXPR_FN_CALL:
+    puts("deleteme: Got to this spot and not sure if needed.");
+    // TODO: Do we need to do anything here?
+    break;
+  case EXPR_REF:
     puts("deleteme: Got to this spot and not sure if needed.");
     // TODO: Do we need to do anything here?
     break;
@@ -452,9 +462,26 @@ void annotator_visit_module_statements(struct Annotator *annotator,
 
 // NOTE: This really means, can i store left into right.
 // e.g. i8 -> i32 is safe but i32 -> i8 is not safe
+// TODO: rewrite this
 bool data_types_equal(struct DataType *left, struct DataType *right) {
   assert(left != NULL);
   assert(right != NULL);
+
+  if (left->kind == DTK_PRIMITIVE &&
+      (left->value.primitive == P_I8 || left->value.primitive == P_I32)) {
+    puts("left is primitive");
+    if (right->kind == DTK_POINTER &&
+        right->value.pointer_inner->kind == DTK_PRIMITIVE) {
+      puts("right is pointer to primitive");
+
+      if ((right->value.pointer_inner->value.primitive == P_I8 ||
+           right->value.pointer_inner->value.primitive == P_I32)) {
+        puts("infered magic pointer case");
+        return true;
+      }
+    }
+  }
+
   if (left->kind != right->kind) {
     return false;
   }
