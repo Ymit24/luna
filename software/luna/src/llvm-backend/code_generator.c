@@ -197,9 +197,16 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
     struct SymbolTableEntry *symbol = lookup_symbol_in(
         expr->node.symbol->value, code_generator->current_symbol_table);
     assert(symbol != NULL);
-    return LLVMBuildLoad2(code_generator->builder,
-                          cg_get_type(code_generator, symbol->type),
-                          symbol->llvm_value, "");
+    assert(symbol->llvm_value != NULL);
+
+    LLVMTypeRef type = LLVMTypeOf(symbol->llvm_value);
+    if (LLVMGetTypeKind(type) == LLVMPointerTypeKind) {
+
+      return LLVMBuildLoad2(code_generator->builder,
+                            cg_get_type(code_generator, symbol->type),
+                            symbol->llvm_value, "");
+    }
+    return symbol->llvm_value;
   }
   case EXPR_STRING_LITERAL: {
     return LLVMBuildGlobalStringPtr(code_generator->builder,
@@ -214,22 +221,36 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
 
     LLVMValueRef function = NULL;
 
+    LLVMTypeRef function_type =
+        cg_get_type(code_generator, expr->node.fn_def->function_type);
+
     if (expr->node.fn_def->function_type->value.function.extern_name != NULL) {
       puts("code genning extern function.");
 
       function = LLVMAddFunction(
           code_generator->module,
           expr->node.fn_def->function_type->value.function.extern_name->data,
-          cg_get_type(code_generator, expr->node.fn_def->function_type));
+          function_type);
     } else {
-      function = LLVMAddFunction(
-          code_generator->module, "",
-          cg_get_type(code_generator, expr->node.fn_def->function_type));
+      function = LLVMAddFunction(code_generator->module, "", function_type);
       LLVMBasicBlockRef block = LLVMAppendBasicBlock(function, "entry");
       LLVMPositionBuilderAtEnd(code_generator->builder, block);
 
       code_generator->current_block = block;
       code_generator->current_symbol_table = &expr->node.fn_def->symbol_table;
+
+      struct FunctionArgumentNode *argument =
+          expr->node.fn_def->function_type->value.function.arguments;
+      size_t index = 0;
+      while (argument != NULL) {
+        struct SymbolTableEntry *symbol = lookup_symbol_in(
+            argument->symbol, code_generator->current_symbol_table);
+        assert(symbol != NULL);
+        LLVMValueRef value = LLVMGetParam(function, index);
+        symbol->llvm_value = value;
+        index++;
+        argument = argument->next;
+      }
 
       cg_visit_function_statements(code_generator, expr->node.fn_def->body);
 

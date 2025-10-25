@@ -31,6 +31,54 @@ struct Token parser_peek(struct Parser *parser) {
   return parser->tokens[parser->position];
 }
 
+struct FunctionCallExpressionNode *
+parse_function_call_expression(struct Parser *parser,
+                               struct SymbolLiteralNode *symbol) {
+
+  assert(parser_peek(parser).type == T_LPAREN);
+  parser->position++;
+
+  struct FunctionCallArgumentExpressionsNode *root_argument = NULL;
+  if (parser_peek(parser).type != T_RPAREN) {
+    puts("function call may have arguments.");
+    root_argument =
+        ast_promote(parser->allocator,
+                    &(struct FunctionCallArgumentExpressionsNode){
+                        .argument = NULL,
+                        .next = NULL,
+                    },
+                    sizeof(struct FunctionCallArgumentExpressionsNode));
+
+    struct FunctionCallArgumentExpressionsNode *current_argument =
+        root_argument;
+
+    struct ExpressionNode *argument_expression = parse_expression(parser, 0);
+    current_argument->argument = argument_expression;
+
+    while (parser_peek(parser).type == T_COMMA) {
+      parser->position++;
+      argument_expression = parse_expression(parser, 0);
+      current_argument->next =
+          ast_promote(parser->allocator,
+                      &(struct FunctionCallArgumentExpressionsNode){
+                          .argument = argument_expression,
+                          .next = NULL,
+                      },
+                      sizeof(struct FunctionCallArgumentExpressionsNode));
+      current_argument = current_argument->next;
+    }
+  }
+
+  assert(parser_peek(parser).type == T_RPAREN);
+  parser->position++;
+
+  printf("val: %s\n", symbol->value.data);
+  return ast_promote(parser->allocator,
+                     &(struct FunctionCallExpressionNode){
+                         .name = symbol->value, .arguments = root_argument},
+                     sizeof(struct FunctionCallExpressionNode));
+}
+
 uint8_t precedence_for_token(enum TokenType type) {
   switch (type) {
   case T_PLUS:
@@ -107,18 +155,13 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
                                   .node.symbol = symbol});
     }
 
-    parser->position++;
-    assert(parser_peek(parser).type == T_RPAREN);
-    parser->position++;
+    struct FunctionCallExpressionNode *fn_call =
+        parse_function_call_expression(parser, symbol);
+    assert(fn_call != NULL);
 
     return ast_promote(
         parser->allocator,
-        &(struct ExpressionNode){
-            .type = EXPR_FN_CALL,
-            .node.fn_call = ast_promote(
-                parser->allocator,
-                &(struct FunctionCallExpressionNode){.name = symbol->value},
-                sizeof(struct FunctionCallExpressionNode))},
+        &(struct ExpressionNode){.type = EXPR_FN_CALL, .node.fn_call = fn_call},
         sizeof(struct ExpressionNode));
   }
   case T_STRING: {
@@ -524,60 +567,21 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
     puts("FOUND SYM");
     struct SymbolLiteralNode *symbol = parse_symbol_literal(parser);
 
-    assert(parser_peek(parser).type == T_LPAREN);
-    parser->position++;
-
-    struct FunctionCallArgumentExpressionsNode *root_argument = NULL;
-    if (parser_peek(parser).type != T_RPAREN) {
-      puts("function call may have arguments.");
-      root_argument =
-          ast_promote(parser->allocator,
-                      &(struct FunctionCallArgumentExpressionsNode){
-                          .argument = NULL,
-                          .next = NULL,
-                      },
-                      sizeof(struct FunctionCallArgumentExpressionsNode));
-
-      struct FunctionCallArgumentExpressionsNode *current_argument =
-          root_argument;
-
-      struct ExpressionNode *argument_expression = parse_expression(parser, 0);
-      current_argument->argument = argument_expression;
-
-      while (parser_peek(parser).type == T_COMMA) {
-        parser->position++;
-        argument_expression = parse_expression(parser, 0);
-        current_argument->next =
-            ast_promote(parser->allocator,
-                        &(struct FunctionCallArgumentExpressionsNode){
-                            .argument = argument_expression,
-                            .next = NULL,
-                        },
-                        sizeof(struct FunctionCallArgumentExpressionsNode));
-        current_argument = current_argument->next;
-      }
-    }
-
-    assert(parser_peek(parser).type == T_RPAREN);
-    parser->position++;
+    struct FunctionCallExpressionNode *fn_call =
+        parse_function_call_expression(parser, symbol);
+    assert(fn_call != NULL);
 
     assert(parser_peek(parser).type == T_SEMICOLON);
     parser->position++;
 
-    printf("val: %s\n", symbol->value.data);
-    return ast_promote(
-        parser->allocator,
-        &(struct FunctionStatementNode){
-            .type = FN_STMT_FN_CALL,
-            .node.fn_call = ast_promote(
-                parser->allocator,
-                &(struct FunctionCallExpressionNode){
-                    .name = symbol->value, .arguments = root_argument},
-                sizeof(struct FunctionCallExpressionNode)),
-            .next = NULL,
+    return ast_promote(parser->allocator,
+                       &(struct FunctionStatementNode){
+                           .type = FN_STMT_FN_CALL,
+                           .node.fn_call = fn_call,
+                           .next = NULL,
 
-        },
-        sizeof(struct FunctionStatementNode));
+                       },
+                       sizeof(struct FunctionStatementNode));
   }
   case T_RETURN: {
     puts("found return.");

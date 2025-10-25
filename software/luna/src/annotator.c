@@ -299,6 +299,21 @@ void annotator_visit_expr(struct Annotator *annotator,
     annotator->current_symbol_table = &expr->node.fn_def->symbol_table;
     annotator->current_function =
         &expr->node.fn_def->function_type->value.function;
+
+    struct FunctionArgumentNode *argument =
+        annotator->current_function->arguments;
+    puts("about to add arguments to functions symbol table.");
+    while (argument != NULL) {
+      printf("\tadding an argument..\n");
+      insert_symbol_entry_in(annotator, annotator->current_symbol_table,
+                             (struct SymbolTableEntry){
+                                 .symbol = argument->symbol,
+                                 .type = argument->data_type,
+                                 .llvm_value = NULL,
+                                 .next = NULL,
+                             });
+      argument = argument->next;
+    }
     annotator_visit_function_statements(annotator, expr->node.fn_def->body);
     annotator->current_function = old_function;
     annotator->current_symbol_table = old_current;
