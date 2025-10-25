@@ -1,0 +1,7 @@
+const main = fn(): i32 {
+    let a: *i32 = 100;
+    a = 50;
+    let b: i32 = 200;
+    b = 30;
+    return 1;
+};

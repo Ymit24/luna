@@ -11,6 +11,10 @@
 LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
                            struct ExpressionNode *expr);
 
+void cg_gen_assignment(struct CodeGenerator *code_generator,
+                       struct SymbolTableEntry *symbol,
+                       struct ExpressionNode *expression);
+
 void cg_visit_function_statements(struct CodeGenerator *code_generator,
                                   struct FunctionStatementNode *stmt);
 
@@ -280,9 +284,33 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
   }
 }
 
+LLVMValueRef cg_coerce(struct CodeGenerator *cg, LLVMValueRef val,
+                       LLVMTypeRef dest_type) {
+  LLVMTypeRef source_type = LLVMTypeOf(val);
+
+  LLVMTypeKind source_kind = LLVMGetTypeKind(source_type);
+  LLVMTypeKind dest_kind = LLVMGetTypeKind(dest_type);
+
+  char *source_type_str = LLVMPrintTypeToString(source_type);
+  char *dest_type_str = LLVMPrintTypeToString(dest_type);
+
+  printf("\n\n\t\nsource type: '%s' -> '%s'\n", source_type_str, dest_type_str);
+
+  LLVMDisposeMessage(source_type_str);
+  LLVMDisposeMessage(dest_type_str);
+
+  if (dest_kind == LLVMPointerTypeKind && source_kind == LLVMIntegerTypeKind) {
+    puts("\n\t\tcasting int to pointer\n");
+    return LLVMBuildIntToPtr(cg->builder, val, dest_type, "");
+  } else {
+    puts("\n\t\tnot casting to pointer.\n");
+  }
+
+  return val;
+}
+
 void cg_visit_decl(struct CodeGenerator *code_generator,
                    struct DeclarationStatementNode *decl) {
-
   struct SymbolTableEntry *symbol =
       lookup_symbol_in(decl->symbol, code_generator->current_symbol_table);
   assert(symbol != NULL);
@@ -291,6 +319,8 @@ void cg_visit_decl(struct CodeGenerator *code_generator,
   LLVMTypeRef type = cg_get_type(code_generator, decl->data_type);
   if (decl->data_type->kind == DTK_FUNCTION) {
     type = LLVMPointerType(type, 0);
+  } else if (decl->data_type->kind == DTK_POINTER) {
+    puts("kind is pointer.");
   }
 
   LLVMValueRef variable =
@@ -298,14 +328,11 @@ void cg_visit_decl(struct CodeGenerator *code_generator,
 
   symbol->llvm_value = variable;
 
-  LLVMValueRef result = cg_visit_expr(code_generator, decl->expression);
-
-  LLVMBuildStore(code_generator->builder, result, variable);
+  cg_gen_assignment(code_generator, symbol, decl->expression);
 }
 
 void cg_visit_module_decl(struct CodeGenerator *code_generator,
                           struct DeclarationStatementNode *decl) {
-
   struct SymbolTableEntry *symbol =
       lookup_symbol_in(decl->symbol, code_generator->current_symbol_table);
   assert(symbol != NULL);
@@ -326,9 +353,7 @@ void cg_visit_module_decl(struct CodeGenerator *code_generator,
 
   symbol->llvm_value = variable;
 
-  LLVMValueRef result = cg_visit_expr(code_generator, decl->expression);
-
-  LLVMBuildStore(code_generator->builder, result, variable);
+  cg_gen_assignment(code_generator, symbol, decl->expression);
 }
 
 void cg_visit_module_statement(struct CodeGenerator *code_generator,
@@ -355,6 +380,23 @@ void cg_visit_return(struct CodeGenerator *code_generator,
   }
 }
 
+void cg_gen_assignment(struct CodeGenerator *code_generator,
+                       struct SymbolTableEntry *symbol,
+                       struct ExpressionNode *expression) {
+  LLVMValueRef result = cg_visit_expr(code_generator, expression);
+
+  LLVMTypeRef type = cg_get_type(code_generator, symbol->type);
+  if (symbol->type->kind == DTK_FUNCTION) {
+    type = LLVMPointerType(type, 0);
+  } else if (symbol->type->kind == DTK_POINTER) {
+    puts("kind is pointer.");
+  }
+
+  LLVMValueRef coerced = cg_coerce(code_generator, result, type);
+
+  LLVMBuildStore(code_generator->builder, coerced, symbol->llvm_value);
+}
+
 void cg_visit_function_statement(struct CodeGenerator *code_generator,
                                  struct FunctionStatementNode *stmt) {
   switch (stmt->type) {
@@ -368,13 +410,9 @@ void cg_visit_function_statement(struct CodeGenerator *code_generator,
     struct SymbolTableEntry *symbol = lookup_symbol_in(
         stmt->node.assign->symbol, code_generator->current_symbol_table);
     assert(symbol != NULL);
-    puts("assign safe.");
-    printf("assign type: %s -> %d (bin is %d)\n",
-           stmt->node.assign->symbol.data, stmt->node.assign->expression->type,
-           EXPR_BINARY);
-    LLVMValueRef result =
-        cg_visit_expr(code_generator, stmt->node.assign->expression);
-    LLVMBuildStore(code_generator->builder, result, symbol->llvm_value);
+
+    cg_gen_assignment(code_generator, symbol, stmt->node.assign->expression);
+
     // TODO: Do we need something here?
     break;
   }

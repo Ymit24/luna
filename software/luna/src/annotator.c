@@ -313,6 +313,7 @@ void annotator_visit_expr(struct Annotator *annotator,
     puts("about to add arguments to functions symbol table.");
     while (argument != NULL) {
       printf("\tadding an argument..\n");
+      // TODO: Maybe do memory segment here for parameter
       insert_symbol_entry_in(annotator, annotator->current_symbol_table,
                              (struct SymbolTableEntry){
                                  .symbol = argument->symbol,
@@ -368,6 +369,7 @@ void annotator_visit_decl(struct Annotator *annotator,
   }
   puts("insert decl");
   printf("\n-----\nsymb: %s\n++++\n", decl->symbol.data);
+  // TODO: Memory segment here.
   insert_symbol_entry(annotator, (struct SymbolTableEntry){
                                      .symbol = decl->symbol,
                                      .type = type,
