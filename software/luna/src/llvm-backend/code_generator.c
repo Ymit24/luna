@@ -10,6 +10,8 @@
 
 LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
                            struct ExpressionNode *expr);
+LLVMValueRef cg_coerce(struct CodeGenerator *cg, LLVMValueRef val,
+                       LLVMTypeRef dest_type);
 
 void cg_gen_assignment(struct CodeGenerator *code_generator,
                        struct SymbolTableEntry *symbol,
@@ -160,7 +162,13 @@ LLVMValueRef cg_visit_function_call(struct CodeGenerator *code_generator,
     size_t index = 0;
     while (current != NULL) {
       LLVMValueRef value = cg_visit_expr(code_generator, current->argument);
-      arguments[index++] = value;
+
+      // TODO: Get actual function argument definitions from symbol->..->fn_call
+      // so we can coerce correectly.
+      // LLVMValueRef coerced =
+      //     cg_coerce(code_generator, value,
+      //               cg_get_type(code_generator, current->argument));
+      arguments[index++] = coerced;
       current = current->next;
     }
 
@@ -330,6 +338,22 @@ LLVMValueRef cg_coerce(struct CodeGenerator *cg, LLVMValueRef val,
     return LLVMBuildIntToPtr(cg->builder, val, dest_type, "");
   } else {
     puts("\n\t\tnot casting to pointer.\n");
+  }
+
+  if (source_kind == LLVMIntegerTypeKind && dest_kind == LLVMIntegerTypeKind) {
+    puts("doing integer to integer coercsion.");
+    uint16_t source_width = LLVMGetIntTypeWidth(source_type);
+    uint16_t dest_width = LLVMGetIntTypeWidth(dest_type);
+    if (source_width < dest_width) {
+      puts("need to extend source");
+      return LLVMBuildSExt(cg->builder, val, dest_type, "");
+    } else if (source_width > dest_width) {
+      puts("need to trunc source");
+      return LLVMBuildTrunc(cg->builder, val, dest_type, "");
+    } else {
+      puts("types are same width");
+      return val;
+    }
   }
 
   return val;
