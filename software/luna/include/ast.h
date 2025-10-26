@@ -71,6 +71,7 @@ enum ExpressionType {
   EXPR_FN_DEF,
   EXPR_FN_CALL,
   EXPR_REF,
+  EXPR_DEREF,
 };
 
 struct ExpressionNode {
@@ -83,6 +84,7 @@ struct ExpressionNode {
     struct FunctionDefinitionExpressionNode *fn_def;
     struct FunctionCallExpressionNode *fn_call;
     struct SymbolLiteralNode *ref_symbol;
+    struct SymbolLiteralNode *deref_symbol;
   } node;
 };
 

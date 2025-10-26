@@ -1,4 +1,3 @@
-#!/opt/homebrew/bin/bash
 # luna_build.sh — compile a .luna source using lunac, then build an executable
 # from the generated LLVM IR (.ll) using llc, as, and clang. Runs the program.
 # Pretty TUI via Charm Gum.

@@ -164,7 +164,20 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
         &(struct ExpressionNode){.type = EXPR_FN_CALL, .node.fn_call = fn_call},
         sizeof(struct ExpressionNode));
   }
-  case T_AMPERSAND:
+  case T_STAR: {
+    puts("parsing deref");
+    parser->position++;
+
+    assert(parser_peek(parser).type == T_SYMBOL);
+
+    struct SymbolLiteralNode *symbol = parse_symbol_literal(parser);
+
+    return ast_promote(parser->allocator,
+                       &(struct ExpressionNode){.type = EXPR_DEREF,
+                                                .node.deref_symbol = symbol},
+                       sizeof(struct ExpressionNode));
+  }
+  case T_AMPERSAND: {
     parser->position++;
 
     assert(parser_peek(parser).type == T_SYMBOL);
@@ -175,10 +188,7 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
         parser->allocator,
         &(struct ExpressionNode){.type = EXPR_REF, .node.ref_symbol = symbol},
         sizeof(struct ExpressionNode));
-
-    puts("Found AMPERSAND");
-    assert(0);
-    break;
+  }
   case T_STRING: {
     parser->position++;
 

@@ -215,9 +215,19 @@ struct DataType *infer_type(struct Annotator *annotator,
   }
   case EXPR_REF: {
     struct SymbolTableEntry *entry =
-        lookup_symbol(annotator, expr->node.symbol->value);
+        lookup_symbol(annotator, expr->node.ref_symbol->value);
     assert(entry != NULL);
     return make_pointer_data_type(annotator, entry->type);
+  }
+  case EXPR_DEREF: {
+    puts("\t\t\t\t\t-------------------------FOOOOOOO\n\n\n\n");
+    struct SymbolTableEntry *entry =
+        lookup_symbol(annotator, expr->node.deref_symbol->value);
+    assert(entry != NULL);
+
+    assert(entry->type->kind == DTK_POINTER);
+
+    return entry->type->value.pointer_inner;
   }
   }
 
@@ -307,13 +317,30 @@ void annotator_visit_expr(struct Annotator *annotator,
     break;
   }
   case EXPR_FN_CALL:
-    puts("deleteme: Got to this spot and not sure if needed.");
+    puts("deleteme: (fn_call) Got to this spot and not sure if needed.");
     // TODO: Do we need to do anything here?
     break;
-  case EXPR_REF:
-    puts("deleteme: Got to this spot and not sure if needed.");
+  case EXPR_REF: {
+    puts("deleteme: (fn_ref) Got to this spot and not sure if needed.");
+    struct SymbolTableEntry *entry =
+        lookup_symbol(annotator, expr->node.ref_symbol->value);
+
+    assert(entry != NULL);
+    assert(entry->type != NULL);
+
     // TODO: Do we need to do anything here?
     break;
+  }
+  case EXPR_DEREF: {
+    puts("deleteme: (fn_deref) Got to this spot and not sure if needed.");
+    struct SymbolTableEntry *entry =
+        lookup_symbol(annotator, expr->node.deref_symbol->value);
+
+    assert(entry != NULL);
+    assert(entry->type != NULL);
+    assert(entry->type->kind == DTK_POINTER);
+    break;
+  }
   }
 }
 
@@ -424,6 +451,41 @@ void annotator_visit_function_statement(
     break;
   }
   case FN_STMT_FN_CALL: {
+    printf("\n\n\t\tFN_STMT_FN_CALL\n\n");
+    struct FunctionCallExpressionNode *fn_call = statement->node.fn_call;
+    assert(fn_call != NULL);
+
+    struct SymbolTableEntry *entry = lookup_symbol(annotator, fn_call->name);
+    assert(entry != NULL);
+    assert(entry->type->kind == DTK_FUNCTION);
+    struct FunctionType *fn_def = &entry->type->value.function;
+
+    struct FunctionCallArgumentExpressionsNode *call_arg = fn_call->arguments;
+    while (call_arg != NULL) {
+      annotator_visit_expr(annotator, call_arg->argument);
+      call_arg = call_arg->next;
+    }
+
+    if (fn_def->is_variadic) {
+      puts("WARN: dont do type inference for variadic function");
+      break;
+    }
+
+    call_arg = fn_call->arguments;
+    struct FunctionArgumentNode *def_arg = fn_def->arguments;
+
+    puts("checking args..");
+    while (call_arg != NULL && def_arg != NULL) {
+      struct DataType *type = infer_type(annotator, call_arg->argument);
+
+      assert(data_types_equal(type, def_arg->data_type));
+
+      call_arg = call_arg->next;
+      def_arg = def_arg->next;
+
+      assert((call_arg == NULL) && (def_arg == NULL));
+    }
+
     // TODO: check types
     break;
   }

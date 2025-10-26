@@ -1,6 +1,7 @@
 const puts = fn@extern["puts"](str: *i8);
 const getchar = fn@extern["getchar"](): i8;
 const putchar = fn@extern["putchar"](c: i8): i8;
+
 const func = fn(): *i8 {
     const a = 10;
     const str = "abc";

@@ -1,12 +1,13 @@
 const printf = fn@extern["printf"]@variadic(fmt: *i8);
 const main = fn(): i32 {
-    let a: *i32 = 100;
-    printf("a: %d -- %p\n", a, &a);
-    a = 50;
-    printf("a: %d -- %p\n", a, &a);
+    let foo = 21;
+    let a: *i32 = &foo;
+    printf("a: %d -- %d -- %p\n", a, *a, &a);
+
     let b: i32 = 200;
     printf("b: %d -- %p\n", b, &b);
     b = 30;
     printf("b: %d -- %p\n", b, &b);
+
     return 1;
 };

@@ -205,9 +205,15 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
     assert(symbol != NULL);
     assert(symbol->llvm_value != NULL);
 
-    LLVMTypeRef type = LLVMTypeOf(symbol->llvm_value);
-    if (LLVMGetTypeKind(type) != LLVMPointerTypeKind) {
+    if (symbol->type->kind == DTK_POINTER) {
       printf("\n\n\t\tBUILDING LOAD FOR POINTER TYPE: %s\n\n\n",
+             symbol->symbol.data);
+      return LLVMBuildLoad2(code_generator->builder,
+                            cg_get_type(code_generator, symbol->type),
+                            symbol->llvm_value, "");
+    } else {
+      printf("grabbing value from non pointer type.\n");
+      printf("\n\n\t\tBUILDING LOAD FOR (non) POINTER TYPE: %s\n\n\n",
              symbol->symbol.data);
       return LLVMBuildLoad2(code_generator->builder,
                             cg_get_type(code_generator, symbol->type),
@@ -274,12 +280,30 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
     return cg_visit_function_call(code_generator, expr->node.fn_call);
   case EXPR_REF: {
     struct SymbolTableEntry *symbol = lookup_symbol_in(
-        expr->node.symbol->value, code_generator->current_symbol_table);
+        expr->node.ref_symbol->value, code_generator->current_symbol_table);
 
     assert(symbol != NULL);
     assert(symbol->llvm_value != NULL);
 
     return symbol->llvm_value;
+  }
+  case EXPR_DEREF: {
+    struct SymbolTableEntry *symbol = lookup_symbol_in(
+        expr->node.deref_symbol->value, code_generator->current_symbol_table);
+
+    assert(symbol != NULL);
+    assert(symbol->llvm_value != NULL);
+
+    LLVMTypeRef type = cg_get_type(code_generator, symbol->type);
+
+    LLVMValueRef value = symbol->llvm_value;
+    if (LLVMGetTypeKind(LLVMTypeOf(symbol->llvm_value)) ==
+        LLVMPointerTypeKind) {
+      puts("type was pointer type so adding extra load.");
+      value = LLVMBuildLoad2(code_generator->builder, type, value, "");
+    }
+
+    return LLVMBuildLoad2(code_generator->builder, type, value, "");
   }
   }
   assert(0);
