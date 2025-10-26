@@ -135,11 +135,16 @@ LLVMTypeRef cg_get_type(struct CodeGenerator *code_generator,
 
 LLVMValueRef cg_visit_function_call(struct CodeGenerator *code_generator,
                                     struct FunctionCallExpressionNode *expr) {
-
   puts("Code genning function call.");
   struct SymbolTableEntry *symbol =
       lookup_symbol_in(expr->name, code_generator->current_symbol_table);
   assert(symbol != NULL);
+
+  assert(symbol->type != NULL);
+  assert(symbol->type->kind == DTK_FUNCTION);
+
+  struct FunctionType *fn_definition = &symbol->type->value.function;
+
   printf("type kind: %d\n", symbol->type->kind);
   assert(symbol->llvm_value != NULL);
 
@@ -157,19 +162,37 @@ LLVMValueRef cg_visit_function_call(struct CodeGenerator *code_generator,
     LLVMValueRef *arguments = (LLVMValueRef *)arena_alloc(
         code_generator->allocator, argument_count * sizeof(LLVMValueRef));
 
-    struct FunctionCallArgumentExpressionsNode *current = expr->arguments;
+    struct FunctionCallArgumentExpressionsNode *current_call_argument =
+        expr->arguments;
+    struct FunctionArgumentNode *current_definition_argument =
+        fn_definition->arguments;
 
     size_t index = 0;
-    while (current != NULL) {
-      LLVMValueRef value = cg_visit_expr(code_generator, current->argument);
+    while (current_call_argument != NULL) {
+      // TODO: consider variadic
+      if (!fn_definition->is_variadic) {
+        assert(current_definition_argument != NULL);
+      } else {
+        puts("skipping definition type check match for variadic");
+      }
+
+      LLVMValueRef value =
+          cg_visit_expr(code_generator, current_call_argument->argument);
 
       // TODO: Get actual function argument definitions from symbol->..->fn_call
       // so we can coerce correectly.
-      // LLVMValueRef coerced =
-      //     cg_coerce(code_generator, value,
-      //               cg_get_type(code_generator, current->argument));
-      arguments[index++] = coerced;
-      current = current->next;
+
+      if (!fn_definition->is_variadic) {
+        LLVMValueRef coerced =
+            cg_coerce(code_generator, value,
+                      cg_get_type(code_generator,
+                                  current_definition_argument->data_type));
+        arguments[index++] = coerced;
+        current_definition_argument = current_definition_argument->next;
+      } else {
+        arguments[index++] = value;
+      }
+      current_call_argument = current_call_argument->next;
     }
 
     return LLVMBuildCall2(code_generator->builder, type, fn_pointer, arguments,

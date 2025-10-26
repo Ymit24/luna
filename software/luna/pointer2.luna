@@ -1,4 +1,5 @@
 const printf = fn@extern["printf"]@variadic(fmt: *i8);
+
 const main = fn(): i32 {
     let foo = 21;
     let a: *i32 = &foo;

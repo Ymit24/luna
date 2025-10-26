@@ -36,7 +36,7 @@ __unnamed_2:                            # @5
 	.cfi_def_cfa_offset 48
 	.cfi_offset %rbx, -24
 	.cfi_offset %r14, -16
-	movl	$21, 3(%rsp)
+	movb	$21, 3(%rsp)
 	leaq	3(%rsp), %rsi
 	movq	%rsi, 8(%rsp)
 	leaq	8(%rsp), %rcx
@@ -44,6 +44,8 @@ __unnamed_2:                            # @5
 	movq	__unnamed_1@GOTPCREL(%rip), %r14
 	movq	3(%rsp), %rdx
 	movl	$.L__unnamed_4, %edi
+	movq	%rsi, %r8
+	movl	$21, %r9d
 	xorl	%eax, %eax
 	callq	*(%r14)
 	movl	$200, 4(%rsp)
@@ -89,8 +91,8 @@ __unnamed_3:
 	.type	.L__unnamed_4,@object           # @2
 	.section	.rodata.str1.1,"aMS",@progbits,1
 .L__unnamed_4:
-	.asciz	"a: %d -- %d -- %p\n"
-	.size	.L__unnamed_4, 19
+	.asciz	"a: %p -- %d -- %p -- %p ( %d )\n"
+	.size	.L__unnamed_4, 32
 
 	.type	.L__unnamed_5,@object           # @3
 .L__unnamed_5:
