@@ -1,5 +1,9 @@
 const printf = fn@extern["printf"]@variadic(fmt: *i8);
 
+const add_three = fn(ptr: *i32) {
+    *ptr = *ptr + 3;
+};
+
 const main = fn(): i32 {
     let foo = 21;
     let a: *i32 = &foo;
@@ -8,7 +12,7 @@ const main = fn(): i32 {
 
     let b: i32 = 200;
     printf("b: %d -- %p\n", b, &b);
-    b = 30;
+    add_three(&b);
     printf("b: %d -- %p\n", b, &b);
 
     return 1;

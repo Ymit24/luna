@@ -647,6 +647,23 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
                          },
                          sizeof(struct FunctionStatementNode));
     case EXPR_DEREF:
+      // TODO: make a stmt assign with expression to evaluate the memory address
+      // rather than symbol.
+
+      // return ast_promote(parser->allocator,
+      //                    &(struct FunctionStatementNode){
+      //                        .type = FN_STMT_ASSIGN,
+      //                        .node.assign = ast_promote(
+      //                            parser->allocator,
+      //                            &(struct AssignStatementNode){
+      //                                .symbol =
+      //                                expr->node.deref_symbol->value,
+      //                                .expression = expr->node},
+      //                            sizeof(struct AssignStatementNode)),
+      //                        .next = NULL,
+      //                    },
+      //                    sizeof(struct FunctionStatementNode));
+      assert(0);
       break;
     case EXPR_SYMBOL_LITERAL:
       puts("plain symbol assignment.");
@@ -662,17 +679,18 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
       assert(parser_peek(parser).type == T_SEMICOLON);
       parser->position++;
 
-      return ast_promote(parser->allocator,
-                         &(struct FunctionStatementNode){
-                             .type = FN_STMT_ASSIGN,
-                             .node.assign = ast_promote(
-                                 parser->allocator,
-                                 &(struct AssignStatementNode){
-                                     .symbol = symbol, .expression = expr},
-                                 sizeof(struct AssignStatementNode)),
-                             .next = NULL,
-                         },
-                         sizeof(struct FunctionStatementNode));
+      return ast_promote(
+          parser->allocator,
+          &(struct FunctionStatementNode){
+              .type = FN_STMT_ASSIGN,
+              .node.assign =
+                  ast_promote(parser->allocator,
+                              &(struct AssignStatementNode){
+                                  .value.symbol = symbol, .expression = expr},
+                              sizeof(struct AssignStatementNode)),
+              .next = NULL,
+          },
+          sizeof(struct FunctionStatementNode));
 
       // switch (parser_peek(parser).type) {
       // case T_EQUALS: {

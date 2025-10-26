@@ -36,7 +36,10 @@ struct DeclarationStatementNode {
 };
 
 struct AssignStatementNode {
-  struct LunaString symbol;
+  union {
+    struct LunaString symbol;
+    struct ExpressionNode *expression;
+  } value;
   struct ExpressionNode *expression;
 };
 
