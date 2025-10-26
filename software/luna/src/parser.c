@@ -149,11 +149,15 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
     struct SymbolLiteralNode *symbol = parse_symbol_literal(parser);
 
     if (parser_peek(parser).type != T_LPAREN) {
+      printf("did not find lparen after symbol, found: %d\n",
+             parser_peek(parser).type);
       return ast_promote_expression_node(
           parser->allocator,
           (struct ExpressionNode){.type = EXPR_SYMBOL_LITERAL,
                                   .node.symbol = symbol});
     }
+
+    puts("found lparen, is function call");
 
     struct FunctionCallExpressionNode *fn_call =
         parse_function_call_expression(parser, symbol);
@@ -620,14 +624,37 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
                        sizeof(struct FunctionStatementNode));
   }
   default: {
+    puts("[PARSER] In default case for function statement.");
     printf("Looking at: %d\n", parser_peek(parser).type);
-    assert(parser_peek(parser).type == T_SYMBOL);
-    struct LunaString symbol = parser_peek(parser).value.symbol;
-    parser->position++;
+    struct ExpressionNode *expr = parse_expression(parser, 0);
 
-    switch (parser_peek(parser).type) {
-    case T_EQUALS: {
+    assert(expr != NULL);
+    printf("[PARSER] found expression of type: %d\n", expr->type);
+
+    switch (expr->type) {
+    case EXPR_FN_CALL:
+      assert(expr->node.fn_call != NULL);
+
+      assert(parser_peek(parser).type == T_SEMICOLON);
       parser->position++;
+
+      return ast_promote(parser->allocator,
+                         &(struct FunctionStatementNode){
+                             .type = FN_STMT_FN_CALL,
+                             .node.fn_call = expr->node.fn_call,
+                             .next = NULL,
+
+                         },
+                         sizeof(struct FunctionStatementNode));
+    case EXPR_DEREF:
+      break;
+    case EXPR_SYMBOL_LITERAL:
+      puts("plain symbol assignment.");
+
+      struct LunaString symbol = expr->node.symbol->value;
+      assert(parser_peek(parser).type == T_EQUALS);
+      parser->position++;
+
       struct ExpressionNode *expr = parse_expression(parser, 0);
 
       printf("in assign, parsed expression of type: %d\n", expr->type);
@@ -646,34 +673,68 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
                              .next = NULL,
                          },
                          sizeof(struct FunctionStatementNode));
-      break;
-    }
-    case T_LPAREN: {
-      struct SymbolLiteralNode *symbol_literal = ast_promote(
-          parser->allocator, &(struct SymbolLiteralNode){.value = symbol},
-          sizeof(struct SymbolLiteralNode));
-      struct FunctionCallExpressionNode *fn_call =
-          parse_function_call_expression(parser, symbol_literal);
-      assert(fn_call != NULL);
 
-      assert(parser_peek(parser).type == T_SEMICOLON);
-      parser->position++;
-
-      return ast_promote(parser->allocator,
-                         &(struct FunctionStatementNode){
-                             .type = FN_STMT_FN_CALL,
-                             .node.fn_call = fn_call,
-                             .next = NULL,
-
-                         },
-                         sizeof(struct FunctionStatementNode));
-    }
-    default:
+      // switch (parser_peek(parser).type) {
+      // case T_EQUALS: {
+      //   parser->position++;
+      //   struct ExpressionNode *expr = parse_expression(parser, 0);
+      //
+      //   printf("in assign, parsed expression of type: %d\n", expr->type);
+      //
+      //   assert(parser_peek(parser).type == T_SEMICOLON);
+      //   parser->position++;
+      //
+      //   return ast_promote(parser->allocator,
+      //                      &(struct FunctionStatementNode){
+      //                          .type = FN_STMT_ASSIGN,
+      //                          .node.assign = ast_promote(
+      //                              parser->allocator,
+      //                              &(struct AssignStatementNode){
+      //                                  .symbol = symbol, .expression = expr},
+      //                              sizeof(struct AssignStatementNode)),
+      //                          .next = NULL,
+      //                      },
+      //                      sizeof(struct FunctionStatementNode));
+      //   break;
+      // }
+      // case T_LPAREN: {
+      //   struct SymbolLiteralNode *symbol_literal = ast_promote(
+      //       parser->allocator, &(struct SymbolLiteralNode){.value = symbol},
+      //       sizeof(struct SymbolLiteralNode));
+      //   struct FunctionCallExpressionNode *fn_call =
+      //       parse_function_call_expression(parser, symbol_literal);
+      //   assert(fn_call != NULL);
+      //
+      //   assert(parser_peek(parser).type == T_SEMICOLON);
+      //   parser->position++;
+      //
+      //   return ast_promote(parser->allocator,
+      //                      &(struct FunctionStatementNode){
+      //                          .type = FN_STMT_FN_CALL,
+      //                          .node.fn_call = fn_call,
+      //                          .next = NULL,
+      //
+      //                      },
+      //                      sizeof(struct FunctionStatementNode));
+      // }
+      // default:
+      //   assert(0);
+      //   break;
+      // };
+    case EXPR_BINARY:
+    case EXPR_INTEGER_LITERAL:
+    case EXPR_STRING_LITERAL:
+    case EXPR_FN_DEF:
+    case EXPR_REF:
+      puts("illegal expression type as function statement.");
       assert(0);
-      break;
-    };
+      return NULL;
+    }
   }
-  }
+  };
+  puts("illegal function statement.");
+  assert(0);
+  return NULL;
 }
 
 struct ModuleStatementNode *parse_module_statement(struct Parser *parser) {

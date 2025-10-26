@@ -3,7 +3,7 @@ const main = fn(): i32 {
     let foo = 21;
     let a: *i32 = &foo;
     let c = &a;
-    printf("a: %d -- %d -- %p\n", a, *a, &a);
+    printf("a: %p -- %d -- %p -- %p ( %d )\n", a, *a, &a, &foo, foo);
 
     let b: i32 = 200;
     printf("b: %d -- %p\n", b, &b);
