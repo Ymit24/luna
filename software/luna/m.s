@@ -25,7 +25,7 @@ main:                                   # @main
 	.globl	__unnamed_2                     # -- Begin function 
 	.p2align	4
 	.type	__unnamed_2,@function
-__unnamed_2:                            # @6
+__unnamed_2:                            # @5
 	.cfi_startproc
 # %bb.0:                                # %entry
 	pushq	%r14
@@ -36,31 +36,25 @@ __unnamed_2:                            # @6
 	.cfi_def_cfa_offset 48
 	.cfi_offset %rbx, -24
 	.cfi_offset %r14, -16
-	movl	$21, 11(%rsp)
-	leaq	11(%rsp), %rsi
-	movq	%rsi, 16(%rsp)
+	movl	$21, 3(%rsp)
+	leaq	3(%rsp), %rsi
+	movq	%rsi, 8(%rsp)
+	leaq	8(%rsp), %rcx
+	movq	%rcx, 16(%rsp)
 	movq	__unnamed_1@GOTPCREL(%rip), %r14
-	movq	11(%rsp), %rdx
-	leaq	16(%rsp), %rbx
+	movq	3(%rsp), %rdx
 	movl	$.L__unnamed_4, %edi
-	movq	%rbx, %rcx
 	xorl	%eax, %eax
 	callq	*(%r14)
-	movq	16(%rsp), %rsi
-	movq	(%rsi), %rdx
+	movl	$200, 4(%rsp)
+	leaq	4(%rsp), %rbx
 	movl	$.L__unnamed_5, %edi
-	movq	%rbx, %rcx
-	xorl	%eax, %eax
-	callq	*(%r14)
-	movl	$200, 12(%rsp)
-	leaq	12(%rsp), %rbx
-	movl	$.L__unnamed_6, %edi
 	movl	$200, %esi
 	movq	%rbx, %rdx
 	xorl	%eax, %eax
 	callq	*(%r14)
-	movl	$30, 12(%rsp)
-	movl	$.L__unnamed_7, %edi
+	movl	$30, 4(%rsp)
+	movl	$.L__unnamed_6, %edi
 	movl	$30, %esi
 	movq	%rbx, %rdx
 	xorl	%eax, %eax
@@ -100,17 +94,12 @@ __unnamed_3:
 
 	.type	.L__unnamed_5,@object           # @3
 .L__unnamed_5:
-	.asciz	"a: %d -- %d -- %p\n"
-	.size	.L__unnamed_5, 19
+	.asciz	"b: %d -- %p\n"
+	.size	.L__unnamed_5, 13
 
 	.type	.L__unnamed_6,@object           # @4
 .L__unnamed_6:
 	.asciz	"b: %d -- %p\n"
 	.size	.L__unnamed_6, 13
-
-	.type	.L__unnamed_7,@object           # @5
-.L__unnamed_7:
-	.asciz	"b: %d -- %p\n"
-	.size	.L__unnamed_7, 13
 
 	.section	".note.GNU-stack","",@progbits

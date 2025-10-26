@@ -135,6 +135,8 @@ void print_data_types(struct Annotator *annotator) {
   }
 }
 
+// TODO: this fails for when say "a" exists and you're looking for "ab", it will
+// sometimes find "a" still.
 struct SymbolTableEntry *lookup_symbol_in(struct LunaString symbol,
                                           struct SymbolTable *symbol_table) {
   printf("About to check symbol: %s\n", symbol.data);
@@ -155,6 +157,11 @@ struct SymbolTableEntry *lookup_symbol_in(struct LunaString symbol,
       puts("in non function symbol table, searching here.");
       return lookup_symbol_in(symbol, current_symbol_table);
     }
+    return NULL;
+  }
+
+  if (entry->symbol.length != symbol.length) {
+    return NULL;
   }
 
   puts("done");
