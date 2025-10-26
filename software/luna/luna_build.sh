@@ -1,4 +1,4 @@
-argv[2]h
+#!/opt/homebrew/bin/bash
 # luna_build.sh — compile a .luna source using lunac, then build an executable
 # from the generated LLVM IR (.ll) using llc, as, and clang. Runs the program.
 # Pretty TUI via Charm Gum.
@@ -69,7 +69,7 @@ done
 shift $((OPTIND - 1))
 
 pick_luna_file() {
-  mapfile -t files < <(find . -maxdepth 1 -type f -name "*.luna" -printf "%P\n" | sort)
+  mapfile -t files < <(find . -maxdepth 1 -type f -name "*.luna" -print | sed 's|^./||' | sort)
   if [[ ${#files[@]} -eq 0 ]]; then
     die "No .luna files found in current directory. Pass a file or create one."
   fi

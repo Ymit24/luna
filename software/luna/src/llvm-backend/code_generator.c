@@ -206,7 +206,7 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
     assert(symbol->llvm_value != NULL);
 
     LLVMTypeRef type = LLVMTypeOf(symbol->llvm_value);
-    if (LLVMGetTypeKind(type) == LLVMPointerTypeKind) {
+    if (LLVMGetTypeKind(type) != LLVMPointerTypeKind) {
       printf("\n\n\t\tBUILDING LOAD FOR POINTER TYPE: %s\n\n\n",
              symbol->symbol.data);
       return LLVMBuildLoad2(code_generator->builder,
