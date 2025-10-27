@@ -95,6 +95,7 @@ void annotator_initialize_primitives(struct Annotator *annotator) {
                                      .llvm_value = NULL,
                                      .next = NULL,
                                      .memory_segment = MS_STATIC,
+                                     .symbol_location = SL_MODULE,
                                  });
   insert_symbol_entry(annotator, (struct SymbolTableEntry){
                                      .symbol = string_make("false"),
@@ -102,6 +103,7 @@ void annotator_initialize_primitives(struct Annotator *annotator) {
                                      .llvm_value = NULL,
                                      .next = NULL,
                                      .memory_segment = MS_STATIC,
+                                     .symbol_location = SL_MODULE,
                                  });
 }
 
@@ -355,6 +357,7 @@ void annotator_visit_expr(struct Annotator *annotator,
                                  .type = argument->data_type,
                                  .llvm_value = NULL,
                                  .next = NULL,
+                                 .symbol_location = SL_ARGUMENT,
                              });
       argument = argument->next;
     }
@@ -396,7 +399,8 @@ void annotator_visit_expr(struct Annotator *annotator,
 }
 
 void annotator_visit_decl(struct Annotator *annotator,
-                          struct DeclarationStatementNode *decl) {
+                          struct DeclarationStatementNode *decl,
+                          bool is_module) {
   assert(lookup_symbol(annotator, decl->symbol) == NULL);
   struct DataType *type = infer_type(annotator, decl->expression);
 
@@ -432,12 +436,14 @@ void annotator_visit_decl(struct Annotator *annotator,
   puts("insert decl");
   printf("\n-----\nsymb: %s\n++++\n", decl->symbol.data);
   // TODO: Memory segment here.
-  insert_symbol_entry(annotator, (struct SymbolTableEntry){
-                                     .symbol = decl->symbol,
-                                     .type = decl->data_type,
-                                     .llvm_value = NULL,
-                                     .next = NULL,
-                                 });
+  insert_symbol_entry(annotator,
+                      (struct SymbolTableEntry){
+                          .symbol = decl->symbol,
+                          .type = decl->data_type,
+                          .llvm_value = NULL,
+                          .next = NULL,
+                          .symbol_location = is_module ? SL_MODULE : SL_LOCAL,
+                      });
   annotator_visit_expr(annotator, decl->expression);
 }
 
@@ -446,7 +452,7 @@ void annotator_visit_module_statement(struct Annotator *annotator,
   switch (statement->type) {
   case MOD_STMT_LET:
   case MOD_STMT_CONST:
-    annotator_visit_decl(annotator, statement->node.decl);
+    annotator_visit_decl(annotator, statement->node.decl, true);
     break;
   default:
     puts("Unknown module statement.");
@@ -502,7 +508,7 @@ void annotator_visit_function_statement(
   switch (statement->type) {
   case FN_STMT_LET:
   case FN_STMT_CONST:
-    annotator_visit_decl(annotator, statement->node.decl);
+    annotator_visit_decl(annotator, statement->node.decl, false);
     break;
   case FN_STMT_ASSIGN: {
     struct DataType *source_type =

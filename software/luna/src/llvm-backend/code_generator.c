@@ -262,20 +262,21 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
     assert(symbol != NULL);
     assert(symbol->llvm_value != NULL);
 
-    if (symbol->type->kind == DTK_POINTER) {
-      printf("\n\n\t\tBUILDING LOAD FOR POINTER TYPE: %s\n\n\n",
-             symbol->symbol.data);
+    switch (symbol->symbol_location) {
+    case SL_MODULE:
+      puts("its a module symbol");
+      assert(0);
+      break;
+    case SL_ARGUMENT:
+      puts("its an argument symbol");
+      return symbol->llvm_value;
+    case SL_LOCAL:
+      puts("its local so build a load2 once.");
       return LLVMBuildLoad2(code_generator->builder,
                             cg_get_type(code_generator, symbol->type),
                             symbol->llvm_value, "");
-    } else {
-      printf("grabbing value from non pointer type.\n");
-      printf("\n\n\t\tBUILDING LOAD FOR (non) POINTER TYPE: %s\n\n\n",
-             symbol->symbol.data);
-      return LLVMBuildLoad2(code_generator->builder,
-                            cg_get_type(code_generator, symbol->type),
-                            symbol->llvm_value, "");
-    }
+    };
+
     return symbol->llvm_value;
   }
   case EXPR_STRING_LITERAL: {
@@ -509,21 +510,50 @@ void cg_gen_assignment(struct CodeGenerator *code_generator,
   LLVMBuildStore(code_generator->builder, coerced, source_value);
 }
 
-void cg_visit_if(struct CodeGenerator *code_generator,
-                 struct IfStatementNode *if_stmt) {
-  LLVMValueRef conditional;
-  if (if_stmt->condition != NULL) {
-    conditional = cg_visit_expr(code_generator, if_stmt->condition);
-  } else {
-    conditional = LLVMConstInt(LLVMInt1Type(), 1, 0);
-  }
+void cg_visit_else(struct CodeGenerator *code_generator,
+                   struct IfStatementNode *if_stmt,
+                   LLVMBasicBlockRef prev_merge_block) {
+  {
 
+    LLVMValueRef fn = LLVMGetBasicBlockParent(code_generator->current_block);
+    LLVMBasicBlockRef then_block = LLVMAppendBasicBlock(fn, "if.then");
+    LLVMBasicBlockRef merge_block = prev_merge_block != NULL
+                                        ? prev_merge_block
+                                        : LLVMAppendBasicBlock(fn, "if.end");
+    LLVMBuildBr(code_generator->builder, then_block);
+
+    LLVMPositionBuilderAtEnd(code_generator->builder, then_block);
+    struct SymbolTable *old_current = code_generator->current_symbol_table;
+    code_generator->current_symbol_table = &if_stmt->symbol_table;
+
+    LLVMBasicBlockRef old_block = code_generator->current_block;
+    code_generator->current_block = then_block;
+
+    cg_visit_function_statements(code_generator, if_stmt->body);
+
+    code_generator->current_symbol_table = old_current;
+    code_generator->current_block = old_block;
+
+    if (LLVMGetBasicBlockTerminator(then_block) == NULL) {
+      LLVMBuildBr(code_generator->builder, merge_block);
+    }
+
+    LLVMPositionBuilderAtEnd(code_generator->builder, merge_block);
+  }
+}
+
+void cg_visit_if(struct CodeGenerator *code_generator,
+                 struct IfStatementNode *if_stmt,
+                 LLVMBasicBlockRef prev_merge_block) {
+  LLVMValueRef conditional = cg_visit_expr(code_generator, if_stmt->condition);
   conditional = cg_coerce(code_generator, conditional, LLVMInt1Type());
 
   LLVMValueRef fn = LLVMGetBasicBlockParent(code_generator->current_block);
   LLVMBasicBlockRef then_block = LLVMAppendBasicBlock(fn, "if.then");
   LLVMBasicBlockRef else_block = LLVMAppendBasicBlock(fn, "if.else");
-  LLVMBasicBlockRef merge_block = LLVMAppendBasicBlock(fn, "if.end");
+  LLVMBasicBlockRef merge_block = prev_merge_block != NULL
+                                      ? prev_merge_block
+                                      : LLVMAppendBasicBlock(fn, "if.end");
 
   LLVMBuildCondBr(code_generator->builder, conditional, then_block, else_block);
 
@@ -537,25 +567,44 @@ void cg_visit_if(struct CodeGenerator *code_generator,
 
   cg_visit_function_statements(code_generator, if_stmt->body);
 
+  if (LLVMGetBasicBlockTerminator(code_generator->current_block) == NULL) {
+    LLVMBuildBr(code_generator->builder, merge_block);
+  }
+
   code_generator->current_symbol_table = old_current;
   code_generator->current_block = old_block;
 
-  LLVMBuildBr(code_generator->builder, merge_block);
+  if (LLVMGetBasicBlockTerminator(then_block) == NULL) {
+    LLVMBuildBr(code_generator->builder, merge_block);
+  }
 
   if (if_stmt->next != NULL) {
     LLVMPositionBuilderAtEnd(code_generator->builder, else_block);
-    cg_visit_if(code_generator, if_stmt->next);
-    LLVMBuildBr(code_generator->builder, merge_block);
+    code_generator->current_block = else_block;
+
+    LLVMBasicBlockRef old_block = code_generator->current_block;
+    code_generator->current_block = else_block;
+
+    if (if_stmt->next->condition == NULL) {
+      cg_visit_else(code_generator, if_stmt->next, merge_block);
+    } else {
+
+      cg_visit_if(code_generator, if_stmt->next, merge_block);
+    }
+
+    code_generator->current_block = old_block;
+
+    if (LLVMGetBasicBlockTerminator(else_block) == NULL) {
+      LLVMBuildBr(code_generator->builder, merge_block);
+    }
   } else {
     LLVMPositionBuilderAtEnd(code_generator->builder, else_block);
+    code_generator->current_block = else_block;
     LLVMBuildBr(code_generator->builder, merge_block);
   }
 
   LLVMPositionBuilderAtEnd(code_generator->builder, merge_block);
-
-  // if (if_stmt->next != NULL) {
-  //   cg_visit_if(code_generator, if_stmt->next);
-  // }
+  code_generator->current_block = merge_block;
 }
 
 void cg_visit_function_statement(struct CodeGenerator *code_generator,
@@ -664,7 +713,7 @@ void cg_visit_function_statement(struct CodeGenerator *code_generator,
   case FN_STMT_IF:
     puts("generating if..");
 
-    cg_visit_if(code_generator, stmt->node.if_stmt);
+    cg_visit_if(code_generator, stmt->node.if_stmt, NULL);
 
     // assert(0);
     break;

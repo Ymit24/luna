@@ -8,9 +8,17 @@ const factorial = fn(n: i32): i32 {
     return n * factorial(n - 1);
 };
 
+const fib = fn(n: i32): i32 {
+    if n < 2 {
+        return 1;
+    };
+
+    return fib(n-1) + fib(n-2);
+};
+
 const main = fn(): i32 {
-    const a: i32 = 1;
-    if a {
+    const a: i32 = 3;
+    if a < 5 {
         puts("it worked!");
         let foo = 100;
         let inner = fn() {
@@ -30,6 +38,9 @@ const main = fn(): i32 {
     } else {
         puts("lame");
     };
+
+    printf("factorial of 3 is %d\n", factorial(8));
+    printf("fib(6) is %d\n", fib(8));
 
     return 0;
 };

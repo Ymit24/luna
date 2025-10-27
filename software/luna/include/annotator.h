@@ -33,12 +33,19 @@ struct DataTypeTable {
   struct DataType *head;
 };
 
+enum SymbolLocation {
+  SL_MODULE,
+  SL_ARGUMENT,
+  SL_LOCAL,
+};
+
 struct SymbolTableEntry {
   struct LunaString symbol;
   struct DataType *type;
   LLVMValueRef llvm_value;
   struct SymbolTableEntry *next;
   enum MemorySegment memory_segment;
+  enum SymbolLocation symbol_location;
   uint16_t index;
 };
 
