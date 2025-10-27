@@ -12,9 +12,17 @@ const main = fn(): i32 {
         };
         printf("foo is %d\n", foo);
         inner();
+        a = 0;
         if a {
             puts("other");
+        } else if 0 {
+            puts("hmm");
+        } else {
+            puts("not other");
         };
+    } else {
+        puts("lame");
     };
+
     return 0;
 };

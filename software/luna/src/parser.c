@@ -630,16 +630,66 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
   }
   case T_IF: {
     puts("found if.");
+    printf("\n\n\n-------------------------------------------------------------"
+           "---\n\n");
     parser->position++;
 
-    struct ExpressionNode *conditional = parse_expression(parser, 0);
+    struct IfStatementNode if_stmt =
+        (struct IfStatementNode){.next = NULL, .body = NULL, .condition = NULL};
 
-    assert(parser_peek(parser).type == T_LBRACE);
-    parser->position++;
-    struct FunctionStatementNode *body = parse_function_statements(parser);
+    struct IfStatementNode *current = &if_stmt;
 
-    assert(parser_peek(parser).type == T_RBRACE);
-    parser->position++;
+    puts("about to check if statemtn stuff.");
+    while (true) {
+      puts("starting layer");
+      struct ExpressionNode *conditional = parse_expression(parser, 0);
+
+      assert(parser_peek(parser).type == T_LBRACE);
+      parser->position++;
+      struct FunctionStatementNode *body = parse_function_statements(parser);
+
+      assert(parser_peek(parser).type == T_RBRACE);
+      parser->position++;
+
+      current->condition = conditional;
+      current->body = body;
+      if (parser_peek(parser).type == T_ELSE) {
+        parser->position++;
+        if (parser_peek(parser).type == T_IF) {
+          puts("found else if case");
+          parser->position++;
+          current->next =
+              ast_promote(parser->allocator,
+                          &(struct IfStatementNode){
+                              .next = NULL, .body = NULL, .condition = NULL},
+                          sizeof(struct IfStatementNode));
+          current = current->next;
+          continue;
+        } else {
+          puts("found else not if case");
+          assert(parser_peek(parser).type == T_LBRACE);
+          parser->position++;
+          struct FunctionStatementNode *body =
+              parse_function_statements(parser);
+
+          assert(parser_peek(parser).type == T_RBRACE);
+          parser->position++;
+
+          current->next =
+              ast_promote(parser->allocator,
+                          &(struct IfStatementNode){
+                              .next = NULL, .body = body, .condition = NULL},
+                          sizeof(struct IfStatementNode));
+          current = current->next;
+        }
+        break;
+      } else {
+        puts("no else found.");
+        break;
+      }
+    }
+    printf("\n\n\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+           "---\n\n");
 
     assert(parser_peek(parser).type == T_SEMICOLON);
     parser->position++;
@@ -649,12 +699,7 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
         &(struct FunctionStatementNode){
             .type = FN_STMT_IF,
             .next = NULL,
-            .node.if_stmt = ast_promote(parser->allocator,
-                                        &(struct IfStatementNode){
-                                            .next = NULL,
-                                            .body = body,
-                                            .condition = conditional,
-                                        },
+            .node.if_stmt = ast_promote(parser->allocator, &if_stmt,
                                         sizeof(struct IfStatementNode))},
         sizeof(struct FunctionStatementNode));
   }

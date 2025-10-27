@@ -28,7 +28,7 @@ main:                                   # @main
 	.globl	__unnamed_3                     # -- Begin function 
 	.p2align	4
 	.type	__unnamed_3,@function
-__unnamed_3:                            # @7
+__unnamed_3:                            # @10
 	.cfi_startproc
 # %bb.0:                                # %entry
 	pushq	%rbp
@@ -36,12 +36,14 @@ __unnamed_3:                            # @7
 	.cfi_offset %rbp, -16
 	movq	%rsp, %rbp
 	.cfi_def_cfa_register %rbp
+	pushq	%r15
 	pushq	%r14
 	pushq	%rbx
-	subq	$16, %rsp
-	.cfi_offset %rbx, -32
-	.cfi_offset %r14, -24
-	movl	$1, -20(%rbp)
+	pushq	%rax
+	.cfi_offset %rbx, -40
+	.cfi_offset %r14, -32
+	.cfi_offset %r15, -24
+	movl	$1, -28(%rbp)
 	xorl	%eax, %eax
 	testb	%al, %al
 	jne	.LBB1_3
@@ -58,20 +60,32 @@ __unnamed_3:                            # @7
 	movq	%rcx, -16(%r14)
 	movq	__unnamed_1@GOTPCREL(%rip), %rcx
 	movzbl	-16(%rax), %esi
+	xorl	%r15d, %r15d
 	movl	$.L__unnamed_7, %edi
 	xorl	%eax, %eax
 	callq	*(%rcx)
 	callq	*-16(%r14)
-	testb	$1, -20(%rbp)
-	je	.LBB1_3
+	movl	$0, -28(%rbp)
+	testb	%r15b, %r15b
+	je	.LBB1_4
 # %bb.2:                                # %if.then1
 	movl	$.L__unnamed_8, %edi
+	jmp	.LBB1_5
+.LBB1_3:                                # %if.else
+	movq	__unnamed_2@GOTPCREL(%rip), %rax
+	movl	$.L__unnamed_9, %edi
+	callq	*(%rax)
+	jmp	.LBB1_6
+.LBB1_4:                                # %if.else2
+	movl	$.L__unnamed_10, %edi
+.LBB1_5:                                # %if.end
 	callq	*(%rbx)
-.LBB1_3:                                # %if.end
+.LBB1_6:                                # %if.end
 	xorl	%eax, %eax
-	leaq	-16(%rbp), %rsp
+	leaq	-24(%rbp), %rsp
 	popq	%rbx
 	popq	%r14
+	popq	%r15
 	popq	%rbp
 	.cfi_def_cfa %rsp, 8
 	retq
@@ -82,13 +96,13 @@ __unnamed_3:                            # @7
 	.globl	__unnamed_6                     # -- Begin function 
 	.p2align	4
 	.type	__unnamed_6,@function
-__unnamed_6:                            # @8
+__unnamed_6:                            # @11
 	.cfi_startproc
 # %bb.0:                                # %entry
 	pushq	%rax
 	.cfi_def_cfa_offset 16
 	movq	__unnamed_2@GOTPCREL(%rip), %rax
-	movl	$.L__unnamed_9, %edi
+	movl	$.L__unnamed_11, %edi
 	callq	*(%rax)
 	popq	%rax
 	.cfi_def_cfa_offset 8
@@ -125,10 +139,10 @@ __unnamed_4:
 	.asciz	"it worked!"
 	.size	.L__unnamed_5, 11
 
-	.type	.L__unnamed_9,@object           # @4
-.L__unnamed_9:
+	.type	.L__unnamed_11,@object          # @4
+.L__unnamed_11:
 	.asciz	"test"
-	.size	.L__unnamed_9, 5
+	.size	.L__unnamed_11, 5
 
 	.type	.L__unnamed_7,@object           # @5
 .L__unnamed_7:
@@ -139,5 +153,20 @@ __unnamed_4:
 .L__unnamed_8:
 	.asciz	"other"
 	.size	.L__unnamed_8, 6
+
+	.type	.L__unnamed_12,@object          # @7
+.L__unnamed_12:
+	.asciz	"hmm"
+	.size	.L__unnamed_12, 4
+
+	.type	.L__unnamed_10,@object          # @8
+.L__unnamed_10:
+	.asciz	"not other"
+	.size	.L__unnamed_10, 10
+
+	.type	.L__unnamed_9,@object           # @9
+.L__unnamed_9:
+	.asciz	"lame"
+	.size	.L__unnamed_9, 5
 
 	.section	".note.GNU-stack","",@progbits

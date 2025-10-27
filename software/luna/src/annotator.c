@@ -472,7 +472,11 @@ void annotator_visit_function_statements(
 
 void annotator_visit_if_statement(struct Annotator *annotator,
                                   struct IfStatementNode *if_stmt) {
-  annotator_visit_expr(annotator, if_stmt->condition);
+  if (if_stmt->condition != NULL) {
+    annotator_visit_expr(annotator, if_stmt->condition);
+  } else {
+    assert(if_stmt->next == NULL);
+  }
 
   struct SymbolTable *old_current = annotator->current_symbol_table;
 
