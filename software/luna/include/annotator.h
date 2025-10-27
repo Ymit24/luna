@@ -42,11 +42,14 @@ struct SymbolTableEntry {
   uint16_t index;
 };
 
+// NOTE: STT_SCOPE is for control flow like if, for, while, etc...
+enum SymbolTableType { STT_MOD, STT_FN, STT_SCOPE };
+
 struct SymbolTable {
   struct SymbolTableEntry *head;
   struct SymbolTable *parent;
   uint16_t current_index;
-  bool is_function;
+  enum SymbolTableType type;
 };
 
 struct Annotator {

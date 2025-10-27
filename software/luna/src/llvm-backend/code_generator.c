@@ -606,7 +606,26 @@ void cg_visit_function_statement(struct CodeGenerator *code_generator,
     break;
   case FN_STMT_IF:
     puts("generating if..");
-    assert(0);
+    LLVMValueRef conditional =
+        cg_visit_expr(code_generator, stmt->node.if_stmt->condition);
+    LLVMValueRef fn = LLVMGetBasicBlockParent(code_generator->current_block);
+    LLVMBasicBlockRef then_block = LLVMAppendBasicBlock(fn, "if.then");
+    LLVMBasicBlockRef merge_block = LLVMAppendBasicBlock(fn, "if.end");
+
+    LLVMBuildCondBr(code_generator->builder, conditional, then_block,
+                    merge_block);
+
+    LLVMPositionBuilderAtEnd(code_generator->builder, then_block);
+    // TODO: visit if body
+    struct SymbolTable *old_current = code_generator->current_symbol_table;
+    code_generator->current_symbol_table = &stmt->node.if_stmt->symbol_table;
+    cg_visit_function_statements(code_generator, stmt->node.if_stmt->body);
+    code_generator->current_symbol_table = old_current;
+
+    LLVMBuildBr(code_generator->builder, merge_block);
+    LLVMPositionBuilderAtEnd(code_generator->builder, merge_block);
+
+    // assert(0);
     break;
   }
 }

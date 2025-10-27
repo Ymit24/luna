@@ -21,7 +21,7 @@ struct Annotator annotator_make(struct ArenaAllocator *allocator) {
       .data_type_table = (struct DataTypeTable){.head = NULL},
       .current_function = NULL,
       .root_symbol_table = (struct SymbolTable){.head = NULL,
-                                                .is_function = false,
+                                                .type = STT_MOD,
                                                 .parent = NULL,
                                                 .current_index = 0},
   };
@@ -164,8 +164,9 @@ struct SymbolTableEntry *lookup_symbol_in(struct LunaString symbol,
     struct SymbolTable *current_symbol_table = symbol_table;
     while (current_symbol_table->parent != NULL) {
       current_symbol_table = current_symbol_table->parent;
-      if (current_symbol_table->is_function) {
-        continue;
+      if (current_symbol_table->type == STT_FN) {
+        puts("skipping functional symbol table");
+        // continue;
       }
       puts("in non function symbol table, searching here.");
       return lookup_symbol_in(symbol, current_symbol_table);
@@ -289,16 +290,29 @@ void insert_symbol_entry(struct Annotator *annotator,
   insert_symbol_entry_in(annotator, annotator->current_symbol_table, entry);
 }
 
-struct SymbolTable *find_parent_table(struct SymbolTable *symbol_table) {
+struct SymbolTable *
+find_parent_table(struct SymbolTable *symbol_table,
+                  enum SymbolTableType new_symbol_table_type) {
   assert(symbol_table != NULL);
   struct SymbolTable *current = symbol_table;
 
-  while (current->parent != NULL && current->is_function) {
-    current = current->parent;
-  }
+  switch (new_symbol_table_type) {
+  case STT_FN:
+    puts("looking from function");
+    while (current->parent != NULL && current->type != STT_MOD) {
+      current = current->parent;
+    }
+    assert(current != NULL);
+    assert(current->type != STT_FN);
+    return current;
+  case STT_MOD:
+  case STT_SCOPE:
+    puts("looking from scope");
+    // current = current->parent;
+    break;
+  };
 
   assert(current != NULL);
-  assert(current->is_function == false);
   return current;
 }
 
@@ -322,8 +336,8 @@ void annotator_visit_expr(struct Annotator *annotator,
     struct FunctionType *old_function = annotator->current_function;
     expr->node.fn_def->symbol_table = (struct SymbolTable){
         .head = NULL,
-        .is_function = true,
-        .parent = find_parent_table(annotator->current_symbol_table),
+        .type = STT_FN,
+        .parent = find_parent_table(annotator->current_symbol_table, STT_FN),
     };
     annotator->current_symbol_table = &expr->node.fn_def->symbol_table;
     annotator->current_function =
@@ -456,10 +470,32 @@ void annotator_visit_function_statements(
   puts("Finished function annotation.");
 }
 
+void annotator_visit_if_statement(struct Annotator *annotator,
+                                  struct IfStatementNode *if_stmt) {
+  annotator_visit_expr(annotator, if_stmt->condition);
+
+  struct SymbolTable *old_current = annotator->current_symbol_table;
+
+  if_stmt->symbol_table = (struct SymbolTable){
+      .head = NULL,
+      .type = STT_SCOPE,
+      .parent = find_parent_table(annotator->current_symbol_table, STT_SCOPE),
+  };
+
+  annotator->current_symbol_table = &if_stmt->symbol_table;
+
+  annotator_visit_function_statements(annotator, if_stmt->body);
+
+  annotator->current_symbol_table = old_current;
+
+  if (if_stmt->next != NULL) {
+    annotator_visit_if_statement(annotator, if_stmt->next);
+  }
+}
+
 void annotator_visit_function_statement(
     struct Annotator *annotator, struct FunctionStatementNode *statement) {
   switch (statement->type) {
-
   case FN_STMT_LET:
   case FN_STMT_CONST:
     annotator_visit_decl(annotator, statement->node.decl);
@@ -528,8 +564,10 @@ void annotator_visit_function_statement(
     // TODO: check types
     break;
   }
-  default:
-    assert(0);
+  case FN_STMT_IF:
+    puts("TODO: do stuff for if.");
+
+    annotator_visit_if_statement(annotator, statement->node.if_stmt);
     break;
   }
 }

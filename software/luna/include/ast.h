@@ -69,6 +69,7 @@ struct IfStatementNode {
   struct ExpressionNode *condition;
   struct FunctionStatementNode *body;
   struct IfStatementNode *next;
+  struct SymbolTable symbol_table;
 };
 
 enum ExpressionType {

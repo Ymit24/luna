@@ -630,8 +630,33 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
   }
   case T_IF: {
     puts("found if.");
-    assert(0);
-    break;
+    parser->position++;
+
+    struct ExpressionNode *conditional = parse_expression(parser, 0);
+
+    assert(parser_peek(parser).type == T_LBRACE);
+    parser->position++;
+    struct FunctionStatementNode *body = parse_function_statements(parser);
+
+    assert(parser_peek(parser).type == T_RBRACE);
+    parser->position++;
+
+    assert(parser_peek(parser).type == T_SEMICOLON);
+    parser->position++;
+
+    return ast_promote(
+        parser->allocator,
+        &(struct FunctionStatementNode){
+            .type = FN_STMT_IF,
+            .next = NULL,
+            .node.if_stmt = ast_promote(parser->allocator,
+                                        &(struct IfStatementNode){
+                                            .next = NULL,
+                                            .body = body,
+                                            .condition = conditional,
+                                        },
+                                        sizeof(struct IfStatementNode))},
+        sizeof(struct FunctionStatementNode));
   }
   default: {
     puts("[PARSER] In default case for function statement.");

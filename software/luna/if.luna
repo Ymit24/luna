@@ -3,12 +3,16 @@ const puts = fn@extern["puts"](fmt: *i8);
 
 const main = fn(): i32 {
     const a: i32 = 100;
-    if a == 100 {
+    if a {
         puts("it worked!");
-    } else if a == 102 {
-        puts("it kinda didnt work!");
-    } else {
-        puts("it didnt work..");
-    }
+        let foo = 100;
+        let inner = fn() {
+            puts("test");
+        };
+        printf("foo is %d\n", foo);
+        if a {
+            puts("other");
+        };
+    };
     return 0;
 };
