@@ -176,10 +176,15 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
 
     struct SymbolLiteralNode *symbol = parse_symbol_literal(parser);
 
-    return ast_promote(parser->allocator,
-                       &(struct ExpressionNode){.type = EXPR_DEREF,
-                                                .node.deref_symbol = symbol},
-                       sizeof(struct ExpressionNode));
+    return ast_promote(
+        parser->allocator,
+        &(struct ExpressionNode){
+            .type = EXPR_DEREF,
+            .node.deref = ast_promote_expression_node(
+                parser->allocator,
+                (struct ExpressionNode){.type = EXPR_SYMBOL_LITERAL,
+                                        .node.symbol = symbol})},
+        sizeof(struct ExpressionNode));
   }
   case T_AMPERSAND: {
     parser->position++;
@@ -646,99 +651,56 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
 
                          },
                          sizeof(struct FunctionStatementNode));
-    case EXPR_DEREF:
-      // TODO: make a stmt assign with expression to evaluate the memory address
-      // rather than symbol.
-
-      // return ast_promote(parser->allocator,
-      //                    &(struct FunctionStatementNode){
-      //                        .type = FN_STMT_ASSIGN,
-      //                        .node.assign = ast_promote(
-      //                            parser->allocator,
-      //                            &(struct AssignStatementNode){
-      //                                .symbol =
-      //                                expr->node.deref_symbol->value,
-      //                                .expression = expr->node},
-      //                            sizeof(struct AssignStatementNode)),
-      //                        .next = NULL,
-      //                    },
-      //                    sizeof(struct FunctionStatementNode));
-      assert(0);
-      break;
-    case EXPR_SYMBOL_LITERAL:
-      puts("plain symbol assignment.");
-
-      struct LunaString symbol = expr->node.symbol->value;
+    case EXPR_DEREF: {
       assert(parser_peek(parser).type == T_EQUALS);
       parser->position++;
 
-      struct ExpressionNode *expr = parse_expression(parser, 0);
-
-      printf("in assign, parsed expression of type: %d\n", expr->type);
+      struct ExpressionNode *result_expression = parse_expression(parser, 0);
+      assert(result_expression != NULL);
 
       assert(parser_peek(parser).type == T_SEMICOLON);
       parser->position++;
 
-      return ast_promote(
-          parser->allocator,
-          &(struct FunctionStatementNode){
-              .type = FN_STMT_ASSIGN,
-              .node.assign =
-                  ast_promote(parser->allocator,
-                              &(struct AssignStatementNode){
-                                  .value.symbol = symbol, .expression = expr},
-                              sizeof(struct AssignStatementNode)),
-              .next = NULL,
-          },
-          sizeof(struct FunctionStatementNode));
+      return ast_promote(parser->allocator,
+                         &(struct FunctionStatementNode){
+                             .type = FN_STMT_ASSIGN,
+                             .node.assign = ast_promote(
+                                 parser->allocator,
+                                 &(struct AssignStatementNode){
+                                     .source_expression = expr,
+                                     .result_expression = result_expression},
+                                 sizeof(struct AssignStatementNode)),
+                             .next = NULL,
+                         },
+                         sizeof(struct FunctionStatementNode));
+    }
+    case EXPR_SYMBOL_LITERAL: {
+      puts("plain symbol assignment.");
 
-      // switch (parser_peek(parser).type) {
-      // case T_EQUALS: {
-      //   parser->position++;
-      //   struct ExpressionNode *expr = parse_expression(parser, 0);
-      //
-      //   printf("in assign, parsed expression of type: %d\n", expr->type);
-      //
-      //   assert(parser_peek(parser).type == T_SEMICOLON);
-      //   parser->position++;
-      //
-      //   return ast_promote(parser->allocator,
-      //                      &(struct FunctionStatementNode){
-      //                          .type = FN_STMT_ASSIGN,
-      //                          .node.assign = ast_promote(
-      //                              parser->allocator,
-      //                              &(struct AssignStatementNode){
-      //                                  .symbol = symbol, .expression = expr},
-      //                              sizeof(struct AssignStatementNode)),
-      //                          .next = NULL,
-      //                      },
-      //                      sizeof(struct FunctionStatementNode));
-      //   break;
-      // }
-      // case T_LPAREN: {
-      //   struct SymbolLiteralNode *symbol_literal = ast_promote(
-      //       parser->allocator, &(struct SymbolLiteralNode){.value = symbol},
-      //       sizeof(struct SymbolLiteralNode));
-      //   struct FunctionCallExpressionNode *fn_call =
-      //       parse_function_call_expression(parser, symbol_literal);
-      //   assert(fn_call != NULL);
-      //
-      //   assert(parser_peek(parser).type == T_SEMICOLON);
-      //   parser->position++;
-      //
-      //   return ast_promote(parser->allocator,
-      //                      &(struct FunctionStatementNode){
-      //                          .type = FN_STMT_FN_CALL,
-      //                          .node.fn_call = fn_call,
-      //                          .next = NULL,
-      //
-      //                      },
-      //                      sizeof(struct FunctionStatementNode));
-      // }
-      // default:
-      //   assert(0);
-      //   break;
-      // };
+      assert(parser_peek(parser).type == T_EQUALS);
+      parser->position++;
+
+      struct ExpressionNode *result_expression = parse_expression(parser, 0);
+
+      printf("in assign, parsed expression of type: %d\n",
+             result_expression->type);
+
+      assert(parser_peek(parser).type == T_SEMICOLON);
+      parser->position++;
+
+      return ast_promote(parser->allocator,
+                         &(struct FunctionStatementNode){
+                             .type = FN_STMT_ASSIGN,
+                             .node.assign = ast_promote(
+                                 parser->allocator,
+                                 &(struct AssignStatementNode){
+                                     .source_expression = expr,
+                                     .result_expression = result_expression},
+                                 sizeof(struct AssignStatementNode)),
+                             .next = NULL,
+                         },
+                         sizeof(struct FunctionStatementNode));
+    }
     case EXPR_BINARY:
     case EXPR_INTEGER_LITERAL:
     case EXPR_STRING_LITERAL:

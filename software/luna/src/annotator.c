@@ -139,15 +139,28 @@ void print_data_types(struct Annotator *annotator) {
 // sometimes find "a" still.
 struct SymbolTableEntry *lookup_symbol_in(struct LunaString symbol,
                                           struct SymbolTable *symbol_table) {
-  printf("About to check symbol: %s\n", symbol.data);
+  printf("About to check symbol: '%s'\n", symbol.data);
+  printf("here is the current symbol table:\n");
+
+  print_symbol_table(string_make("anon"), symbol_table);
+  printf("\n\n");
+
   struct SymbolTableEntry *entry = symbol_table->head;
 
-  while (entry != NULL &&
-         strncmp(entry->symbol.data, symbol.data, symbol.length) != 0) {
+  while (entry != NULL) {
+    if (entry->symbol.length == symbol.length &&
+        strncmp(entry->symbol.data, symbol.data, symbol.length) == 0) {
+      printf("found match!\n");
+      break;
+    }
+    printf("did not match with: %s\n", entry->symbol.data);
+
     entry = entry->next;
   }
 
   if (entry == NULL) {
+    puts("didn't find match in this level, checking next.");
+    printf("has parent table: %d\n", symbol_table->parent != NULL);
     struct SymbolTable *current_symbol_table = symbol_table;
     while (current_symbol_table->parent != NULL) {
       current_symbol_table = current_symbol_table->parent;
@@ -161,6 +174,7 @@ struct SymbolTableEntry *lookup_symbol_in(struct LunaString symbol,
   }
 
   if (entry->symbol.length != symbol.length) {
+    puts("this shouldnt happen..");
     return NULL;
   }
 
@@ -176,6 +190,8 @@ struct SymbolTableEntry *lookup_symbol(struct Annotator *annotator,
 
 struct DataType *infer_type(struct Annotator *annotator,
                             struct ExpressionNode *expr) {
+  assert(expr != NULL);
+
   switch (expr->type) {
   case EXPR_INTEGER_LITERAL:
     // TODO: Do we want to auto downsize to I8? we need to handle implicit
@@ -187,6 +203,9 @@ struct DataType *infer_type(struct Annotator *annotator,
     puts("infered i32");
     return make_primitive_data_type(annotator, P_I32);
   case EXPR_SYMBOL_LITERAL: {
+    puts("inferring on symb lit.");
+    assert(expr->node.symbol != NULL);
+    printf("symbol is: %s\n", expr->node.symbol->value.data);
     struct SymbolTableEntry *entry =
         lookup_symbol(annotator, expr->node.symbol->value);
     assert(entry != NULL);
@@ -202,6 +221,8 @@ struct DataType *infer_type(struct Annotator *annotator,
     struct DataType *left = infer_type(annotator, expr->node.binary->left);
     struct DataType *right = infer_type(annotator, expr->node.binary->right);
     assert(data_types_equal(left, right));
+    // TODO: return the "greater" of the two types. e.g. between i32 & *i32 ->
+    // *i32, or i8 & i64 -> i64
     return left;
   }
   case EXPR_FN_DEF:
@@ -227,15 +248,22 @@ struct DataType *infer_type(struct Annotator *annotator,
     return make_pointer_data_type(annotator, entry->type);
   }
   case EXPR_DEREF: {
-    puts("\t\t\t\t\t-------------------------FOOOOOOO\n\n\n\n");
-    struct SymbolTableEntry *entry =
-        lookup_symbol(annotator, expr->node.deref_symbol->value);
-    assert(entry != NULL);
+    puts("doing deref");
+    assert(expr->node.deref != NULL);
 
-    assert(entry->type->kind == DTK_POINTER);
+    struct DataType *inner = infer_type(annotator, expr->node.deref);
 
-    return entry->type->value.pointer_inner;
+    assert(inner != NULL);
+    assert(inner->kind == DTK_POINTER);
+    printf("\n\n\t<<<<<--------------inner pointer type: [");
+    print_data_type(inner->value.pointer_inner);
+    printf("]\n\n\n\n\n");
+    return inner->value.pointer_inner;
   }
+  default:
+    puts("fell through default");
+    printf("kind: %d\n", expr->type);
+    break;
   }
 
   puts("Failed to infer type.");
@@ -276,6 +304,7 @@ struct SymbolTable *find_parent_table(struct SymbolTable *symbol_table) {
 
 void annotator_visit_expr(struct Annotator *annotator,
                           struct ExpressionNode *expr) {
+  assert(expr != NULL);
   switch (expr->type) {
   case EXPR_BINARY:
     annotator_visit_expr(annotator, expr->node.binary->left);
@@ -339,13 +368,14 @@ void annotator_visit_expr(struct Annotator *annotator,
     break;
   }
   case EXPR_DEREF: {
-    puts("deleteme: (fn_deref) Got to this spot and not sure if needed.");
-    struct SymbolTableEntry *entry =
-        lookup_symbol(annotator, expr->node.deref_symbol->value);
+    puts("visiting deref.");
+    assert(expr->node.deref != NULL);
 
-    assert(entry != NULL);
-    assert(entry->type != NULL);
-    assert(entry->type->kind == DTK_POINTER);
+    struct DataType *inner = infer_type(annotator, expr->node.deref);
+
+    assert(inner != NULL);
+    assert(inner->kind == DTK_POINTER);
+    puts("done visit deref.");
     break;
   }
   }
@@ -435,16 +465,16 @@ void annotator_visit_function_statement(
     annotator_visit_decl(annotator, statement->node.decl);
     break;
   case FN_STMT_ASSIGN: {
-    struct SymbolTableEntry *entry =
-        lookup_symbol(annotator, statement->node.decl->symbol);
+    struct DataType *source_type =
+        infer_type(annotator, statement->node.assign->source_expression);
+    struct DataType *dest_type =
+        infer_type(annotator, statement->node.assign->result_expression);
 
-    assert(entry != NULL);
+    assert(data_types_equal(dest_type, source_type));
 
-    assert(data_types_equal(
-        infer_type(annotator, statement->node.assign->expression),
-        entry->type));
-
-    annotator_visit_expr(annotator, statement->node.assign->expression);
+    // NOTE: check inner expressions for validity
+    annotator_visit_expr(annotator, statement->node.assign->source_expression);
+    annotator_visit_expr(annotator, statement->node.assign->result_expression);
     break;
   }
   case FN_STMT_RETURN: {
@@ -468,10 +498,12 @@ void annotator_visit_function_statement(
     struct FunctionType *fn_def = &entry->type->value.function;
 
     struct FunctionCallArgumentExpressionsNode *call_arg = fn_call->arguments;
+    puts("about to check call args.");
     while (call_arg != NULL) {
       annotator_visit_expr(annotator, call_arg->argument);
       call_arg = call_arg->next;
     }
+    puts("done check call args");
 
     if (fn_def->is_variadic) {
       puts("WARN: dont do type inference for variadic function");

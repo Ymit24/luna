@@ -36,11 +36,8 @@ struct DeclarationStatementNode {
 };
 
 struct AssignStatementNode {
-  union {
-    struct LunaString symbol;
-    struct ExpressionNode *expression;
-  } value;
-  struct ExpressionNode *expression;
+  struct ExpressionNode *source_expression;
+  struct ExpressionNode *result_expression;
 };
 
 struct ModuleStatementNode {
@@ -87,7 +84,7 @@ struct ExpressionNode {
     struct FunctionDefinitionExpressionNode *fn_def;
     struct FunctionCallExpressionNode *fn_call;
     struct SymbolLiteralNode *ref_symbol;
-    struct SymbolLiteralNode *deref_symbol;
+    struct ExpressionNode *deref;
   } node;
 };
 

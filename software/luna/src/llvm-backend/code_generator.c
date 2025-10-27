@@ -14,7 +14,7 @@ LLVMValueRef cg_coerce(struct CodeGenerator *cg, LLVMValueRef val,
                        LLVMTypeRef dest_type);
 
 void cg_gen_assignment(struct CodeGenerator *code_generator,
-                       struct SymbolTableEntry *symbol,
+                       LLVMValueRef source_value, LLVMTypeRef source_type,
                        struct ExpressionNode *expression);
 
 void cg_visit_function_statements(struct CodeGenerator *code_generator,
@@ -202,6 +202,24 @@ LLVMValueRef cg_visit_function_call(struct CodeGenerator *code_generator,
   return LLVMBuildCall2(code_generator->builder, type, fn_pointer, NULL, 0, "");
 }
 
+// TODO/NOTE: this is an awful hack because the annotator infer_type uses the
+// annotators current symbol table. Given code gen runs after all annotation,
+// the annotator will likely have some root module as its current symbol table.
+// we should likely update the infer_type to take a table but its used so many
+// places that would be a bit annoying.
+struct DataType *cg_infer_type(struct CodeGenerator *code_generator,
+                               struct ExpressionNode *expression) {
+  struct SymbolTable *old_current =
+      code_generator->annotator->current_symbol_table;
+  code_generator->annotator->current_symbol_table =
+      code_generator->current_symbol_table;
+
+  struct DataType *type = infer_type(code_generator->annotator, expression);
+
+  code_generator->annotator->current_symbol_table = old_current;
+  return type;
+}
+
 LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
                            struct ExpressionNode *expr) {
   printf("[cg_visit_expr] %d\n", expr->type);
@@ -258,7 +276,7 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
     break;
   }
   case EXPR_FN_DEF:
-    puts("pushing function");
+    printf("\n\t\t\t++++++++++++++++PUSHING FUNCTION+++++++++\n\n\n");
 
     struct SymbolTable *old_current = code_generator->current_symbol_table;
     LLVMBasicBlockRef previous_block = code_generator->current_block;
@@ -283,6 +301,10 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
       code_generator->current_block = block;
       code_generator->current_symbol_table = &expr->node.fn_def->symbol_table;
 
+      printf("about to hop into function. here is its symbol table:\n");
+      print_symbol_table(string_make("some_func"),
+                         &expr->node.fn_def->symbol_table);
+
       struct FunctionArgumentNode *argument =
           expr->node.fn_def->function_type->value.function.arguments;
       size_t index = 0;
@@ -304,7 +326,7 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
       LLVMPositionBuilderAtEnd(code_generator->builder, previous_block);
     }
 
-    puts("popping function");
+    printf("\n\t\t\t++++++++++++++++POPPING FUNCTION+++++++++\n\n\n");
 
     return function;
   case EXPR_FN_CALL:
@@ -319,19 +341,26 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
     return symbol->llvm_value;
   }
   case EXPR_DEREF: {
-    struct SymbolTableEntry *symbol = lookup_symbol_in(
-        expr->node.deref_symbol->value, code_generator->current_symbol_table);
+    LLVMValueRef inner = cg_visit_expr(code_generator, expr->node.deref);
+    assert(inner != NULL);
 
-    assert(symbol != NULL);
-    assert(symbol->llvm_value != NULL);
+    struct ExpressionNode *deref_expr = expr->node.deref;
+    assert(deref_expr != NULL);
 
-    LLVMTypeRef type = cg_get_type(code_generator, symbol->type);
+    struct DataType *deref_expr_type =
+        cg_infer_type(code_generator, deref_expr);
 
-    LLVMValueRef value = symbol->llvm_value;
-    if (LLVMGetTypeKind(LLVMTypeOf(symbol->llvm_value)) ==
-        LLVMPointerTypeKind) {
+    assert(deref_expr_type != NULL);
+    assert(deref_expr_type->kind == DTK_POINTER);
+
+    LLVMTypeRef type =
+        cg_get_type(code_generator, deref_expr_type->value.pointer_inner);
+
+    LLVMValueRef value = inner;
+
+    if (LLVMGetTypeKind(type) == LLVMPointerTypeKind) {
       puts("type was pointer type so adding extra load.");
-      value = LLVMBuildLoad2(code_generator->builder, type, value, "");
+      value = LLVMBuildLoad2(code_generator->builder, type, inner, "");
     }
 
     return LLVMBuildLoad2(code_generator->builder, type, value, "");
@@ -387,6 +416,7 @@ void cg_visit_decl(struct CodeGenerator *code_generator,
   struct SymbolTableEntry *symbol =
       lookup_symbol_in(decl->symbol, code_generator->current_symbol_table);
   assert(symbol != NULL);
+
   printf("Code genning decl %s.\n", symbol->symbol.data);
 
   LLVMTypeRef type = cg_get_type(code_generator, decl->data_type);
@@ -401,7 +431,7 @@ void cg_visit_decl(struct CodeGenerator *code_generator,
 
   symbol->llvm_value = variable;
 
-  cg_gen_assignment(code_generator, symbol, decl->expression);
+  cg_gen_assignment(code_generator, variable, type, decl->expression);
 }
 
 void cg_visit_module_decl(struct CodeGenerator *code_generator,
@@ -409,6 +439,7 @@ void cg_visit_module_decl(struct CodeGenerator *code_generator,
   struct SymbolTableEntry *symbol =
       lookup_symbol_in(decl->symbol, code_generator->current_symbol_table);
   assert(symbol != NULL);
+
   printf("Code genning MODULE decl %s.\n", symbol->symbol.data);
 
   LLVMTypeRef type = cg_get_type(code_generator, decl->data_type);
@@ -426,7 +457,7 @@ void cg_visit_module_decl(struct CodeGenerator *code_generator,
 
   symbol->llvm_value = variable;
 
-  cg_gen_assignment(code_generator, symbol, decl->expression);
+  cg_gen_assignment(code_generator, variable, type, decl->expression);
 }
 
 void cg_visit_module_statement(struct CodeGenerator *code_generator,
@@ -454,27 +485,20 @@ void cg_visit_return(struct CodeGenerator *code_generator,
 }
 
 void cg_gen_assignment(struct CodeGenerator *code_generator,
-                       struct SymbolTableEntry *symbol,
+                       LLVMValueRef source_value, LLVMTypeRef source_type,
                        struct ExpressionNode *expression) {
   LLVMValueRef result = cg_visit_expr(code_generator, expression);
 
-  LLVMTypeRef type = cg_get_type(code_generator, symbol->type);
+  // TODO: does this belong somewhere else?
+  // if (symbol->type->kind == DTK_FUNCTION) {
+  //   type = LLVMPointerType(type, 0);
+  // } else if (symbol->type->kind == DTK_POINTER) {
+  //   puts("kind is pointer.");
+  // }
 
-  printf("[cg_gen_assignment]: ");
-  print_data_type(symbol->type);
-  char *type_str = LLVMPrintTypeToString(type);
-  printf(" -> %s\n", type_str);
-  LLVMDisposeMessage(type_str);
+  LLVMValueRef coerced = cg_coerce(code_generator, result, source_type);
 
-  if (symbol->type->kind == DTK_FUNCTION) {
-    type = LLVMPointerType(type, 0);
-  } else if (symbol->type->kind == DTK_POINTER) {
-    puts("kind is pointer.");
-  }
-
-  LLVMValueRef coerced = cg_coerce(code_generator, result, type);
-
-  LLVMBuildStore(code_generator->builder, coerced, symbol->llvm_value);
+  LLVMBuildStore(code_generator->builder, coerced, source_value);
 }
 
 void cg_visit_function_statement(struct CodeGenerator *code_generator,
@@ -487,13 +511,91 @@ void cg_visit_function_statement(struct CodeGenerator *code_generator,
     cg_visit_decl(code_generator, stmt->node.decl);
     break;
   case FN_STMT_ASSIGN: {
-    struct SymbolTableEntry *symbol = lookup_symbol_in(
-        stmt->node.assign->symbol, code_generator->current_symbol_table);
-    assert(symbol != NULL);
+    struct AssignStatementNode *node = stmt->node.assign;
 
-    cg_gen_assignment(code_generator, symbol, stmt->node.assign->expression);
+    assert(node != NULL);
+    assert(node->source_expression != NULL);
+    assert(node->result_expression != NULL);
 
-    // TODO: Do we need something here?
+    if (node->source_expression->type == EXPR_SYMBOL_LITERAL) {
+      struct SymbolTableEntry *symbol =
+          lookup_symbol_in(node->source_expression->node.symbol->value,
+                           code_generator->current_symbol_table);
+
+      LLVMTypeRef type = cg_get_type(code_generator, symbol->type);
+
+      // TODO: standardize this
+      if (symbol->type->kind == DTK_FUNCTION) {
+        type = LLVMPointerType(type, 0);
+      }
+
+      cg_gen_assignment(code_generator, symbol->llvm_value, type,
+                        node->result_expression);
+      break;
+
+      // cg_gen_assignment(code_generator,
+      //                   cg_visit_expr(code_generator,
+      //                   node->source_expression), cg_get_type(code_generator,
+      //                   source_type), node->result_expression);
+    } else if (node->source_expression->type == EXPR_DEREF) {
+      struct DataType *source_type =
+          cg_infer_type(code_generator, node->source_expression->node.deref);
+      assert(source_type->kind == DTK_POINTER);
+      cg_gen_assignment(
+          code_generator,
+          cg_visit_expr(code_generator, node->source_expression->node.deref),
+          cg_get_type(code_generator, source_type->value.pointer_inner),
+          node->result_expression);
+      break;
+    }
+
+    struct DataType *source_type =
+        cg_infer_type(code_generator, node->source_expression);
+
+    cg_gen_assignment(
+        code_generator, cg_visit_expr(code_generator, node->source_expression),
+        cg_get_type(code_generator, source_type), node->result_expression);
+    break;
+
+    // switch (node->source_expression->type) {
+    // case EXPR_SYMBOL_LITERAL: {
+    //   puts("symbol literal assignment");
+    //   assert(node->source_expression->node.symbol != NULL);
+    //   struct SymbolTableEntry *symbol =
+    //       lookup_symbol_in(node->source_expression->node.symbol->value,
+    //                        code_generator->current_symbol_table);
+    //   assert(symbol != NULL);
+    //
+    //   cg_gen_assignment(code_generator, symbol, node->result_expression);
+    //   break;
+    // }
+    // case EXPR_DEREF: {
+    //   puts("deref assignment");
+    //   struct ExpressionNode *deref_expr =
+    //   node->source_expression->node.deref; assert(deref_expr != NULL);
+    //
+    //   LLVMValueRef source = cg_visit_expr(code_generator, deref_expr);
+    //
+    //   struct SymbolTableEntry *symbol = lookup_symbol_in(
+    //       deref_expr->value, code_generator->current_symbol_table);
+    //   assert(symbol != NULL);
+    //
+    //   cg_gen_assignment(code_generator, source, node->result_expression);
+    //
+    //   assert(0);
+    //   break;
+    // }
+    // case EXPR_BINARY:
+    // case EXPR_INTEGER_LITERAL:
+    // case EXPR_STRING_LITERAL:
+    // case EXPR_FN_DEF:
+    // case EXPR_FN_CALL:
+    // case EXPR_REF:
+    //   puts("illegal expression in left hand side of assignment.");
+    //   assert(0);
+    //   break;
+    // };
+
     break;
   }
   case FN_STMT_RETURN:

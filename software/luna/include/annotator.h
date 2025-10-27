@@ -78,4 +78,11 @@ struct DataType *make_function_data_type(struct ArenaAllocator *allocator,
                                          bool is_variadic);
 
 void print_data_type(struct DataType *data_type);
+
+struct ExpressionNode;
+struct DataType *infer_type(struct Annotator *annotator,
+                            struct ExpressionNode *expr);
+
+void print_symbol_table(struct LunaString name,
+                        struct SymbolTable *symbol_table);
 #endif
