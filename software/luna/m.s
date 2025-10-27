@@ -23,6 +23,9 @@ main:                                   # @main
 	movq	__unnamed_7@GOTPCREL(%rip), %rax
 	movq	__unnamed_8@GOTPCREL(%rip), %rcx
 	movq	%rax, (%rcx)
+	movq	__unnamed_9@GOTPCREL(%rip), %rax
+	movq	__unnamed_10@GOTPCREL(%rip), %rcx
+	movq	%rax, (%rcx)
 	callq	*%rax
 	popq	%rcx
 	.cfi_def_cfa_offset 8
@@ -34,7 +37,7 @@ main:                                   # @main
 	.globl	__unnamed_3                     # -- Begin function 
 	.p2align	4
 	.type	__unnamed_3,@function
-__unnamed_3:                            # @14
+__unnamed_3:                            # @21
 	.cfi_startproc
 # %bb.0:                                # %entry
 	cmpl	$1, %edi
@@ -61,7 +64,7 @@ __unnamed_3:                            # @14
 	.globl	__unnamed_5                     # -- Begin function 
 	.p2align	4
 	.type	__unnamed_5,@function
-__unnamed_5:                            # @15
+__unnamed_5:                            # @22
 	.cfi_startproc
 # %bb.0:                                # %entry
 	cmpl	$1, %edi
@@ -102,7 +105,71 @@ __unnamed_5:                            # @15
 	.globl	__unnamed_7                     # -- Begin function 
 	.p2align	4
 	.type	__unnamed_7,@function
-__unnamed_7:                            # @16
+__unnamed_7:                            # @23
+	.cfi_startproc
+# %bb.0:                                # %entry
+	pushq	%rbp
+	.cfi_def_cfa_offset 16
+	pushq	%r15
+	.cfi_def_cfa_offset 24
+	pushq	%r14
+	.cfi_def_cfa_offset 32
+	pushq	%rbx
+	.cfi_def_cfa_offset 40
+	pushq	%rax
+	.cfi_def_cfa_offset 48
+	.cfi_offset %rbx, -40
+	.cfi_offset %r14, -32
+	.cfi_offset %r15, -24
+	.cfi_offset %rbp, -16
+	cmpl	%esi, %edi
+	jge	.LBB3_2
+# %bb.1:                                # %if.then
+	movq	__unnamed_1@GOTPCREL(%rip), %rcx
+	movl	%edi, %ebx
+	movl	$.L__unnamed_11, %edi
+	movl	%esi, %ebp
+	movl	%ebx, %esi
+	xorl	%eax, %eax
+	movq	%rdx, %r14
+	callq	*(%rcx)
+	movq	__unnamed_2@GOTPCREL(%rip), %r15
+	movl	$.L__unnamed_12, %edi
+	callq	*(%r15)
+	callq	*(%r14)
+	movl	$.L__unnamed_13, %edi
+	callq	*(%r15)
+	movq	__unnamed_8@GOTPCREL(%rip), %rax
+	incl	%ebx
+	movl	%ebx, %edi
+	movl	%ebp, %esi
+	movq	%r14, %rdx
+	callq	*(%rax)
+	jmp	.LBB3_3
+.LBB3_2:                                # %if.else
+	movq	__unnamed_2@GOTPCREL(%rip), %rax
+	movl	$.L__unnamed_14, %edi
+	callq	*(%rax)
+.LBB3_3:                                # %if.else
+	addq	$8, %rsp
+	.cfi_def_cfa_offset 40
+	popq	%rbx
+	.cfi_def_cfa_offset 32
+	popq	%r14
+	.cfi_def_cfa_offset 24
+	popq	%r15
+	.cfi_def_cfa_offset 16
+	popq	%rbp
+	.cfi_def_cfa_offset 8
+	retq
+.Lfunc_end3:
+	.size	__unnamed_7, .Lfunc_end3-__unnamed_7
+	.cfi_endproc
+                                        # -- End function
+	.globl	__unnamed_9                     # -- Begin function 
+	.p2align	4
+	.type	__unnamed_9,@function
+__unnamed_9:                            # @24
 	.cfi_startproc
 # %bb.0:                                # %entry
 	pushq	%rbp
@@ -120,58 +187,70 @@ __unnamed_7:                            # @16
 	movl	$3, -28(%rbp)
 	xorl	%eax, %eax
 	testb	%al, %al
-	jne	.LBB3_3
+	jne	.LBB4_3
 # %bb.1:                                # %if.then
 	movq	__unnamed_2@GOTPCREL(%rip), %rbx
-	movl	$.L__unnamed_9, %edi
+	movl	$.L__unnamed_15, %edi
 	callq	*(%rbx)
 	movq	%rsp, %rax
 	leaq	-16(%rax), %rsp
 	movb	$100, -16(%rax)
 	movq	%rsp, %r14
 	leaq	-16(%r14), %rsp
-	movq	__unnamed_10@GOTPCREL(%rip), %rcx
+	movq	__unnamed_16@GOTPCREL(%rip), %rcx
 	movq	%rcx, -16(%r14)
 	movq	__unnamed_1@GOTPCREL(%rip), %rcx
 	movzbl	-16(%rax), %esi
 	xorl	%r15d, %r15d
-	movl	$.L__unnamed_11, %edi
+	movl	$.L__unnamed_17, %edi
 	xorl	%eax, %eax
 	callq	*(%rcx)
 	callq	*-16(%r14)
 	movl	$0, -28(%rbp)
 	testb	%r15b, %r15b
-	je	.LBB3_4
+	je	.LBB4_4
 # %bb.2:                                # %if.then1
-	movl	$.L__unnamed_12, %edi
-	jmp	.LBB3_5
-.LBB3_3:                                # %if.else
+	movl	$.L__unnamed_18, %edi
+	jmp	.LBB4_5
+.LBB4_3:                                # %if.else
 	movq	__unnamed_2@GOTPCREL(%rip), %rax
-	movl	$.L__unnamed_13, %edi
+	movl	$.L__unnamed_19, %edi
 	callq	*(%rax)
-	jmp	.LBB3_6
-.LBB3_4:                                # %if.else2
-	movl	$.L__unnamed_14, %edi
-.LBB3_5:                                # %if.end
+	jmp	.LBB4_6
+.LBB4_4:                                # %if.else2
+	movl	$.L__unnamed_20, %edi
+.LBB4_5:                                # %if.end
 	callq	*(%rbx)
-.LBB3_6:                                # %if.end
+.LBB4_6:                                # %if.end
 	movq	__unnamed_1@GOTPCREL(%rip), %rbx
 	movq	(%rbx), %r14
 	movq	__unnamed_4@GOTPCREL(%rip), %rax
 	movl	$8, %edi
 	callq	*(%rax)
-	movl	$.L__unnamed_15, %edi
+	movl	$.L__unnamed_21, %edi
 	movl	%eax, %esi
 	xorl	%eax, %eax
 	callq	*%r14
 	movq	(%rbx), %rbx
 	movq	__unnamed_6@GOTPCREL(%rip), %rax
-	movl	$5, %edi
+	movl	$8, %edi
 	callq	*(%rax)
-	movl	$.L__unnamed_16, %edi
+	movl	$.L__unnamed_22, %edi
 	movl	%eax, %esi
 	xorl	%eax, %eax
 	callq	*%rbx
+	movq	__unnamed_2@GOTPCREL(%rip), %rax
+	movl	$.L__unnamed_23, %edi
+	callq	*(%rax)
+	movq	%rsp, %rax
+	leaq	-16(%rax), %rdx
+	movq	%rdx, %rsp
+	movq	__unnamed_24@GOTPCREL(%rip), %rcx
+	movq	%rcx, -16(%rax)
+	movq	__unnamed_8@GOTPCREL(%rip), %rax
+	xorl	%edi, %edi
+	movl	$3, %esi
+	callq	*(%rax)
 	xorl	%eax, %eax
 	leaq	-24(%rbp), %rsp
 	popq	%rbx
@@ -180,26 +259,44 @@ __unnamed_7:                            # @16
 	popq	%rbp
 	.cfi_def_cfa %rsp, 8
 	retq
-.Lfunc_end3:
-	.size	__unnamed_7, .Lfunc_end3-__unnamed_7
+.Lfunc_end4:
+	.size	__unnamed_9, .Lfunc_end4-__unnamed_9
 	.cfi_endproc
                                         # -- End function
-	.globl	__unnamed_10                    # -- Begin function 
+	.globl	__unnamed_16                    # -- Begin function 
 	.p2align	4
-	.type	__unnamed_10,@function
-__unnamed_10:                           # @17
+	.type	__unnamed_16,@function
+__unnamed_16:                           # @25
 	.cfi_startproc
 # %bb.0:                                # %entry
 	pushq	%rax
 	.cfi_def_cfa_offset 16
 	movq	__unnamed_2@GOTPCREL(%rip), %rax
-	movl	$.L__unnamed_17, %edi
+	movl	$.L__unnamed_25, %edi
 	callq	*(%rax)
 	popq	%rax
 	.cfi_def_cfa_offset 8
 	retq
-.Lfunc_end4:
-	.size	__unnamed_10, .Lfunc_end4-__unnamed_10
+.Lfunc_end5:
+	.size	__unnamed_16, .Lfunc_end5-__unnamed_16
+	.cfi_endproc
+                                        # -- End function
+	.globl	__unnamed_24                    # -- Begin function 
+	.p2align	4
+	.type	__unnamed_24,@function
+__unnamed_24:                           # @26
+	.cfi_startproc
+# %bb.0:                                # %entry
+	pushq	%rax
+	.cfi_def_cfa_offset 16
+	movq	__unnamed_2@GOTPCREL(%rip), %rax
+	movl	$.L__unnamed_26, %edi
+	callq	*(%rax)
+	popq	%rax
+	.cfi_def_cfa_offset 8
+	retq
+.Lfunc_end6:
+	.size	__unnamed_24, .Lfunc_end6-__unnamed_24
 	.cfi_endproc
                                         # -- End function
 	.type	__unnamed_1,@object             # @0
@@ -238,50 +335,89 @@ __unnamed_8:
 	.quad	0
 	.size	__unnamed_8, 8
 
-	.type	.L__unnamed_9,@object           # @5
+	.type	.L__unnamed_11,@object          # @5
 	.section	.rodata.str1.1,"aMS",@progbits,1
-.L__unnamed_9:
-	.asciz	"it worked!"
-	.size	.L__unnamed_9, 11
-
-	.type	.L__unnamed_17,@object          # @6
-.L__unnamed_17:
-	.asciz	"test"
-	.size	.L__unnamed_17, 5
-
-	.type	.L__unnamed_11,@object          # @7
 .L__unnamed_11:
-	.asciz	"foo is %d\n"
-	.size	.L__unnamed_11, 11
+	.asciz	"%d\n"
+	.size	.L__unnamed_11, 4
 
-	.type	.L__unnamed_12,@object          # @8
+	.type	.L__unnamed_12,@object          # @6
 .L__unnamed_12:
-	.asciz	"other"
-	.size	.L__unnamed_12, 6
+	.asciz	"prebodycall"
+	.size	.L__unnamed_12, 12
 
-	.type	.L__unnamed_18,@object          # @9
-.L__unnamed_18:
-	.asciz	"hmm"
-	.size	.L__unnamed_18, 4
-
-	.type	.L__unnamed_14,@object          # @10
-.L__unnamed_14:
-	.asciz	"not other"
-	.size	.L__unnamed_14, 10
-
-	.type	.L__unnamed_13,@object          # @11
+	.type	.L__unnamed_13,@object          # @7
 .L__unnamed_13:
-	.asciz	"lame"
-	.size	.L__unnamed_13, 5
+	.asciz	"called body done."
+	.size	.L__unnamed_13, 18
 
-	.type	.L__unnamed_15,@object          # @12
+	.type	.L__unnamed_14,@object          # @8
+.L__unnamed_14:
+	.asciz	"done."
+	.size	.L__unnamed_14, 6
+
+	.type	__unnamed_10,@object            # @9
+	.bss
+	.globl	__unnamed_10
+	.p2align	3, 0x0
+__unnamed_10:
+	.quad	0
+	.size	__unnamed_10, 8
+
+	.type	.L__unnamed_15,@object          # @10
+	.section	.rodata.str1.1,"aMS",@progbits,1
 .L__unnamed_15:
-	.asciz	"factorial of 3 is %d\n"
-	.size	.L__unnamed_15, 22
+	.asciz	"it worked!"
+	.size	.L__unnamed_15, 11
 
-	.type	.L__unnamed_16,@object          # @13
-.L__unnamed_16:
-	.asciz	"fib(5) is %d"
-	.size	.L__unnamed_16, 13
+	.type	.L__unnamed_25,@object          # @11
+.L__unnamed_25:
+	.asciz	"test"
+	.size	.L__unnamed_25, 5
+
+	.type	.L__unnamed_17,@object          # @12
+.L__unnamed_17:
+	.asciz	"foo is %d\n"
+	.size	.L__unnamed_17, 11
+
+	.type	.L__unnamed_18,@object          # @13
+.L__unnamed_18:
+	.asciz	"other"
+	.size	.L__unnamed_18, 6
+
+	.type	.L__unnamed_27,@object          # @14
+.L__unnamed_27:
+	.asciz	"hmm"
+	.size	.L__unnamed_27, 4
+
+	.type	.L__unnamed_20,@object          # @15
+.L__unnamed_20:
+	.asciz	"not other"
+	.size	.L__unnamed_20, 10
+
+	.type	.L__unnamed_19,@object          # @16
+.L__unnamed_19:
+	.asciz	"lame"
+	.size	.L__unnamed_19, 5
+
+	.type	.L__unnamed_21,@object          # @17
+.L__unnamed_21:
+	.asciz	"factorial of 3 is %d\n"
+	.size	.L__unnamed_21, 22
+
+	.type	.L__unnamed_22,@object          # @18
+.L__unnamed_22:
+	.asciz	"fib(6) is %d\n"
+	.size	.L__unnamed_22, 14
+
+	.type	.L__unnamed_23,@object          # @19
+.L__unnamed_23:
+	.asciz	"calling while"
+	.size	.L__unnamed_23, 14
+
+	.type	.L__unnamed_26,@object          # @20
+.L__unnamed_26:
+	.asciz	"test"
+	.size	.L__unnamed_26, 5
 
 	.section	".note.GNU-stack","",@progbits

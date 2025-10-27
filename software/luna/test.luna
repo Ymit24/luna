@@ -1,0 +1,5 @@
+const puts = fn@extern["puts"](fmt: *i8);
+const main = fn() {
+  puts("hello world");
+  return;
+};

@@ -240,8 +240,7 @@ struct DataType *infer_type(struct Annotator *annotator,
     assert(entry != NULL);
     assert(entry->type->kind == DTK_FUNCTION);
 
-    printf("type infer on function call: '%s' %d\n", entry->symbol.data,
-           entry->type->kind);
+    printf("type infer on function call: '%s'\n", entry->symbol.data);
     return entry->type->value.function.return_type;
   }
   case EXPR_REF: {
@@ -538,6 +537,8 @@ void annotator_visit_function_statement(
     struct FunctionCallExpressionNode *fn_call = statement->node.fn_call;
     assert(fn_call != NULL);
 
+    printf("\n\tname is: %s\n\n", fn_call->name.data);
+
     struct SymbolTableEntry *entry = lookup_symbol(annotator, fn_call->name);
     assert(entry != NULL);
     assert(entry->type->kind == DTK_FUNCTION);
@@ -568,7 +569,10 @@ void annotator_visit_function_statement(
       call_arg = call_arg->next;
       def_arg = def_arg->next;
 
-      assert((call_arg == NULL) && (def_arg == NULL));
+      printf("call arg null: %d, def arg null %d\n", call_arg == NULL,
+             def_arg == NULL);
+
+      assert((call_arg == NULL) == (def_arg == NULL));
     }
 
     // TODO: check types

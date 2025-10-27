@@ -16,6 +16,19 @@ const fib = fn(n: i32): i32 {
     return fib(n-1) + fib(n-2);
 };
 
+const while = fn(start: i32, end: i32, body: fn(): void) {
+    if start < end {
+        printf("%d\n", start);
+        puts("prebodycall");
+        body();
+        puts("called body done.");
+        while(1 + start, end, body);
+        return;
+    };
+    puts("done.");
+    return;
+};
+
 const main = fn(): i32 {
     const a: i32 = 3;
     if a < 5 {
@@ -41,6 +54,13 @@ const main = fn(): i32 {
 
     printf("factorial of 3 is %d\n", factorial(8));
     printf("fib(6) is %d\n", fib(8));
+
+    puts("calling while");
+    const body = fn() {
+        puts("test");
+        return;
+    };
+    while(0, 3, body);
 
     return 0;
 };
