@@ -2,14 +2,16 @@ const printf = fn@extern["printf"]@variadic(fmt: *i8);
 const puts = fn@extern["puts"](fmt: *i8);
 
 const main = fn(): i32 {
-    const a: i32 = 100;
+    const a: i32 = 1;
     if a {
         puts("it worked!");
         let foo = 100;
         let inner = fn() {
             puts("test");
+            return;
         };
         printf("foo is %d\n", foo);
+        inner();
         if a {
             puts("other");
         };

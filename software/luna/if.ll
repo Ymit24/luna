@@ -26,32 +26,36 @@ declare void @puts(ptr)
 define i32 @7() {
 entry:
   %a = alloca i32, align 4
-  store i32 100, ptr %a, align 4
+  store i32 1, ptr %a, align 4
   %0 = load i32, ptr %a, align 4
-  br i32 %0, label %if.then, label %if.end
-  store ptr @8, ptr %inner, align 8
-  %1 = load ptr, ptr @0, align 8
-  %2 = load i8, ptr %foo, align 1
-  call void (ptr, ...) %1(ptr @5, i8 %2)
-  %3 = load i32, ptr %a, align 4
-  br i32 %3, label %if.then1, label %if.end2
+  %1 = trunc i32 %0 to i1
+  br i1 %1, label %if.then, label %if.end
 
 if.then:                                          ; preds = %entry
-  %4 = load ptr, ptr @1, align 8
-  call void %4(ptr @3)
+  %2 = load ptr, ptr @1, align 8
+  call void %2(ptr @3)
   %foo = alloca i8, align 1
   store i8 100, ptr %foo, align 1
   %inner = alloca ptr, align 8
+  store ptr @8, ptr %inner, align 8
+  %3 = load ptr, ptr @0, align 8
+  %4 = load i8, ptr %foo, align 1
+  call void (ptr, ...) %3(ptr @5, i8 %4)
+  %5 = load ptr, ptr %inner, align 8
+  call void %5()
+  %6 = load i32, ptr %a, align 4
+  %7 = trunc i32 %6 to i1
+  br i1 %7, label %if.then1, label %if.end2
 
 if.end:                                           ; preds = %if.end2, %entry
   ret i32 0
 
-if.then1:                                         ; preds = %entry
-  %5 = load ptr, ptr @1, align 8
-  call void %5(ptr @6)
+if.then1:                                         ; preds = %if.then
+  %8 = load ptr, ptr @1, align 8
+  call void %8(ptr @6)
   br label %if.end2
 
-if.end2:                                          ; preds = %if.then1, %entry
+if.end2:                                          ; preds = %if.then1, %if.then
   br label %if.end
 }
 
@@ -59,4 +63,5 @@ define void @8() {
 entry:
   %0 = load ptr, ptr @1, align 8
   call void %0(ptr @4)
+  ret void
 }
