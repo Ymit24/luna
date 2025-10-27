@@ -36,9 +36,9 @@ struct LunaString read_file(const char *path, struct ArenaAllocator *alloc) {
 int main(int argc, char **argv) {
   puts("Luna Compiler");
 
-  uint8_t arena[UINT16_MAX];
+  uint8_t arena[UINT16_MAX * 4];
 
-  struct ArenaAllocator allocator = arena_make(&arena, UINT16_MAX);
+  struct ArenaAllocator allocator = arena_make(&arena, UINT16_MAX * 4);
 
   if (argc < 3) {
     fprintf(stderr, "usage: %s <source.luna> <output.ll>\n", argv[0]);
@@ -87,7 +87,7 @@ int main(int argc, char **argv) {
     LLVMDisposeMessage(error);
   }
 
-  printf("Arena Allocator used %d/%d (%0.2f%%) memory\n", allocator.length,
+  printf("Arena Allocator used %ld/%ld (%0.2f%%) memory\n", allocator.length,
          allocator.capacity,
          (double)allocator.length / (double)allocator.capacity * 100.0);
   return 0;

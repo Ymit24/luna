@@ -2,7 +2,7 @@
 #include <assert.h>
 #include <stddef.h>
 
-struct ArenaAllocator arena_make(void *arena, uint16_t capacity) {
+struct ArenaAllocator arena_make(void *arena, size_t capacity) {
   return (struct ArenaAllocator){
       .arena = arena,
       .capacity = capacity,
