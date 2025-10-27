@@ -1,6 +1,13 @@
 const printf = fn@extern["printf"]@variadic(fmt: *i8);
 const puts = fn@extern["puts"](fmt: *i8);
 
+const factorial = fn(n: i32): i32 {
+    if n < 2 {
+        return 1;
+    };
+    return n * factorial(n - 1);
+};
+
 const main = fn(): i32 {
     const a: i32 = 1;
     if a {

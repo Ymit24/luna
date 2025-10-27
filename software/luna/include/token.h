@@ -19,6 +19,8 @@ enum TokenType {
   T_RBRACE,
   T_LBRACK,
   T_RBRACK,
+  T_LANGLE,
+  T_RANGLE,
   T_SEMICOLON,
   T_COLON,
   T_COMMA,

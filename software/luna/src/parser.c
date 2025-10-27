@@ -89,6 +89,10 @@ uint8_t precedence_for_token(enum TokenType type) {
     return 2;
   case T_SLASH:
     return 2;
+  case T_LANGLE:
+    return 3;
+  case T_RANGLE:
+    return 3;
   case T_RPAREN:
     return 0;
   case T_RBRACE:
@@ -358,8 +362,27 @@ struct ExpressionNode *parse_expression(struct Parser *parser,
                   parser->allocator, BIN_EXPR_DIV, left,
                   parse_expression(parser, precedence_for_token(T_SLASH)))});
       break;
+    case T_LANGLE:
+      left = ast_promote_expression_node(
+          parser->allocator,
+          (struct ExpressionNode){
+              .type = EXPR_BINARY,
+              .node.binary = ast_make_binary_expression(
+                  parser->allocator, BIN_EXPR_LT, left,
+                  parse_expression(parser, precedence_for_token(T_LANGLE)))});
+      break;
+    case T_RANGLE:
+      left = ast_promote_expression_node(
+          parser->allocator,
+          (struct ExpressionNode){
+              .type = EXPR_BINARY,
+              .node.binary = ast_make_binary_expression(
+                  parser->allocator, BIN_EXPR_GT, left,
+                  parse_expression(parser, precedence_for_token(T_RANGLE)))});
+      break;
     default:
       printf("Found unexpected token of type %d\n", token.type);
+      assert(0);
       return left;
     }
   }

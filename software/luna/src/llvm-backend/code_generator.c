@@ -243,6 +243,14 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
     case BIN_EXPR_DIV:
       puts("got div");
       return LLVMBuildSDiv(code_generator->builder, left, right, "");
+    case BIN_EXPR_LT:
+      puts("got lt");
+      return LLVMBuildICmp(code_generator->builder, LLVMIntSLT, left, right,
+                           "");
+    case BIN_EXPR_GT:
+      puts("got gt");
+      return LLVMBuildICmp(code_generator->builder, LLVMIntSGT, left, right,
+                           "");
     }
     break;
   case EXPR_INTEGER_LITERAL:

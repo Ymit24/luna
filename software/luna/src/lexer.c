@@ -152,6 +152,12 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
   case ']':
     out_token->type = T_RBRACK;
     break;
+  case '<':
+    out_token->type = T_LANGLE;
+    break;
+  case '>':
+    out_token->type = T_RANGLE;
+    break;
   case ';':
     out_token->type = T_SEMICOLON;
     break;

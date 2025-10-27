@@ -129,7 +129,9 @@ enum BinaryExpressionType {
   BIN_EXPR_ADD,
   BIN_EXPR_SUB,
   BIN_EXPR_MUL,
-  BIN_EXPR_DIV
+  BIN_EXPR_DIV,
+  BIN_EXPR_LT,
+  BIN_EXPR_GT
 };
 
 struct BinaryExpressionNode {
