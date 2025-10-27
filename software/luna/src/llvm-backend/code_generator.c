@@ -604,6 +604,10 @@ void cg_visit_function_statement(struct CodeGenerator *code_generator,
   case FN_STMT_FN_CALL:
     cg_visit_function_call(code_generator, stmt->node.fn_call);
     break;
+  case FN_STMT_IF:
+    puts("generating if..");
+    assert(0);
+    break;
   }
 }
 

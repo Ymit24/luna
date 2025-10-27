@@ -628,6 +628,11 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
                                                        .next = NULL},
                        sizeof(struct FunctionStatementNode));
   }
+  case T_IF: {
+    puts("found if.");
+    assert(0);
+    break;
+  }
   default: {
     puts("[PARSER] In default case for function statement.");
     printf("Looking at: %d\n", parser_peek(parser).type);

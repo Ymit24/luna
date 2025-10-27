@@ -1,0 +1,14 @@
+const printf = fn@extern["printf"]@variadic(fmt: *i8);
+const puts = fn@extern["puts"](fmt: *i8);
+
+const main = fn(): i32 {
+    const a: i32 = 100;
+    if a == 100 {
+        puts("it worked!");
+    } else if a == 102 {
+        puts("it kinda didnt work!");
+    } else {
+        puts("it didnt work..");
+    }
+    return 0;
+};

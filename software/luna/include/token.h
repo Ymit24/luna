@@ -31,6 +31,8 @@ enum TokenType {
   T_EXTERN,
   T_VARIADIC,
   T_STRING,
+  T_IF,
+  T_ELSE,
 };
 
 struct Token {

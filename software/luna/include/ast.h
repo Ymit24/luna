@@ -19,6 +19,7 @@ enum FunctionStatementType {
   FN_STMT_ASSIGN,
   FN_STMT_RETURN,
   FN_STMT_FN_CALL, // TODO: maybe this becomes general expression
+  FN_STMT_IF,
 };
 
 struct FunctionArgumentNode {
@@ -59,8 +60,15 @@ struct FunctionStatementNode {
     struct AssignStatementNode *assign;
     struct ReturnStatementNode *ret;
     struct FunctionCallExpressionNode *fn_call;
+    struct IfStatementNode *if_stmt;
   } node;
   struct FunctionStatementNode *next;
+};
+
+struct IfStatementNode {
+  struct ExpressionNode *condition;
+  struct FunctionStatementNode *body;
+  struct IfStatementNode *next;
 };
 
 enum ExpressionType {
