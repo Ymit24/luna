@@ -13,5 +13,47 @@ const main = fn(): i32 {
         y: 1
     };
     printf("pair: %d,%d\n", p.x, p.y);
+
+    p.x.y.z.w;
     return 0;
+};
+
+const malloc = fn@extern["malloc"](size: i32): *i8;
+
+const core = mod {
+    const Box = struct<T> {
+        data: *T
+    };
+
+    const box = fn<T>(data: T): Box<T> {
+        const heap = @cast(T, malloc(@size(T)));
+        memcpy(&data, heap, @size(T));
+        return .Box{data: heap};
+    }
+}
+
+const parse_function_statement = fn(context: *Context, expression: Box<Expression>): Box<FunctionStatementNode> {
+    switch expression.type {
+        case EXPR::FIELD_ACCESS:
+            take_token(context, TOK::EQUALS);
+
+            const result_expr = parse_root_expression(context);
+            compiler_assert(result_expr!=null);
+
+            take_token(context, TOK::SEMICOLON);
+
+            const f = box<FunctionStatementNode>(.FunctionStatementNode{
+                assign: box<AssignStatementNode>(.AssignStatementNode{
+                    source: expression,
+                    result: result_expr
+                })
+            });
+
+            const g: *Expression = f.data.assign.data.source.data;
+            const g: *Expression = f->assign->source;
+
+            return f;
+    }
+
+    return null;
 };
