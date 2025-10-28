@@ -159,14 +159,9 @@ LLVMValueRef cg_visit_function_call(struct CodeGenerator *code_generator,
 
   LLVMTypeRef type = cg_get_func_type(code_generator, symbol->type);
   puts("about to load type");
-  LLVMValueRef value;
-  if (symbol->symbol_location == SL_ARGUMENT) {
-    value = symbol->llvm_value;
-  } else {
-    value = LLVMBuildLoad2(code_generator->builder,
-                           cg_get_type(code_generator, symbol->type),
-                           symbol->llvm_value, "");
-  }
+  LLVMValueRef value = LLVMBuildLoad2(code_generator->builder,
+                                      cg_get_type(code_generator, symbol->type),
+                                      symbol->llvm_value, "");
   puts("did load type.");
   // LLVMTypeRef ptr_type = LLVMPointerType(type, 0);
 
@@ -289,23 +284,14 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
     assert(symbol->llvm_value != NULL);
 
     LLVMTypeRef type = cg_get_type(code_generator, symbol->type);
-    // if (symbol->type->kind == DTK_FUNCTION) {
-    //   type = LLVMPointerType(type, 0);
-    // }
 
     switch (symbol->symbol_location) {
     case SL_MODULE:
       puts("its a module symbol");
-      return LLVMBuildLoad2(code_generator->builder, type, symbol->llvm_value,
-                            "");
     case SL_ARGUMENT:
       puts("its an argument symbol");
-      return symbol->llvm_value;
     case SL_LOCAL:
-      puts("its local so build a load2 once.");
-      if (symbol->type->kind == DTK_FUNCTION) {
-        return symbol->llvm_value;
-      }
+      puts("its local");
       return LLVMBuildLoad2(code_generator->builder, type, symbol->llvm_value,
                             "");
     };
@@ -370,7 +356,13 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
             argument->symbol, code_generator->current_symbol_table);
         assert(symbol != NULL);
         LLVMValueRef value = LLVMGetParam(function, index);
-        symbol->llvm_value = value;
+
+        symbol->llvm_value = LLVMBuildAlloca(
+            code_generator->builder,
+            cg_get_type(code_generator, argument->data_type), "");
+        LLVMBuildStore(code_generator->builder, value, symbol->llvm_value);
+
+        // symbol->llvm_value = value;
         index++;
         argument = argument->next;
       }

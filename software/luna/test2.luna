@@ -13,8 +13,9 @@ const main = fn() {
   let v = fn():i32 { return 3; };
   let f = fn(s: fn():i32): i32 { 
       puts("inner");
-      return 1+s(); 
+      return 1+s();
   };
   printf("4. f: %d\n", f(fn():i32 { return 7;}));
+  printf("5. %d\n", f(v));
   return;
 };

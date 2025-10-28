@@ -44,7 +44,7 @@ Lloh7:
                                         ; -- End function
 	.globl	___unnamed_5                    ; -- Begin function 
 	.p2align	2
-___unnamed_5:                           ; @10
+___unnamed_5:                           ; @11
 	.cfi_startproc
 ; %bb.0:                                ; %entry
 	sub	sp, sp, #64
@@ -101,7 +101,7 @@ Lloh20:
 	adrp	x8, ___unnamed_10@PAGE
 Lloh21:
 	add	x9, x8, ___unnamed_10@PAGEOFF
-	ldr	x19, [x19, ___unnamed_2@PAGEOFF]
+	ldr	x20, [x19, ___unnamed_2@PAGEOFF]
 Lloh22:
 	adrp	x8, ___unnamed_11@PAGE
 Lloh23:
@@ -118,11 +118,22 @@ Lloh26:
 Lloh27:
 	add	x0, x0, l___unnamed_13@PAGEOFF
 	str	x8, [sp]
+	blr	x20
+	ldp	x8, x0, [sp, #8]
+	ldr	x19, [x19, ___unnamed_2@PAGEOFF]
+	blr	x8
+	mov	w8, w0
+Lloh28:
+	adrp	x0, l___unnamed_14@PAGE
+Lloh29:
+	add	x0, x0, l___unnamed_14@PAGEOFF
+	str	x8, [sp]
 	blr	x19
 	ldp	x29, x30, [sp, #48]             ; 16-byte Folded Reload
 	ldp	x20, x19, [sp, #32]             ; 16-byte Folded Reload
 	add	sp, sp, #64
 	ret
+	.loh AdrpAdd	Lloh28, Lloh29
 	.loh AdrpAdd	Lloh26, Lloh27
 	.loh AdrpAdd	Lloh24, Lloh25
 	.loh AdrpAdd	Lloh22, Lloh23
@@ -138,7 +149,7 @@ Lloh27:
                                         ; -- End function
 	.globl	___unnamed_10                   ; -- Begin function 
 	.p2align	2
-___unnamed_10:                          ; @11
+___unnamed_10:                          ; @12
 	.cfi_startproc
 ; %bb.0:                                ; %entry
 	mov	w0, #3                          ; =0x3
@@ -147,38 +158,37 @@ ___unnamed_10:                          ; @11
                                         ; -- End function
 	.globl	___unnamed_11                   ; -- Begin function 
 	.p2align	2
-___unnamed_11:                          ; @12
+___unnamed_11:                          ; @13
 	.cfi_startproc
 ; %bb.0:                                ; %entry
-	stp	x20, x19, [sp, #-32]!           ; 16-byte Folded Spill
+	sub	sp, sp, #32
 	stp	x29, x30, [sp, #16]             ; 16-byte Folded Spill
 	.cfi_def_cfa_offset 32
 	.cfi_offset w30, -8
 	.cfi_offset w29, -16
-	.cfi_offset w19, -24
-	.cfi_offset w20, -32
-Lloh28:
-	adrp	x8, ___unnamed_1@PAGE
-	mov	x19, x0
-Lloh29:
-	adrp	x0, l___unnamed_14@PAGE
 Lloh30:
-	add	x0, x0, l___unnamed_14@PAGEOFF
+	adrp	x8, ___unnamed_1@PAGE
+	str	x0, [sp, #8]
 Lloh31:
+	adrp	x0, l___unnamed_15@PAGE
+Lloh32:
+	add	x0, x0, l___unnamed_15@PAGEOFF
+Lloh33:
 	ldr	x8, [x8, ___unnamed_1@PAGEOFF]
 	blr	x8
-	blr	x19
+	ldr	x8, [sp, #8]
+	blr	x8
 	ldp	x29, x30, [sp, #16]             ; 16-byte Folded Reload
 	add	w0, w0, #1
-	ldp	x20, x19, [sp], #32             ; 16-byte Folded Reload
+	add	sp, sp, #32
 	ret
-	.loh AdrpAdd	Lloh29, Lloh30
-	.loh AdrpLdr	Lloh28, Lloh31
+	.loh AdrpAdd	Lloh31, Lloh32
+	.loh AdrpLdr	Lloh30, Lloh33
 	.cfi_endproc
                                         ; -- End function
 	.globl	___unnamed_12                   ; -- Begin function 
 	.p2align	2
-___unnamed_12:                          ; @13
+___unnamed_12:                          ; @14
 	.cfi_startproc
 ; %bb.0:                                ; %entry
 	mov	w0, #7                          ; =0x7
@@ -206,10 +216,13 @@ l___unnamed_8:                          ; @6
 l___unnamed_9:                          ; @7
 	.asciz	"3. c: %d\n"
 
-l___unnamed_14:                         ; @8
+l___unnamed_15:                         ; @8
 	.asciz	"inner"
 
 l___unnamed_13:                         ; @9
 	.asciz	"4. f: %d\n"
+
+l___unnamed_14:                         ; @10
+	.asciz	"5. %d\n"
 
 .subsections_via_symbols
