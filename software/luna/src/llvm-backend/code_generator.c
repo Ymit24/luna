@@ -291,8 +291,8 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
     switch (symbol->symbol_location) {
     case SL_MODULE:
       puts("its a module symbol");
-      assert(0);
-      break;
+      return LLVMBuildLoad2(code_generator->builder, type, symbol->llvm_value,
+                            "");
     case SL_ARGUMENT:
       puts("its an argument symbol");
       return symbol->llvm_value;
@@ -376,6 +376,17 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
       code_generator->current_block = previous_block;
 
       LLVMPositionBuilderAtEnd(code_generator->builder, previous_block);
+
+      puts("non extern.");
+
+      LLVMValueRef storage_of_fn_ptr = LLVMBuildAlloca(
+          code_generator->builder, LLVMPointerType(function_type, 0), "");
+
+      puts("between");
+
+      LLVMBuildStore(code_generator->builder, function, storage_of_fn_ptr);
+      puts("after foo");
+      return storage_of_fn_ptr;
     }
 
     printf("\n\t\t\t++++++++++++++++POPPING FUNCTION+++++++++\n\n\n");
