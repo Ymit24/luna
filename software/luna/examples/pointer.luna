@@ -1,0 +1,12 @@
+const puts = fn@extern["puts"](str: *i8);
+const putchar = fn@extern["putchar"](val: i8): i8;
+const printf = fn@extern["printf"]@variadic(fmt: *i8): i32;
+const strlen = fn@extern["strlen"](str: *i8): i32;
+
+const main = fn(): i32 {
+    let a: *i32 = 100;
+    a = 50;
+    let b: i32 = 200;
+    b = 30;
+    return 1;
+};

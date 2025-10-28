@@ -19,12 +19,18 @@ struct Annotator annotator_make(struct ArenaAllocator *allocator) {
   struct Annotator annotator = (struct Annotator){
       .allocator = allocator,
       .data_type_table = (struct DataTypeTable){.head = NULL},
+      .current_function = NULL,
       .root_symbol_table = (struct SymbolTable){.head = NULL,
-                                                .is_function = false,
+                                                .type = STT_MOD,
                                                 .parent = NULL,
                                                 .current_index = 0},
   };
   return annotator;
+}
+
+struct DataType *make_void_data_type(struct ArenaAllocator *allocator) {
+  return ast_promote(allocator, &(struct DataType){.kind = DTK_VOID},
+                     sizeof(struct DataType));
 }
 
 struct DataType *make_primitive_data_type(struct Annotator *annotator,
@@ -35,12 +41,26 @@ struct DataType *make_primitive_data_type(struct Annotator *annotator,
       sizeof(struct DataType));
 }
 
-struct DataType *make_function_data_type(struct Annotator *annotator,
-                                         struct DataType *return_type) {
-  return ast_promote(annotator->allocator,
+struct DataType *make_pointer_data_type(struct Annotator *annotator,
+                                        struct DataType *inner) {
+  return ast_promote(
+      annotator->allocator,
+      &(struct DataType){.kind = DTK_POINTER, .value.pointer_inner = inner},
+      sizeof(struct DataType));
+}
+
+struct DataType *make_function_data_type(struct ArenaAllocator *allocator,
+                                         struct FunctionArgumentNode *arguments,
+                                         struct DataType *return_type,
+                                         struct LunaString *extern_name,
+                                         bool is_variadic) {
+  return ast_promote(allocator,
                      &(struct DataType){
                          .kind = DTK_FUNCTION,
                          .value.function.return_type = return_type,
+                         .value.function.extern_name = extern_name,
+                         .value.function.arguments = arguments,
+                         .value.function.is_variadic = is_variadic,
                          .next = NULL,
                      },
                      sizeof(struct DataType));
@@ -51,7 +71,11 @@ void annotator_initialize_primitives(struct Annotator *annotator) {
   struct DataType *primitives[] = {
       ast_promote(
           annotator->allocator,
-          &(struct DataType){.kind = DTK_PRIMITIVE, .value.primitive = P_INT},
+          &(struct DataType){.kind = DTK_PRIMITIVE, .value.primitive = P_I8},
+          sizeof(struct DataType)),
+      ast_promote(
+          annotator->allocator,
+          &(struct DataType){.kind = DTK_PRIMITIVE, .value.primitive = P_I32},
           sizeof(struct DataType)),
       ast_promote(
           annotator->allocator,
@@ -68,14 +92,18 @@ void annotator_initialize_primitives(struct Annotator *annotator) {
   insert_symbol_entry(annotator, (struct SymbolTableEntry){
                                      .symbol = string_make("true"),
                                      .type = primitives[1],
+                                     .llvm_value = NULL,
                                      .next = NULL,
                                      .memory_segment = MS_STATIC,
+                                     .symbol_location = SL_MODULE,
                                  });
   insert_symbol_entry(annotator, (struct SymbolTableEntry){
                                      .symbol = string_make("false"),
                                      .type = primitives[1],
+                                     .llvm_value = NULL,
                                      .next = NULL,
                                      .memory_segment = MS_STATIC,
+                                     .symbol_location = SL_MODULE,
                                  });
 }
 
@@ -85,15 +113,9 @@ void print_symbol_table(struct LunaString name,
   printf("Symbol Table (%s):\n", name.data);
   while (symbol_table_entry != NULL) {
     if (symbol_table_entry->type != NULL) {
-      switch (symbol_table_entry->type->kind) {
-      case DTK_PRIMITIVE:
-        printf("\t%s: %d\n", symbol_table_entry->symbol.data,
-               symbol_table_entry->type->value.primitive);
-        break;
-      case DTK_FUNCTION:
-        printf("\t%s: fn\n", symbol_table_entry->symbol.data);
-        break;
-      }
+      printf("\t%s: ", symbol_table_entry->symbol.data);
+      print_data_type(symbol_table_entry->type);
+      printf("\n");
     } else {
       printf("\t%s: unknown\n", symbol_table_entry->symbol.data);
     }
@@ -110,28 +132,56 @@ void print_data_types(struct Annotator *annotator) {
   struct DataType *data_type = annotator->data_type_table.head;
   puts("Type Table:");
   while (data_type != NULL) {
-    switch (data_type->kind) {
-    case DTK_PRIMITIVE:
-      printf("\t%d\n", data_type->value.primitive);
-      break;
-    case DTK_FUNCTION:
-      printf("\tfn\n");
-      break;
-    }
+    print_data_type(data_type);
     data_type = data_type->next;
   }
 }
 
+// TODO: this fails for when say "a" exists and you're looking for "ab", it will
+// sometimes find "a" still.
 struct SymbolTableEntry *lookup_symbol_in(struct LunaString symbol,
                                           struct SymbolTable *symbol_table) {
-  printf("About to check symbol: %s\n", symbol.data);
+  printf("About to check symbol: '%s'\n", symbol.data);
+  printf("here is the current symbol table:\n");
+
+  print_symbol_table(string_make("anon"), symbol_table);
+  printf("\n\n");
+
   struct SymbolTableEntry *entry = symbol_table->head;
 
-  while (entry != NULL &&
-         strncmp(entry->symbol.data, symbol.data, symbol.length) != 0) {
+  while (entry != NULL) {
+    if (entry->symbol.length == symbol.length &&
+        strncmp(entry->symbol.data, symbol.data, symbol.length) == 0) {
+      printf("found match!\n");
+      break;
+    }
+    printf("did not match with: %s\n", entry->symbol.data);
+
     entry = entry->next;
   }
 
+  if (entry == NULL) {
+    puts("didn't find match in this level, checking next.");
+    printf("has parent table: %d\n", symbol_table->parent != NULL);
+    struct SymbolTable *current_symbol_table = symbol_table;
+    while (current_symbol_table->parent != NULL) {
+      current_symbol_table = current_symbol_table->parent;
+      if (current_symbol_table->type == STT_FN) {
+        puts("skipping functional symbol table");
+        // continue;
+      }
+      puts("in non function symbol table, searching here.");
+      return lookup_symbol_in(symbol, current_symbol_table);
+    }
+    return NULL;
+  }
+
+  if (entry->symbol.length != symbol.length) {
+    puts("this shouldnt happen..");
+    return NULL;
+  }
+
+  puts("done");
   return entry;
 }
 
@@ -143,25 +193,79 @@ struct SymbolTableEntry *lookup_symbol(struct Annotator *annotator,
 
 struct DataType *infer_type(struct Annotator *annotator,
                             struct ExpressionNode *expr) {
+  assert(expr != NULL);
+
   switch (expr->type) {
   case EXPR_INTEGER_LITERAL:
-    puts("infered int");
-    return make_primitive_data_type(annotator, P_INT);
+    // TODO: Do we want to auto downsize to I8? we need to handle implicit
+    // casting
+    if (expr->node.integer->value < 256) {
+      puts("infered i8");
+      return make_primitive_data_type(annotator, P_I8);
+    }
+    puts("infered i32");
+    return make_primitive_data_type(annotator, P_I32);
   case EXPR_SYMBOL_LITERAL: {
+    puts("inferring on symb lit.");
+    assert(expr->node.symbol != NULL);
+    printf("symbol is: %s\n", expr->node.symbol->value.data);
     struct SymbolTableEntry *entry =
         lookup_symbol(annotator, expr->node.symbol->value);
     assert(entry != NULL);
     return entry->type;
+  }
+  case EXPR_STRING_LITERAL: {
+    puts("infered string");
+    return make_pointer_data_type(annotator,
+                                  make_primitive_data_type(annotator, P_I8));
   }
   case EXPR_BINARY: {
     puts("Infering on binary..");
     struct DataType *left = infer_type(annotator, expr->node.binary->left);
     struct DataType *right = infer_type(annotator, expr->node.binary->right);
     assert(data_types_equal(left, right));
+    // TODO: return the "greater" of the two types. e.g. between i32 & *i32 ->
+    // *i32, or i8 & i64 -> i64
     return left;
   }
   case EXPR_FN_DEF:
-    return make_function_data_type(annotator, expr->node.fn_def->return_type);
+    printf("get expr fn def. is null: %d. ret is null: %d\n",
+           expr->node.fn_def->function_type == NULL,
+           expr->node.fn_def->function_type->value.function.return_type ==
+               NULL);
+    return expr->node.fn_def->function_type;
+  case EXPR_FN_CALL: {
+    struct SymbolTableEntry *entry =
+        lookup_symbol(annotator, expr->node.symbol->value);
+    assert(entry != NULL);
+    assert(entry->type->kind == DTK_FUNCTION);
+
+    printf("type infer on function call: '%s'\n", entry->symbol.data);
+    return entry->type->value.function.return_type;
+  }
+  case EXPR_REF: {
+    struct SymbolTableEntry *entry =
+        lookup_symbol(annotator, expr->node.ref_symbol->value);
+    assert(entry != NULL);
+    return make_pointer_data_type(annotator, entry->type);
+  }
+  case EXPR_DEREF: {
+    puts("doing deref");
+    assert(expr->node.deref != NULL);
+
+    struct DataType *inner = infer_type(annotator, expr->node.deref);
+
+    assert(inner != NULL);
+    assert(inner->kind == DTK_POINTER);
+    printf("\n\n\t<<<<<--------------inner pointer type: [");
+    print_data_type(inner->value.pointer_inner);
+    printf("]\n\n\n\n\n");
+    return inner->value.pointer_inner;
+  }
+  default:
+    puts("fell through default");
+    printf("kind: %d\n", expr->type);
+    break;
   }
 
   puts("Failed to infer type.");
@@ -187,21 +291,35 @@ void insert_symbol_entry(struct Annotator *annotator,
   insert_symbol_entry_in(annotator, annotator->current_symbol_table, entry);
 }
 
-struct SymbolTable *find_parent_table(struct SymbolTable *symbol_table) {
+struct SymbolTable *
+find_parent_table(struct SymbolTable *symbol_table,
+                  enum SymbolTableType new_symbol_table_type) {
   assert(symbol_table != NULL);
   struct SymbolTable *current = symbol_table;
 
-  while (current->parent != NULL && current->is_function) {
-    current = current->parent;
-  }
+  switch (new_symbol_table_type) {
+  case STT_FN:
+    puts("looking from function");
+    while (current->parent != NULL && current->type != STT_MOD) {
+      current = current->parent;
+    }
+    assert(current != NULL);
+    assert(current->type != STT_FN);
+    return current;
+  case STT_MOD:
+  case STT_SCOPE:
+    puts("looking from scope");
+    // current = current->parent;
+    break;
+  };
 
   assert(current != NULL);
-  assert(current->is_function == false);
   return current;
 }
 
 void annotator_visit_expr(struct Annotator *annotator,
                           struct ExpressionNode *expr) {
+  assert(expr != NULL);
   switch (expr->type) {
   case EXPR_BINARY:
     annotator_visit_expr(annotator, expr->node.binary->left);
@@ -211,40 +329,120 @@ void annotator_visit_expr(struct Annotator *annotator,
     break;
   case EXPR_SYMBOL_LITERAL:
     break;
+  case EXPR_STRING_LITERAL:
+    break;
   case EXPR_FN_DEF: {
     puts("Visiting function expression");
     struct SymbolTable *old_current = annotator->current_symbol_table;
+    struct FunctionType *old_function = annotator->current_function;
     expr->node.fn_def->symbol_table = (struct SymbolTable){
         .head = NULL,
-        .is_function = true,
-        .parent = find_parent_table(annotator->current_symbol_table),
+        .type = STT_FN,
+        .parent = find_parent_table(annotator->current_symbol_table, STT_FN),
     };
     annotator->current_symbol_table = &expr->node.fn_def->symbol_table;
+    annotator->current_function =
+        &expr->node.fn_def->function_type->value.function;
+
+    struct FunctionArgumentNode *argument =
+        annotator->current_function->arguments;
+    puts("about to add arguments to functions symbol table.");
+    while (argument != NULL) {
+      printf("\tadding an argument..\n");
+      // TODO: Maybe do memory segment here for parameter
+      insert_symbol_entry_in(annotator, annotator->current_symbol_table,
+                             (struct SymbolTableEntry){
+                                 .symbol = argument->symbol,
+                                 .type = argument->data_type,
+                                 .llvm_value = NULL,
+                                 .next = NULL,
+                                 .symbol_location = SL_ARGUMENT,
+                             });
+      argument = argument->next;
+    }
     annotator_visit_function_statements(annotator, expr->node.fn_def->body);
+    annotator->current_function = old_function;
     annotator->current_symbol_table = old_current;
     puts("Done visiting function expression");
     print_symbol_table(string_make("anon function"),
                        &expr->node.fn_def->symbol_table);
     break;
   }
+  case EXPR_FN_CALL:
+    puts("deleteme: (fn_call) Got to this spot and not sure if needed.");
+    // TODO: Do we need to do anything here?
+    break;
+  case EXPR_REF: {
+    puts("deleteme: (fn_ref) Got to this spot and not sure if needed.");
+    struct SymbolTableEntry *entry =
+        lookup_symbol(annotator, expr->node.ref_symbol->value);
+
+    assert(entry != NULL);
+    assert(entry->type != NULL);
+
+    // TODO: Do we need to do anything here?
+    break;
+  }
+  case EXPR_DEREF: {
+    puts("visiting deref.");
+    assert(expr->node.deref != NULL);
+
+    struct DataType *inner = infer_type(annotator, expr->node.deref);
+
+    assert(inner != NULL);
+    assert(inner->kind == DTK_POINTER);
+    puts("done visit deref.");
+    break;
+  }
   }
 }
 
 void annotator_visit_decl(struct Annotator *annotator,
-                          struct DeclarationStatementNode *decl) {
+                          struct DeclarationStatementNode *decl,
+                          bool is_module) {
   assert(lookup_symbol(annotator, decl->symbol) == NULL);
   struct DataType *type = infer_type(annotator, decl->expression);
+
+  printf("\n");
+  printf("[annotator_visit_decl] symbol (%s) has infered type: (",
+         decl->symbol.data);
+  print_data_type(decl->data_type);
+  printf(") and the decl expression type is inferred as (");
+  print_data_type(type);
+  printf(")\n");
+
+  printf("got type infer done for %s\n", decl->symbol.data);
+  if (decl->data_type != NULL) {
+    printf("decl type: %d\n", decl->data_type->kind);
+  }
+  if (type != NULL) {
+    printf("infered type: %d\n", type->kind);
+  }
   if (decl->has_type) {
+    puts("has type, about to check equality");
+    printf("is TYPE null?: %d : %d\n", type != NULL, decl->data_type != NULL);
+    assert(type != NULL);
+
+    printf("1. type: %p :: %d\n", (void *)type, type == NULL);
     assert(data_types_equal(type, decl->data_type));
+    puts("types matched.");
+    printf("type: %d\n", type->kind);
   } else {
+    puts("no type");
     decl->data_type = type;
     decl->has_type = true;
   }
-  insert_symbol_entry(annotator, (struct SymbolTableEntry){
-                                     .symbol = decl->symbol,
-                                     .type = type,
-                                     .next = NULL,
-                                 });
+  puts("insert decl");
+  printf("\n-----\nsymb: %s\n++++\n", decl->symbol.data);
+  // TODO: Memory segment here.
+  insert_symbol_entry(annotator,
+                      (struct SymbolTableEntry){
+                          .symbol = decl->symbol,
+                          .type = decl->data_type,
+                          .llvm_value = NULL,
+                          .next = NULL,
+                          .symbol_location = is_module ? SL_MODULE : SL_LOCAL,
+                      });
   annotator_visit_expr(annotator, decl->expression);
 }
 
@@ -253,7 +451,7 @@ void annotator_visit_module_statement(struct Annotator *annotator,
   switch (statement->type) {
   case MOD_STMT_LET:
   case MOD_STMT_CONST:
-    annotator_visit_decl(annotator, statement->node.decl);
+    annotator_visit_decl(annotator, statement->node.decl, true);
     break;
   default:
     puts("Unknown module statement.");
@@ -277,29 +475,113 @@ void annotator_visit_function_statements(
   puts("Finished function annotation.");
 }
 
+void annotator_visit_if_statement(struct Annotator *annotator,
+                                  struct IfStatementNode *if_stmt) {
+  if (if_stmt->condition != NULL) {
+    annotator_visit_expr(annotator, if_stmt->condition);
+  } else {
+    assert(if_stmt->next == NULL);
+  }
+
+  struct SymbolTable *old_current = annotator->current_symbol_table;
+
+  if_stmt->symbol_table = (struct SymbolTable){
+      .head = NULL,
+      .type = STT_SCOPE,
+      .parent = find_parent_table(annotator->current_symbol_table, STT_SCOPE),
+  };
+
+  annotator->current_symbol_table = &if_stmt->symbol_table;
+
+  annotator_visit_function_statements(annotator, if_stmt->body);
+
+  annotator->current_symbol_table = old_current;
+
+  if (if_stmt->next != NULL) {
+    annotator_visit_if_statement(annotator, if_stmt->next);
+  }
+}
+
 void annotator_visit_function_statement(
     struct Annotator *annotator, struct FunctionStatementNode *statement) {
   switch (statement->type) {
-
   case FN_STMT_LET:
   case FN_STMT_CONST:
-    annotator_visit_decl(annotator, statement->node.decl);
+    annotator_visit_decl(annotator, statement->node.decl, false);
     break;
   case FN_STMT_ASSIGN: {
-    struct SymbolTableEntry *entry =
-        lookup_symbol(annotator, statement->node.decl->symbol);
+    struct DataType *source_type =
+        infer_type(annotator, statement->node.assign->source_expression);
+    struct DataType *dest_type =
+        infer_type(annotator, statement->node.assign->result_expression);
 
-    assert(entry != NULL);
+    assert(data_types_equal(dest_type, source_type));
 
-    assert(data_types_equal(
-        entry->type,
-        infer_type(annotator, statement->node.assign->expression)));
-
-    annotator_visit_expr(annotator, statement->node.assign->expression);
+    // NOTE: check inner expressions for validity
+    annotator_visit_expr(annotator, statement->node.assign->source_expression);
+    annotator_visit_expr(annotator, statement->node.assign->result_expression);
     break;
   }
-  default:
-    assert(0);
+  case FN_STMT_RETURN: {
+    if (statement->node.ret->expression == NULL) {
+      assert(annotator->current_function->return_type->kind == DTK_VOID);
+      break;
+    }
+    assert(
+        data_types_equal(infer_type(annotator, statement->node.ret->expression),
+                         annotator->current_function->return_type));
+    break;
+  }
+  case FN_STMT_FN_CALL: {
+    printf("\n\n\t\tFN_STMT_FN_CALL\n\n");
+    struct FunctionCallExpressionNode *fn_call = statement->node.fn_call;
+    assert(fn_call != NULL);
+
+    printf("\n\tname is: %s\n\n", fn_call->name.data);
+
+    struct SymbolTableEntry *entry = lookup_symbol(annotator, fn_call->name);
+    assert(entry != NULL);
+    assert(entry->type->kind == DTK_FUNCTION);
+    struct FunctionType *fn_def = &entry->type->value.function;
+
+    struct FunctionCallArgumentExpressionsNode *call_arg = fn_call->arguments;
+    puts("about to check call args.");
+    while (call_arg != NULL) {
+      annotator_visit_expr(annotator, call_arg->argument);
+      call_arg = call_arg->next;
+    }
+    puts("done check call args");
+
+    if (fn_def->is_variadic) {
+      puts("WARN: dont do type inference for variadic function");
+      break;
+    }
+
+    call_arg = fn_call->arguments;
+    struct FunctionArgumentNode *def_arg = fn_def->arguments;
+
+    puts("checking args..");
+    while (call_arg != NULL && def_arg != NULL) {
+      struct DataType *type = infer_type(annotator, call_arg->argument);
+
+      assert(data_types_equal(type, def_arg->data_type));
+
+      call_arg = call_arg->next;
+      def_arg = def_arg->next;
+
+      printf("call arg null: %d, def arg null %d\n", call_arg == NULL,
+             def_arg == NULL);
+
+      assert((call_arg == NULL) == (def_arg == NULL));
+    }
+
+    // TODO: check types
+    break;
+  }
+  case FN_STMT_IF:
+    puts("TODO: do stuff for if.");
+
+    annotator_visit_if_statement(annotator, statement->node.if_stmt);
     break;
   }
 }
@@ -319,20 +601,142 @@ void annotator_visit_module_statements(struct Annotator *annotator,
   puts("Finished module annotation.");
 }
 
+// NOTE: This really means, can i store left into right.
+// e.g. i8 -> i32 is safe but i32 -> i8 is not safe
+// TODO: rewrite this
 bool data_types_equal(struct DataType *left, struct DataType *right) {
+  assert(left != NULL);
+  assert(right != NULL);
+
+  if (left->kind == DTK_PRIMITIVE &&
+      (left->value.primitive == P_I8 || left->value.primitive == P_I32)) {
+    puts("left is primitive");
+    if (right->kind == DTK_POINTER &&
+        right->value.pointer_inner->kind == DTK_PRIMITIVE) {
+      puts("right is pointer to primitive");
+
+      if ((right->value.pointer_inner->value.primitive == P_I8 ||
+           right->value.pointer_inner->value.primitive == P_I32)) {
+        puts("infered magic pointer case");
+        return true;
+      }
+    }
+  }
+
   if (left->kind != right->kind) {
     return false;
   }
 
   switch (left->kind) {
   case DTK_PRIMITIVE:
+    if ((left->value.primitive == P_I8 || left->value.primitive == P_I32) &&
+        (right->value.primitive == P_I8 || right->value.primitive == P_I32)) {
+      if (left->value.primitive == P_I8) {
+        puts("left is i8");
+      } else {
+        puts("left is i32");
+      }
+      if (right->value.primitive == P_I8) {
+        puts("right is i8");
+      } else {
+        puts("right is i32");
+      }
+      if (left->value.primitive == P_I32 && right->value.primitive == P_I8) {
+        puts("Tried to put i32 into an i8 storage.");
+        return false;
+      }
+      puts("compatible int to int storage.");
+      return true;
+    }
     if (left->value.primitive != right->value.primitive) {
       return false;
     }
     return true;
+  case DTK_POINTER:
+    return data_types_equal(left->value.pointer_inner,
+                            right->value.pointer_inner);
   case DTK_FUNCTION:
+    puts("recurse case");
+    printf("left: %d, %d\n", left->value.function.return_type == NULL,
+           right->value.function.return_type == NULL);
+    if (left->value.function.extern_name != NULL ||
+        right->value.function.extern_name != NULL) {
+      if (left->value.function.extern_name == NULL ||
+          right->value.function.extern_name == NULL) {
+        return false;
+      } else {
+        if (left->value.function.extern_name->length !=
+            right->value.function.extern_name->length) {
+          return false;
+        }
+        return strncmp(left->value.function.extern_name->data,
+                       right->value.function.extern_name->data,
+                       left->value.function.extern_name->length) == 0;
+      }
+    }
     return data_types_equal(left->value.function.return_type,
                             right->value.function.return_type);
+  case DTK_VOID:
+    return true;
   };
   return false;
+}
+
+void print_data_type(struct DataType *data_type) {
+  if (data_type == NULL) {
+    printf("[null data_type]");
+    return;
+  }
+  switch (data_type->kind) {
+  case DTK_VOID:
+    printf("void");
+    break;
+  case DTK_PRIMITIVE:
+    switch (data_type->value.primitive) {
+    case P_I8:
+      printf("i8");
+      break;
+    case P_I32:
+      printf("i32");
+      break;
+    case P_BOOL:
+      printf("bool");
+      break;
+      ;
+    }
+    break;
+  case DTK_POINTER:
+    printf("*");
+    print_data_type(data_type->value.pointer_inner);
+    break;
+  case DTK_FUNCTION: {
+    printf("fn");
+    struct FunctionType function = data_type->value.function;
+    if (function.extern_name != NULL) {
+      printf("@extern[%s]", function.extern_name->data);
+    }
+    if (function.is_variadic == true) {
+      printf("@variadic");
+    }
+    struct FunctionArgumentNode *argument = function.arguments;
+    if (argument != NULL) {
+      printf("(");
+
+      while (argument != NULL) {
+        print_data_type(argument->data_type);
+        argument = argument->next;
+        if (argument != NULL) {
+          printf(",");
+        }
+      }
+
+      printf(")");
+    }
+    if (function.return_type != NULL) {
+      printf(":");
+      print_data_type(function.return_type);
+    }
+    break;
+  }
+  }
 }

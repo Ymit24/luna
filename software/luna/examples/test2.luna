@@ -1,0 +1,21 @@
+const puts = fn@extern["puts"](fmt: *i8):i32;
+const printf = fn@extern["printf"]@variadic(fmt: *i8): i32;
+const a: i32 = 100;
+
+const main = fn() {
+  puts("hello world");
+  let b: i32 = 30;
+  printf("1. b: %d\n", b);
+  b = 25;
+  printf("2. b: %d\n", b);
+  let c = a + b;
+  printf("3. c: %d\n", c);
+  let v = fn():i32 { return 3; };
+  let f = fn(s: fn():i32): i32 { 
+      puts("inner");
+      return 1+s();
+  };
+  printf("4. f: %d\n", f(fn():i32 { return 7;}));
+  printf("5. %d\n", f(v));
+  return;
+};

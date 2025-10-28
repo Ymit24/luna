@@ -6,32 +6,47 @@
 #include "annotator.h"
 #include "arena_allocator.h"
 #include "ast.h"
-#include "code_gen.h"
-#include "instruction_builder.h"
-#include "instructions.h"
 #include "lexer.h"
+#include "llvm-backend/code_generator.h"
 #include "luna_string.h"
 #include "parser.h"
 #include "token.h"
+#include "llvm-c/Core.h"
 
-int main(void) {
+struct LunaString read_file(const char *path, struct ArenaAllocator *alloc) {
+  FILE *file = fopen(path, "rb");
+  if (!file) {
+    fprintf(stderr, "could not open file: %s\n", path);
+    assert(0);
+  }
+  fseek(file, 0, SEEK_END);
+  long size = ftell(file);
+  fseek(file, 0, SEEK_SET);
+  char *buffer = arena_alloc(alloc, (uint16_t)size + 1);
+  if (!buffer) {
+    fprintf(stderr, "not enough arena space for source\n");
+    assert(0);
+  }
+  size_t n = fread(buffer, 1, (size_t)size, file);
+  fclose(file);
+  buffer[n] = 0;
+  return (struct LunaString){.data = buffer, .length = (uint16_t)n};
+}
+
+int main(int argc, char **argv) {
   puts("Luna Compiler");
 
-  uint8_t arena[UINT16_MAX];
+  uint8_t arena[UINT16_MAX * 4];
 
-  struct ArenaAllocator allocator = arena_make(&arena, UINT16_MAX);
+  struct ArenaAllocator allocator = arena_make(&arena, UINT16_MAX * 4);
 
-  struct Lexer lexer =
-      lexer_make(&allocator, string_make("let a = 5 - (2 + 1);"
-                                         "let x = 3;"
-                                         "let g: int = 5;"
-                                         "const main = fn(): int {"
-                                         "  const abc = 456;"
-                                         "  const inner = fn(): int {"
-                                         "    const doubleinner = 9;"
-                                         "  };"
-                                         "  abc = 5;"
-                                         "};"));
+  if (argc < 3) {
+    fprintf(stderr, "usage: %s <source.luna> <output.ll>\n", argv[0]);
+    return 1;
+  }
+
+  struct LunaString src = read_file(argv[1], &allocator);
+  struct Lexer lexer = lexer_make(&allocator, src);
 
   struct Token toks[1024];
   uint16_t tok_index = 0;
@@ -58,91 +73,21 @@ int main(void) {
   annotator_initialize_primitives(&annotator);
   annotator_visit_module_statements(&annotator, stmt);
 
-  struct InstructionBuilder ib = instruction_builder_make(&allocator);
-
-  struct CodeGenerator code_generator = cg_make(&allocator, &ib, &annotator);
+  struct CodeGenerator code_generator = cg_make(&allocator, &annotator);
 
   puts("Start code gen");
-  cg_visit_module_statements(&code_generator, stmt);
+  cg_visit_module_statements(&code_generator, stmt, true);
   puts("Done code gen");
 
-  // evaluate_statements(environment_make(&allocator), stmt);
+  LLVMDumpModule(code_generator.module);
 
-  puts("Code Generated:");
-  struct InstructionGroup *curr = ib.head;
-
-  while (curr != NULL) {
-    struct Instruction *instr = curr->head;
-    while (instr != NULL) {
-      switch (instr->type) {
-      case IT_PUSH: {
-        switch (instr->value.pushpoplea.memory_segment) {
-        case MS_LOCAL:
-          printf("\tpush local %d\n", instr->value.pushpoplea.value.index);
-          break;
-        case MS_STATIC:
-          printf("\tpush static %d\n", instr->value.pushpoplea.value.index);
-          break;
-        case MS_CONST:
-          if (instr->value.pushpoplea.is_index) {
-            printf("\tpush const %d\n", instr->value.pushpoplea.value.index);
-          } else {
-            printf("\tpush const %s\n",
-                   instr->value.pushpoplea.value.label.data);
-          }
-          break;
-        }
-        break;
-      }
-      case IT_POP:
-        switch (instr->value.pushpoplea.memory_segment) {
-        case MS_LOCAL:
-          printf("\tpop local %d\n", instr->value.pushpoplea.value.index);
-          break;
-        case MS_STATIC:
-          printf("\tpop static %d\n", instr->value.pushpoplea.value.index);
-          break;
-        case MS_CONST:
-          printf("\tpop const %d\n", instr->value.pushpoplea.value.index);
-          break;
-        }
-        break;
-      case IT_LEA:
-        switch (instr->value.pushpoplea.memory_segment) {
-        case MS_LOCAL:
-          printf("\tlea local %d\n", instr->value.pushpoplea.value.index);
-          break;
-        case MS_STATIC:
-          printf("\tlea static %d\n", instr->value.pushpoplea.value.index);
-          break;
-        case MS_CONST:
-          puts("Illegal lea of const.");
-          break;
-        }
-        break;
-      case IT_LOAD:
-        puts("\tload");
-        break;
-      case IT_STORE:
-        puts("\tstore");
-        break;
-      case IT_LABEL:
-        printf("label %s\n", instr->value.label.data);
-        break;
-      case IT_ADD:
-        puts("\tadd");
-        break;
-      case IT_SUB:
-        puts("\tsub");
-        break;
-      }
-      instr = instr->next;
-    }
-    curr = curr->next;
-    puts("");
+  char *error = NULL;
+  if (LLVMPrintModuleToFile(code_generator.module, argv[2], &error) != 0) {
+    fprintf(stderr, "Failed to write module: %s", error);
+    LLVMDisposeMessage(error);
   }
 
-  printf("Arena Allocator used %d/%d (%0.2f%%) memory\n", allocator.length,
+  printf("Arena Allocator used %ld/%ld (%0.2f%%) memory\n", allocator.length,
          allocator.capacity,
          (double)allocator.length / (double)allocator.capacity * 100.0);
   return 0;

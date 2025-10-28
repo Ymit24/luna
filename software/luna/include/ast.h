@@ -17,6 +17,15 @@ enum FunctionStatementType {
   FN_STMT_LET,
   FN_STMT_CONST,
   FN_STMT_ASSIGN,
+  FN_STMT_RETURN,
+  FN_STMT_FN_CALL, // TODO: maybe this becomes general expression
+  FN_STMT_IF,
+};
+
+struct FunctionArgumentNode {
+  struct LunaString symbol;
+  struct DataType *data_type;
+  struct FunctionArgumentNode *next;
 };
 
 struct DeclarationStatementNode {
@@ -28,8 +37,8 @@ struct DeclarationStatementNode {
 };
 
 struct AssignStatementNode {
-  struct LunaString symbol;
-  struct ExpressionNode *expression;
+  struct ExpressionNode *source_expression;
+  struct ExpressionNode *result_expression;
 };
 
 struct ModuleStatementNode {
@@ -40,20 +49,38 @@ struct ModuleStatementNode {
   struct ModuleStatementNode *next;
 };
 
+struct ReturnStatementNode {
+  struct ExpressionNode *expression;
+};
+
 struct FunctionStatementNode {
   enum FunctionStatementType type;
   union {
     struct DeclarationStatementNode *decl;
     struct AssignStatementNode *assign;
+    struct ReturnStatementNode *ret;
+    struct FunctionCallExpressionNode *fn_call;
+    struct IfStatementNode *if_stmt;
   } node;
   struct FunctionStatementNode *next;
+};
+
+struct IfStatementNode {
+  struct ExpressionNode *condition;
+  struct FunctionStatementNode *body;
+  struct IfStatementNode *next;
+  struct SymbolTable symbol_table;
 };
 
 enum ExpressionType {
   EXPR_BINARY,
   EXPR_INTEGER_LITERAL,
   EXPR_SYMBOL_LITERAL,
+  EXPR_STRING_LITERAL,
   EXPR_FN_DEF,
+  EXPR_FN_CALL,
+  EXPR_REF,
+  EXPR_DEREF,
 };
 
 struct ExpressionNode {
@@ -61,8 +88,12 @@ struct ExpressionNode {
   union {
     struct IntegerLiteralNode *integer;
     struct SymbolLiteralNode *symbol;
+    struct StringLiteralNode *string;
     struct BinaryExpressionNode *binary;
     struct FunctionDefinitionExpressionNode *fn_def;
+    struct FunctionCallExpressionNode *fn_call;
+    struct SymbolLiteralNode *ref_symbol;
+    struct ExpressionNode *deref;
   } node;
 };
 
@@ -74,17 +105,33 @@ struct SymbolLiteralNode {
   struct LunaString value;
 };
 
+struct StringLiteralNode {
+  struct LunaString value;
+};
+
 struct FunctionDefinitionExpressionNode {
   struct FunctionStatementNode *body;
-  struct DataType *return_type;
+  struct DataType *function_type;
   struct SymbolTable symbol_table;
+};
+
+struct FunctionCallArgumentExpressionsNode {
+  struct ExpressionNode *argument;
+  struct FunctionCallArgumentExpressionsNode *next;
+};
+
+struct FunctionCallExpressionNode {
+  struct LunaString name;
+  struct FunctionCallArgumentExpressionsNode *arguments;
 };
 
 enum BinaryExpressionType {
   BIN_EXPR_ADD,
   BIN_EXPR_SUB,
   BIN_EXPR_MUL,
-  BIN_EXPR_DIV
+  BIN_EXPR_DIV,
+  BIN_EXPR_LT,
+  BIN_EXPR_GT
 };
 
 struct BinaryExpressionNode {

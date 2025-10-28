@@ -1,3 +1,5 @@
 lunac
 .cache/
 .mise.toml
+out/
+bin/
