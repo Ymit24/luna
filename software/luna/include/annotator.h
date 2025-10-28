@@ -8,7 +8,13 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-enum DataTypeKind { DTK_PRIMITIVE, DTK_FUNCTION, DTK_VOID, DTK_POINTER };
+enum DataTypeKind {
+  DTK_PRIMITIVE,
+  DTK_FUNCTION,
+  DTK_VOID,
+  DTK_POINTER,
+  DTK_STRUCTURE
+};
 // TODO: strings arent primitives, i/u8 is prim
 enum PrimitiveType { P_I8, P_I32, P_BOOL };
 
@@ -19,12 +25,19 @@ struct FunctionType {
   bool is_variadic;
 };
 
+struct StructType {
+  struct LunaString name;
+  // NOTE: This will be associated during annotation via lookup?
+  struct StructDefinitionExpressionNode* definition;
+};
+
 struct DataType {
   enum DataTypeKind kind;
   union {
     struct FunctionType function;
     enum PrimitiveType primitive;
     struct DataType *pointer_inner;
+    struct StructType *structure;
   } value;
   struct DataType *next;
 };
@@ -43,6 +56,7 @@ struct SymbolTableEntry {
   struct LunaString symbol;
   struct DataType *type;
   LLVMValueRef llvm_value;
+  LLVMTypeRef llvm_structure_type;
   struct SymbolTableEntry *next;
   enum MemorySegment memory_segment;
   enum SymbolLocation symbol_location;

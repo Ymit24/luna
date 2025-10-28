@@ -81,6 +81,9 @@ enum ExpressionType {
   EXPR_FN_CALL,
   EXPR_REF,
   EXPR_DEREF,
+  EXPR_STRUCT_DEF,
+  EXPR_STRUCT_INIT,
+  EXPR_FIELD_ACCESS
 };
 
 struct ExpressionNode {
@@ -94,6 +97,9 @@ struct ExpressionNode {
     struct FunctionCallExpressionNode *fn_call;
     struct SymbolLiteralNode *ref_symbol;
     struct ExpressionNode *deref;
+    struct StructDefinitionExpressionNode *struct_def;
+    struct StructInitializationExpressionNode *struct_init;
+    struct StructFieldAccessExpressionNode *struct_field_access;
   } node;
 };
 
@@ -107,6 +113,33 @@ struct SymbolLiteralNode {
 
 struct StringLiteralNode {
   struct LunaString value;
+};
+
+struct StructFieldDefinitionNode {
+  struct LunaString name;
+  struct DataType *type;
+  struct StructFieldDefinitionNode *next;
+};
+
+struct StructDefinitionExpressionNode {
+  struct StructFieldDefinitionNode *fields;
+  struct SymbolTable symbol_table;
+};
+
+struct StructFieldAccessExpressionNode {
+  struct LunaString symbol;
+  struct LunaString *field_name;
+  size_t field_access_depth;
+};
+
+struct StructFieldInitializerExpressionNode {
+  struct LunaString name;
+  struct ExpressionNode *expression;
+};
+
+struct StructInitializationExpressionNode {
+  struct LunaString name;
+  struct StructFieldDefinitionNode *fields;
 };
 
 struct FunctionDefinitionExpressionNode {

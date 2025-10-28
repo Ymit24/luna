@@ -167,6 +167,9 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
   case ',':
     out_token->type = T_COMMA;
     break;
+  case '.':
+    out_token->type = T_PERIOD;
+    break;
   case '=':
     out_token->type = T_EQUALS;
     break;
@@ -230,6 +233,12 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
                  strncmp("return", &lexer->source.data[lexer->position], 6) ==
                      0) {
         out_token->type = T_RETURN;
+        lexer->position += 6;
+        return true;
+      } else if (lexer->source.length - lexer->position >= 6 &&
+                 strncmp("struct", &lexer->source.data[lexer->position], 6) ==
+                     0) {
+        out_token->type = T_STRUCT;
         lexer->position += 6;
         return true;
       } else {

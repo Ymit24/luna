@@ -24,6 +24,7 @@ enum TokenType {
   T_SEMICOLON,
   T_COLON,
   T_COMMA,
+  T_PERIOD,
   T_LET,
   T_CONST,
   T_EQUALS,
@@ -35,6 +36,7 @@ enum TokenType {
   T_STRING,
   T_IF,
   T_ELSE,
+  T_STRUCT,
 };
 
 struct Token {

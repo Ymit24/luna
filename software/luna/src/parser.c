@@ -142,6 +142,37 @@ struct FunctionArgumentNode *parse_function_arguments(struct Parser *parser) {
   return arguments;
 }
 
+struct StructFieldDefinitionNode *
+parse_struct_field_definition(struct Parser *parser) {
+  struct StructFieldDefinitionNode *field =
+      ast_promote(parser->allocator,
+                  &(struct StructFieldDefinitionNode){
+                      .next = NULL,
+                  },
+                  sizeof(struct StructFieldDefinitionNode));
+
+  if (parser_peek(parser).type == T_SYMBOL) {
+    struct LunaString name = parser_peek(parser).value.symbol;
+
+    assert(parser_peek(parser).type == T_COLON);
+    parser->position++;
+
+    struct DataType *data_type = parse_data_type(parser);
+
+    // TODO: May remove this comma
+    if (parser_peek(parser).type == T_COMMA) {
+      parser->position++;
+    }
+
+    field->name = name;
+    field->type = data_type;
+    field->next = parse_struct_field_definition(parser);
+    return field;
+  } else {
+    return NULL;
+  }
+}
+
 struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
   switch (token.type) {
   case T_INTEGER:
@@ -228,7 +259,6 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
   }
   case T_FN: {
     struct DataType *return_type = NULL;
-    assert(parser_peek(parser).type == T_FN);
     parser->position++;
     struct LunaString *extern_name = NULL;
     bool is_variadic = false;
@@ -302,6 +332,33 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
                                        return_type, NULL, is_variadic),
                                },
                                sizeof(struct FunctionDefinitionExpressionNode)),
+                       },
+                       sizeof(struct ExpressionNode));
+  }
+  case T_PERIOD:
+    parser->position++;
+    puts("found struct initialization");
+    assert(0);
+    break;
+  case T_STRUCT: {
+    parser->position++;
+
+    struct StructDefinitionExpressionNode struct_def;
+
+    assert(parser_peek(parser).type == T_LBRACE);
+    parser->position++;
+
+    struct_def.fields = parse_struct_field_definition(parser);
+
+    assert(parser_peek(parser).type == T_RBRACE);
+    parser->position++;
+
+    return ast_promote(parser->allocator,
+                       &(struct ExpressionNode){
+                           .type = EXPR_STRUCT_DEF,
+                           .node.struct_def = ast_promote(
+                               parser->allocator, &struct_def,
+                               sizeof(struct StructDefinitionExpressionNode)),
                        },
                        sizeof(struct ExpressionNode));
   }
@@ -507,8 +564,22 @@ struct DataType *parse_data_type(struct Parser *parser) {
                          },
                          sizeof(struct DataType));
     } else {
-      printf("Unknown primitive data type: %s\n", token.value.symbol.data);
-      assert(0);
+      printf("assuming unknown symbol is structure: %s\n",
+             token.value.symbol.data);
+
+      return ast_promote(
+          parser->allocator,
+          &(struct DataType){
+              .kind = DTK_STRUCTURE,
+              .value.structure = ast_promote(parser->allocator,
+                                             &(struct StructType){
+                                                 .name = token.value.symbol,
+                                                 .definition = NULL,
+                                             },
+                                             sizeof(struct StructType)),
+              .next = NULL,
+          },
+          sizeof(struct DataType));
     }
     break;
   }
