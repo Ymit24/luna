@@ -128,18 +128,18 @@ struct StructDefinitionExpressionNode {
 
 struct StructFieldAccessExpressionNode {
   struct LunaString symbol;
-  struct LunaString *field_name;
-  size_t field_access_depth;
+  struct StructFieldAccessExpressionNode *next;
 };
 
 struct StructFieldInitializerExpressionNode {
   struct LunaString name;
   struct ExpressionNode *expression;
+  struct StructFieldInitializerExpressionNode *next;
 };
 
 struct StructInitializationExpressionNode {
   struct LunaString name;
-  struct StructFieldDefinitionNode *fields;
+  struct StructFieldInitializerExpressionNode *fields;
 };
 
 struct FunctionDefinitionExpressionNode {
