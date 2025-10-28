@@ -21,7 +21,7 @@ SRC := main.c \
 all: lunac
 
 lunac: $(SRC)
-	gcc -o $@ $(SRC) $(CFLAGS) $(LDFLAGS)
+	gcc -o bin/$@ $(SRC) $(CFLAGS) $(LDFLAGS)
 
 clean:
 	rm -f lunac
