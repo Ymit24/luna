@@ -159,9 +159,14 @@ LLVMValueRef cg_visit_function_call(struct CodeGenerator *code_generator,
 
   LLVMTypeRef type = cg_get_func_type(code_generator, symbol->type);
   puts("about to load type");
-  LLVMValueRef value = LLVMBuildLoad2(code_generator->builder,
-                                      cg_get_type(code_generator, symbol->type),
-                                      symbol->llvm_value, "");
+  LLVMValueRef value;
+  if (symbol->symbol_location == SL_ARGUMENT) {
+    value = symbol->llvm_value;
+  } else {
+    value = LLVMBuildLoad2(code_generator->builder,
+                           cg_get_type(code_generator, symbol->type),
+                           symbol->llvm_value, "");
+  }
   puts("did load type.");
   // LLVMTypeRef ptr_type = LLVMPointerType(type, 0);
 
@@ -378,15 +383,16 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
       LLVMPositionBuilderAtEnd(code_generator->builder, previous_block);
 
       puts("non extern.");
+      return function;
 
-      LLVMValueRef storage_of_fn_ptr = LLVMBuildAlloca(
-          code_generator->builder, LLVMPointerType(function_type, 0), "");
-
-      puts("between");
-
-      LLVMBuildStore(code_generator->builder, function, storage_of_fn_ptr);
-      puts("after foo");
-      return storage_of_fn_ptr;
+      // LLVMValueRef storage_of_fn_ptr = LLVMBuildAlloca(
+      //     code_generator->builder, LLVMPointerType(function_type, 0), "");
+      //
+      // puts("between");
+      //
+      // LLVMBuildStore(code_generator->builder, function, storage_of_fn_ptr);
+      // puts("after foo");
+      // return storage_of_fn_ptr;
     }
 
     printf("\n\t\t\t++++++++++++++++POPPING FUNCTION+++++++++\n\n\n");
@@ -821,9 +827,13 @@ LLVMValueRef cg_visit_module_statements(struct CodeGenerator *code_generator,
         string_make("main"), code_generator->current_symbol_table);
 
     assert(main_symbol != NULL);
+    assert(main_symbol->type != NULL);
+    assert(main_symbol->type->kind == DTK_FUNCTION);
     assert(main_symbol->llvm_value != NULL);
 
-    LLVMTypeRef func_type = LLVMFunctionType(LLVMInt32Type(), NULL, 0, 0);
+    // LLVMTypeRef func_type = LLVMFunctionType(LLVMInt32Type(), NULL, 0, 0);
+
+    LLVMTypeRef func_type = cg_get_func_type(code_generator, main_symbol->type);
     LLVMTypeRef ptr_type = LLVMPointerType(func_type, 0);
 
     LLVMValueRef fn_pointer = LLVMBuildLoad2(code_generator->builder, ptr_type,
@@ -840,7 +850,6 @@ LLVMValueRef cg_visit_module_statements(struct CodeGenerator *code_generator,
                                              fn_pointer, 0, 0, "");
       LLVMBuildRet(code_generator->builder, main_ret);
     }
-
   } else {
     LLVMBuildRetVoid(code_generator->builder);
   }

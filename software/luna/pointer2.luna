@@ -2,6 +2,7 @@ const printf = fn@extern["printf"]@variadic(fmt: *i8);
 const puts = fn@extern["puts"](fmt: *i8);
 
 const main = fn(): i32 {
+    puts("hello world");
     let foo:i32 = 21;
     let a: *i32 = &foo;
     let c = &a;
