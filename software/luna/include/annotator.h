@@ -69,7 +69,7 @@ struct SymbolTableEntry {
 };
 
 // NOTE: STT_SCOPE is for control flow like if, for, while, etc...
-enum SymbolTableType { STT_MOD, STT_FN, STT_SCOPE };
+enum SymbolTableType { STT_MOD, STT_FN, STT_SCOPE, STT_STRUCT };
 
 struct SymbolTable {
   struct SymbolTableEntry *head;

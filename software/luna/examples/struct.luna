@@ -15,7 +15,8 @@ const main = fn(): i32 {
 
     // let foo = 10;
 
-    // printf("pair: %d,%d\n", p.x, p.y);
+    p.a = 10;
+    printf("pair: %d,%d\n", p.a, p.y);
 
     // p.x.y.z.w;
     return 0;

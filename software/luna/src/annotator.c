@@ -213,6 +213,35 @@ struct SymbolTableEntry *lookup_symbol(struct Annotator *annotator,
   return lookup_symbol_in(symbol, annotator->current_symbol_table);
 }
 
+struct DataType *infer_type_of_field_access(
+    struct Annotator *annotator,
+    struct StructFieldAccessExpressionNode *field_accessor) {
+  assert(field_accessor != NULL);
+
+  struct SymbolTableEntry *entry =
+      lookup_symbol(annotator, field_accessor->symbol);
+
+  assert(entry != NULL);
+  assert(entry->type != NULL);
+  if (field_accessor->next == NULL) {
+    return entry->type;
+  }
+
+  assert(entry->type->kind == DTK_STRUCTURE);
+  assert(entry->type->value.structure.definition != NULL);
+
+  struct SymbolTable *old_symbol_table = annotator->current_symbol_table;
+
+  annotator->current_symbol_table =
+      &entry->type->value.structure.definition->symbol_table;
+
+  struct DataType *next =
+      infer_type_of_field_access(annotator, field_accessor->next);
+  annotator->current_symbol_table = old_symbol_table;
+
+  return next;
+}
+
 struct DataType *infer_type(struct Annotator *annotator,
                             struct ExpressionNode *expr) {
   assert(expr != NULL);
@@ -319,6 +348,14 @@ struct DataType *infer_type(struct Annotator *annotator,
     print_data_type(data_type);
     puts("");
     return data_type;
+  case EXPR_FIELD_ACCESS:
+    puts("expr field access");
+    struct DataType *field_accessor_type =
+        infer_type_of_field_access(annotator, expr->node.struct_field_access);
+    printf("found field accessor of type: ");
+    print_data_type(field_accessor_type);
+    puts("");
+    return field_accessor_type;
   default:
     puts("fell through default");
     printf("kind: %d\n", expr->type);
@@ -365,6 +402,7 @@ find_parent_table(struct SymbolTable *symbol_table,
     return current;
   case STT_MOD:
   case STT_SCOPE:
+  case STT_STRUCT:
     puts("looking from scope");
     // current = current->parent;
     break;
@@ -427,6 +465,14 @@ void annotator_visit_expr(struct Annotator *annotator,
   }
   case EXPR_FN_CALL:
     puts("deleteme: (fn_call) Got to this spot and not sure if needed.");
+    assert(expr->node.fn_call != NULL);
+    struct FunctionCallArgumentExpressionsNode *arg =
+        expr->node.fn_call->arguments;
+    while (arg != NULL) {
+      annotator_visit_expr(annotator, arg->argument);
+      arg = arg->next;
+    }
+    assert(0);
     // TODO: Do we need to do anything here?
     break;
   case EXPR_REF: {
@@ -451,13 +497,44 @@ void annotator_visit_expr(struct Annotator *annotator,
     puts("done visit deref.");
     break;
   }
-  case EXPR_STRUCT_DEF:
+  case EXPR_STRUCT_DEF: {
     puts("[visit expr for struct] not sure if anything should happen here..");
+    assert(expr->node.struct_def != NULL);
+
+    struct SymbolTable *old_symbol_table = annotator->current_symbol_table;
+
+    expr->node.struct_def->symbol_table = (struct SymbolTable){
+        .head = NULL,
+        .type = STT_STRUCT,
+        .parent =
+            find_parent_table(annotator->current_symbol_table, STT_STRUCT),
+    };
+
+    annotator->current_symbol_table = &expr->node.struct_def->symbol_table;
+
+    struct StructFieldDefinitionNode *field = expr->node.struct_def->fields;
+
+    while (field != NULL) {
+      insert_symbol_entry_in(annotator, annotator->current_symbol_table,
+                             (struct SymbolTableEntry){
+                                 .symbol = field->name,
+                                 .type = field->type,
+                                 .llvm_value = NULL,
+                                 // TODO: do we need new symbol location?
+                                 .symbol_location = SL_LOCAL,
+                                 .next = NULL,
+
+                             });
+      field = field->next;
+    }
+
+    annotator->current_symbol_table = old_symbol_table;
     break;
+  }
   case EXPR_STRUCT_INIT:
     puts("[visit expr for struct initializer] not sure if anything should "
          "happen here..");
-    // TODO: check that the fields have same type as definition
+
     struct SymbolTableEntry *struct_def_symbol =
         lookup_symbol(annotator, expr->node.struct_init->name);
     assert(struct_def_symbol != NULL);
@@ -489,8 +566,8 @@ void annotator_visit_expr(struct Annotator *annotator,
     }
     break;
   case EXPR_FIELD_ACCESS:
-    puts("unimplemented behavior for struct field access");
-    assert(0);
+    puts("[visit expr for struct field access] not sure if anything should "
+         "happen here..");
     break;
   }
 }

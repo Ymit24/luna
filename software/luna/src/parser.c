@@ -249,11 +249,17 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
     }
     case T_PERIOD: {
       puts("found period, so this is field accessor");
-      return ast_promote(parser->allocator,
-                         &(struct StructFieldAccessExpressionNode){
-                             .symbol = symbol->value,
-                             .next = parse_struct_field_access(parser)},
-                         sizeof(struct StructFieldAccessExpressionNode));
+      return ast_promote_expression_node(
+          parser->allocator,
+          (struct ExpressionNode){
+              .type = EXPR_FIELD_ACCESS,
+              .node.struct_field_access =
+                  ast_promote(parser->allocator,
+                              &(struct StructFieldAccessExpressionNode){
+                                  .symbol = symbol->value,
+                                  .next = parse_struct_field_access(parser)},
+                              sizeof(struct StructFieldAccessExpressionNode))});
+      ;
       break;
     }
     default:
