@@ -640,7 +640,7 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
 
     LLVMValueRef field_ptr =
         LLVMBuildGEP2(code_generator->builder, source_type, source,
-                      field_indicies, index-1, "");
+                      field_indicies, index, "");
 
     return LLVMBuildLoad2(
         code_generator->builder,
