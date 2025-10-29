@@ -6,6 +6,12 @@ const pair = struct {
     b: i32
 };
 
+const triple = struct {
+    x: i32,
+    y: i32,
+    z: i32
+};
+
 const sum = fn(x: i32, y: i32): i32 {
     return x + y;
 };
@@ -17,10 +23,18 @@ const main = fn(): i32 {
         b: 8
     };
 
+    printf("pair: %d,%d\n", p.a, p.b);
+
+    let t: triple = .triple {
+        x: 5,
+        y: sum(2,2),
+        z: 9
+    };
+
     // let foo = 10;
 
     // p.a = 10;
-    printf("pair: %d,%d\n", p.a, p.b);
+    printf("triple: %d,%d,%d\n", t.x, t.y, t.z);
 
     // p.x.y.z.w;
     return 0;

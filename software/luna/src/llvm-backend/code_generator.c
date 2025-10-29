@@ -26,6 +26,9 @@ void cg_visit_function_statements(struct CodeGenerator *code_generator,
 size_t
 cg_count_structure_definition_fields(struct StructFieldDefinitionNode *field);
 
+size_t
+cg_count_field_access_depth(struct StructFieldAccessExpressionNode *field);
+
 size_t count_function_arguments(struct FunctionArgumentNode *argument) {
   if (argument == NULL) {
     return 0;
@@ -37,6 +40,19 @@ size_t count_function_arguments(struct FunctionArgumentNode *argument) {
     current = current->next;
   }
   return count;
+}
+
+size_t
+cg_count_field_access_depth(struct StructFieldAccessExpressionNode *field) {
+  if (field == NULL) {
+    return 0;
+  }
+
+  if (field->next) {
+    return 1 + cg_count_field_access_depth(field->next);
+  }
+
+  return 1;
 }
 
 size_t count_function_call_arguments(
@@ -172,14 +188,14 @@ LLVMTypeRef cg_get_type(struct CodeGenerator *code_generator,
     puts("unimplemented for struct def");
     assert(0);
     break;
-  case DTK_STRUCTURE:
-    puts("unimplemented for struct type");
+  case DTK_STRUCTURE: {
     struct SymbolTableEntry *entry = lookup_symbol_in(
         data_type->value.structure.name, code_generator->current_symbol_table);
     assert(entry != NULL);
     assert(entry->llvm_structure_type != NULL);
 
     return entry->llvm_structure_type;
+  }
   default:
     puts("Unknown data type kind.");
     assert(0);
@@ -480,7 +496,6 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
     assert(0);
     break;
   case EXPR_STRUCT_INIT: {
-    puts("unimplemented behavior for struct init.");
     struct SymbolTableEntry *entry = lookup_symbol_in(
         expr->node.struct_init->name, code_generator->current_symbol_table);
 
@@ -493,31 +508,40 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
     struct StructFieldInitializerExpressionNode *field_init =
         expr->node.struct_init->fields;
 
+    puts("counting fields..");
     size_t field_count = cg_count_structure_definition_fields(field_def);
+    printf("found %zu fields\n", field_count);
 
     LLVMValueRef local_struct = LLVMBuildAlloca(code_generator->builder,
                                                 entry->llvm_structure_type, "");
 
+    puts("Generating field initializers.");
     size_t field_index = 0;
     while (field_def != NULL) {
       LLVMValueRef indicies[2] = {
           LLVMConstInt(LLVMInt32Type(), 0, 0),
           LLVMConstInt(LLVMInt32Type(), field_index++, 0)};
 
+      puts("Building field ptr..");
       LLVMValueRef field_ptr =
           LLVMBuildGEP2(code_generator->builder, entry->llvm_structure_type,
-                        local_struct, indicies, field_count, "");
+                        local_struct, indicies, 2, "");
+
+      puts("Building store..");
       LLVMBuildStore(code_generator->builder,
                      cg_visit_expr(code_generator, field_init->expression),
                      field_ptr);
+
+      puts("Advancing pointers..");
       field_def = field_def->next;
       field_init = field_init->next;
     }
+    puts("Done.");
 
     return local_struct;
   }
   case EXPR_FIELD_ACCESS: {
-    puts("unimplemented behavior for struct field access.");
+    puts("cg visit expr for struct field access.");
     struct StructFieldAccessExpressionNode *field_access_expr =
         expr->node.struct_field_access;
 
@@ -525,12 +549,12 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
         field_access_expr->symbol, code_generator->current_symbol_table);
     struct StructFieldDefinitionNode *field_defs =
         entry->type->value.structure.definition->fields;
-    size_t field_count = cg_count_structure_definition_fields(field_defs);
+    size_t field_depth = cg_count_field_access_depth(field_access_expr);
 
-    printf("field count: %zu\n", field_count);
+    printf("field depth: %zu\n", field_depth);
 
     LLVMValueRef *field_indicies = arena_alloc(
-        code_generator->allocator, sizeof(LLVMValueRef) * field_count);
+        code_generator->allocator, sizeof(LLVMValueRef) * field_depth);
 
     field_indicies[0] = LLVMConstInt(LLVMInt32Type(), 0, 0);
     size_t index = 1;
@@ -550,6 +574,7 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
       }
 
       assert(found_field);
+      puts("Found field.");
 
       field_indicies[index++] = LLVMConstInt(LLVMInt32Type(), field_index, 0);
 
@@ -558,7 +583,7 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
 
     LLVMValueRef field_ptr = LLVMBuildGEP2(
         code_generator->builder, cg_get_type(code_generator, entry->type),
-        entry->llvm_value, field_indicies, field_count, "");
+        entry->llvm_value, field_indicies, field_depth, "");
     return LLVMBuildLoad2(
         code_generator->builder,
         cg_get_type(code_generator, cg_infer_type(code_generator, expr)),
