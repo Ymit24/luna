@@ -10,15 +10,13 @@ const main = fn(): i32 {
     puts("hello world");
     let p: pair = .pair {
         a: 0,
-        b: 1
+        b: 8
     };
-
-    puts("test");
 
     // let foo = 10;
 
     // p.a = 10;
-    // printf("pair: %d,%d\n", p.a, p.y);
+    printf("pair: %d,%d\n", p.a, p.b);
 
     // p.x.y.z.w;
     return 0;

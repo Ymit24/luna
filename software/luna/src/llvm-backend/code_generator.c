@@ -256,6 +256,22 @@ struct DataType *cg_infer_type(struct CodeGenerator *code_generator,
   return type;
 }
 
+LLVMValueRef cg_visit_struct_field_access_expr(
+    struct CodeGenerator *cg,
+    struct StructFieldAccessExpressionNode *field_access_expr) {
+  assert(field_access_expr != NULL);
+
+  struct SymbolTableEntry *entry =
+      lookup_symbol_in(field_access_expr->symbol, cg->current_symbol_table);
+  assert(entry != NULL);
+
+  if (field_access_expr->next == NULL) {
+    return entry->llvm_value;
+  }
+
+  return NULL;
+}
+
 LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
                            struct ExpressionNode *expr) {
   printf("[cg_visit_expr] %d\n", expr->type);
@@ -389,15 +405,6 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
 
       puts("non extern.");
       return function;
-
-      // LLVMValueRef storage_of_fn_ptr = LLVMBuildAlloca(
-      //     code_generator->builder, LLVMPointerType(function_type, 0), "");
-      //
-      // puts("between");
-      //
-      // LLVMBuildStore(code_generator->builder, function, storage_of_fn_ptr);
-      // puts("after foo");
-      // return storage_of_fn_ptr;
     }
 
     printf("\n\t\t\t++++++++++++++++POPPING FUNCTION+++++++++\n\n\n");
@@ -443,7 +450,7 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
     puts("unimplemented behavior for struct def.");
     assert(0);
     break;
-  case EXPR_STRUCT_INIT:
+  case EXPR_STRUCT_INIT: {
     puts("unimplemented behavior for struct init.");
     struct SymbolTableEntry *entry = lookup_symbol_in(
         expr->node.struct_init->name, code_generator->current_symbol_table);
@@ -479,10 +486,55 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
     }
 
     return local_struct;
-  case EXPR_FIELD_ACCESS:
+  }
+  case EXPR_FIELD_ACCESS: {
     puts("unimplemented behavior for struct field access.");
-    assert(0);
-    break;
+    struct StructFieldAccessExpressionNode *field_access_expr =
+        expr->node.struct_field_access;
+
+    struct SymbolTableEntry *entry = lookup_symbol_in(
+        field_access_expr->symbol, code_generator->current_symbol_table);
+    struct StructFieldDefinitionNode *field_defs =
+        entry->type->value.structure.definition->fields;
+    size_t field_count = cg_count_structure_definition_fields(field_defs);
+
+    printf("field count: %zu\n", field_count);
+
+    LLVMValueRef *field_indicies = arena_alloc(
+        code_generator->allocator, sizeof(LLVMValueRef) * field_count);
+
+    field_indicies[0] = LLVMConstInt(LLVMInt32Type(), 0, 0);
+    size_t index = 1;
+    field_access_expr = field_access_expr->next;
+    while (field_access_expr != NULL) {
+      printf("looking for field %s..\n", field_access_expr->symbol.data);
+      struct StructFieldDefinitionNode *field_def = field_defs;
+      size_t field_index = 0;
+      bool found_field = false;
+      while (field_def != NULL) {
+        if (strings_equal(field_access_expr->symbol, field_def->name)) {
+          found_field = true;
+          break;
+        }
+        field_index++;
+        field_def = field_def->next;
+      }
+
+      assert(found_field);
+
+      field_indicies[index++] = LLVMConstInt(LLVMInt32Type(), field_index, 0);
+
+      field_access_expr = field_access_expr->next;
+    }
+
+    LLVMValueRef field_ptr = LLVMBuildGEP2(
+        code_generator->builder, cg_get_type(code_generator, entry->type),
+        entry->llvm_value, field_indicies, field_count, "");
+    return LLVMBuildLoad2(
+        code_generator->builder,
+        cg_get_type(code_generator, cg_infer_type(code_generator, expr)),
+        field_ptr, "");
+  }
   }
   assert(0);
   return NULL;
@@ -653,6 +705,13 @@ void cg_gen_assignment(struct CodeGenerator *code_generator,
   // } else if (symbol->type->kind == DTK_POINTER) {
   //   puts("kind is pointer.");
   // }
+
+  // TODO!!: FIX THIS
+  if (cg_infer_type(code_generator, expression)->kind == DTK_STRUCTURE) {
+    LLVMBuildMemCpy(code_generator->builder, source_value, 8, result, 8,
+                    LLVMConstInt(LLVMInt32Type(), 16, 0));
+    return;
+  }
 
   LLVMValueRef coerced = cg_coerce(code_generator, result, source_type);
 
