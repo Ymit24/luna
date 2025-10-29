@@ -112,6 +112,10 @@ struct DataType *make_function_data_type(struct ArenaAllocator *allocator,
 
 void print_data_type(struct DataType *data_type);
 
+struct StructDefinitionExpressionNode *
+get_or_resolve_struct_definition_from_type(struct DataType *type,
+                                           struct SymbolTable *symbol_table);
+
 struct ExpressionNode;
 struct DataType *infer_type(struct Annotator *annotator,
                             struct ExpressionNode *expr);

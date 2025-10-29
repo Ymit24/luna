@@ -17,6 +17,11 @@ struct CodeGenerator {
   LLVMTargetDataRef target_data;
 };
 
+struct FindFieldDefinitionResult {
+  struct StructFieldDefinitionNode *field_definition;
+  size_t index;
+};
+
 struct CodeGenerator cg_make(struct ArenaAllocator *allocator,
                              struct Annotator *annotator);
 

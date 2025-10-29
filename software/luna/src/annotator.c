@@ -218,6 +218,39 @@ struct SymbolTableEntry *lookup_symbol(struct Annotator *annotator,
   return lookup_symbol_in(symbol, annotator->current_symbol_table);
 }
 
+struct StructDefinitionExpressionNode *
+get_or_resolve_struct_definition_from_type(struct DataType *type,
+                                           struct SymbolTable *symbol_table) {
+  assert(type != NULL);
+
+  assert(type->kind == DTK_STRUCTURE ||
+         (type->kind == DTK_POINTER && type->value.pointer_inner != NULL &&
+          type->value.pointer_inner->kind == DTK_STRUCTURE));
+
+  struct StructType *struct_type = NULL;
+  if (type->kind == DTK_STRUCTURE) {
+    struct_type = &type->value.structure;
+  } else {
+    struct_type = &type->value.pointer_inner->value.structure;
+  }
+
+  if (struct_type->definition != NULL) {
+    return struct_type->definition;
+  }
+
+  struct SymbolTableEntry *entry =
+      lookup_symbol_in(struct_type->name, symbol_table);
+  assert(entry != NULL);
+
+  assert(entry->type != NULL);
+  assert(entry->type->kind == DTK_STRUCTURE_DEF);
+  assert(entry->type->value.structure_definition.definition != NULL);
+
+  struct_type->definition = entry->type->value.structure_definition.definition;
+
+  return struct_type->definition;
+}
+
 struct DataType *infer_type_of_field_access(
     struct Annotator *annotator,
     struct StructFieldAccessExpressionNode *field_accessor) {
@@ -232,13 +265,15 @@ struct DataType *infer_type_of_field_access(
     return entry->type;
   }
 
-  assert(entry->type->kind == DTK_STRUCTURE);
-  assert(entry->type->value.structure.definition != NULL);
+  struct StructDefinitionExpressionNode *definition =
+      get_or_resolve_struct_definition_from_type(
+          entry->type, annotator->current_symbol_table);
+
+  assert(definition != NULL);
 
   struct SymbolTable *old_symbol_table = annotator->current_symbol_table;
 
-  annotator->current_symbol_table =
-      &entry->type->value.structure.definition->symbol_table;
+  annotator->current_symbol_table = &definition->symbol_table;
 
   struct DataType *next =
       infer_type_of_field_access(annotator, field_accessor->next);
