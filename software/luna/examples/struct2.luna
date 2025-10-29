@@ -5,47 +5,22 @@ const pair = struct { a: i32, b: i32 };
 const triple = struct { x: i32, y: i32, z: i32 };
 const complex = struct { first: pair, second: triple };
 
-const sum = fn(x: i32, y: i32): i32 {
-    return x + y;
-};
+const sum = fn(x: i32, y: i32): i32 { return x + y; };
+const foo = struct { thing: fn(in: i32): i32 };
 
-const foo = struct {
-    thing: fn(in: i32): i32
-};
-
-const string = struct {
-    data: *i8,
-    len: i32
-};
-
-// const make_string = fn(data: *i8): string {
-//     return .string{
-//         data: data,
-//         len: 4
-//     };
-// };
+const string = struct { data: *i8, len: i32 };
 
 const main = fn(): i32 {
     puts("hello world");
-    let p: pair = .pair {
-        a: sum(1,9),
-        b: 8
-    };
+    let p: pair = .pair { a: sum(1,9), b: 8 };
 
     printf("pair: %d,%d\n", p.a, p.b);
 
-    let t: triple = .triple {
-        x: 5,
-        y: sum(2,2),
-        z: 9
-    };
+    let t: triple = .triple { x: 5, y: sum(2,2), z: 9 };
 
     printf("triple: %d,%d,%d\n", t.x, t.y, t.z);
 
-    let c = .complex {
-        first: p,
-        second: t
-    };
+    let c = .complex { first: p, second: t };
 
     printf(
         "complex: %d, %d || %d,%d,%d\n",
@@ -67,15 +42,11 @@ const main = fn(): i32 {
     printf("str: '%s'\n", str.data);
 
     const print_string = fn(s: *string) {
-        printf("STRING\n");
         printf("string is '%s'\n", s.data);
         return;
     };
 
     print_string(&str);
-
-    // const str = make_string("test");
-    // printf("str len: %d\n", str.len);
 
     return 0;
 };
