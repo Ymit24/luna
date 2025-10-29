@@ -4,6 +4,7 @@
 #include "ast.h"
 #include "luna_string.h"
 #include "llvm-c/Core.h"
+#include "llvm-c/Target.h"
 #include "llvm-c/Types.h"
 #include <assert.h>
 #include <stdio.h>
@@ -58,12 +59,40 @@ struct CodeGenerator cg_make(struct ArenaAllocator *allocator,
   LLVMModuleCreateWithName("global");
   LLVMBuilderRef builder = LLVMCreateBuilder();
 
+  LLVMInitializeAllTargetInfos();
+  LLVMInitializeAllTargets();
+  LLVMInitializeAllTargetMCs();
+
+  char *triple = LLVMGetDefaultTargetTriple();
+
+  LLVMTargetRef target;
+  char *err = NULL;
+  if (LLVMGetTargetFromTriple(triple, &target, &err) != 0) {
+    printf("Failed to get target from triple: %s\n", err);
+    LLVMDisposeMessage(err);
+    LLVMDisposeMessage(triple);
+    assert(0);
+  }
+
+  LLVMTargetMachineRef target_machine =
+      LLVMCreateTargetMachine(target, triple, "", "", LLVMCodeGenLevelDefault,
+                              LLVMRelocDefault, LLVMCodeModelDefault);
+
+  LLVMTargetDataRef target_data = LLVMCreateTargetDataLayout(target_machine);
+
+  LLVMSetTarget(module, triple);
+  char *data_layout = LLVMCopyStringRepOfTargetData(target_data);
+  LLVMSetDataLayout(module, data_layout);
+  LLVMDisposeMessage(data_layout);
+  LLVMDisposeMessage(triple);
+
   return (struct CodeGenerator){
       .allocator = allocator,
       .annotator = annotator,
       .current_symbol_table = &annotator->root_symbol_table,
       .module = module,
       .builder = builder,
+      .target_data = target_data,
   };
 }
 
@@ -706,10 +735,15 @@ void cg_gen_assignment(struct CodeGenerator *code_generator,
   //   puts("kind is pointer.");
   // }
 
-  // TODO!!: FIX THIS
   if (cg_infer_type(code_generator, expression)->kind == DTK_STRUCTURE) {
-    LLVMBuildMemCpy(code_generator->builder, source_value, 8, result, 8,
-                    LLVMConstInt(LLVMInt32Type(), 16, 0));
+    uint32_t data_align =
+        LLVMABIAlignmentOfType(code_generator->target_data, source_type);
+    // NOTE: Source and dest alignment should be the same.
+    LLVMBuildMemCpy(
+        code_generator->builder, source_value, data_align, result, data_align,
+        LLVMConstInt(
+            LLVMInt32Type(),
+            LLVMABISizeOfType(code_generator->target_data, source_type), 0));
     return;
   }
 

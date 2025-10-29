@@ -6,10 +6,14 @@ const pair = struct {
     b: i32
 };
 
+const sum = fn(x: i32, y: i32): i32 {
+    return x + y;
+};
+
 const main = fn(): i32 {
     puts("hello world");
     let p: pair = .pair {
-        a: 0,
+        a: sum(1,9),
         b: 8
     };
 
