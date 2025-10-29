@@ -13,6 +13,18 @@ const foo = struct {
     thing: fn(in: i32): i32
 };
 
+const string = struct {
+    data: *i8,
+    len: i32
+};
+
+const make_string = fn(data: *i8): string {
+    return .string{
+        data: data,
+        len: 4
+    };
+};
+
 const main = fn(): i32 {
     puts("hello world");
     let p: pair = .pair {
@@ -49,6 +61,9 @@ const main = fn(): i32 {
     const tt = f.thing;
 
     printf("calling thing on 3=%d\n", tt(3));
+
+    const str = make_string("test");
+    printf("str len: %d\n", str.len);
 
     return 0;
 };
