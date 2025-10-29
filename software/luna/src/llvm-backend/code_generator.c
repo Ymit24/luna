@@ -7,6 +7,7 @@
 #include "llvm-c/Types.h"
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 LLVMTypeRef cg_get_type(struct CodeGenerator *code_generator,
                         struct DataType *data_type);
@@ -21,6 +22,8 @@ void cg_gen_assignment(struct CodeGenerator *code_generator,
 
 void cg_visit_function_statements(struct CodeGenerator *code_generator,
                                   struct FunctionStatementNode *stmt);
+size_t
+cg_count_structure_definition_fields(struct StructFieldDefinitionNode *field);
 
 size_t count_function_arguments(struct FunctionArgumentNode *argument) {
   if (argument == NULL) {
@@ -136,6 +139,18 @@ LLVMTypeRef cg_get_type(struct CodeGenerator *code_generator,
         cg_get_type(code_generator, data_type->value.pointer_inner);
     return LLVMPointerType(inner, 0);
   }
+  case DTK_STRUCTURE_DEF:
+    puts("unimplemented for struct def");
+    assert(0);
+    break;
+  case DTK_STRUCTURE:
+    puts("unimplemented for struct type");
+    struct SymbolTableEntry *entry = lookup_symbol_in(
+        data_type->value.structure.name, code_generator->current_symbol_table);
+    assert(entry != NULL);
+    assert(entry->llvm_structure_type != NULL);
+
+    return entry->llvm_structure_type;
   default:
     puts("Unknown data type kind.");
     assert(0);
@@ -425,9 +440,47 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
     return LLVMBuildLoad2(code_generator->builder, type, value, "");
   }
   case EXPR_STRUCT_DEF:
+    puts("unimplemented behavior for struct def.");
+    assert(0);
+    break;
   case EXPR_STRUCT_INIT:
+    puts("unimplemented behavior for struct init.");
+    struct SymbolTableEntry *entry = lookup_symbol_in(
+        expr->node.struct_init->name, code_generator->current_symbol_table);
+
+    assert(entry != NULL);
+    assert(entry->llvm_structure_type != NULL);
+
+    struct StructFieldDefinitionNode *field_def =
+        entry->type->value.structure_definition.definition->fields;
+
+    struct StructFieldInitializerExpressionNode *field_init =
+        expr->node.struct_init->fields;
+
+    size_t field_count = cg_count_structure_definition_fields(field_def);
+
+    LLVMValueRef local_struct = LLVMBuildAlloca(code_generator->builder,
+                                                entry->llvm_structure_type, "");
+
+    size_t field_index = 0;
+    while (field_def != NULL) {
+      LLVMValueRef indicies[2] = {
+          LLVMConstInt(LLVMInt32Type(), 0, 0),
+          LLVMConstInt(LLVMInt32Type(), field_index++, 0)};
+
+      LLVMValueRef field_ptr =
+          LLVMBuildGEP2(code_generator->builder, entry->llvm_structure_type,
+                        local_struct, indicies, field_count, "");
+      LLVMBuildStore(code_generator->builder,
+                     cg_visit_expr(code_generator, field_init->expression),
+                     field_ptr);
+      field_def = field_def->next;
+      field_init = field_init->next;
+    }
+
+    return local_struct;
   case EXPR_FIELD_ACCESS:
-    puts("unimplemented behavior for structs.");
+    puts("unimplemented behavior for struct field access.");
     assert(0);
     break;
   }
@@ -499,6 +552,16 @@ void cg_visit_decl(struct CodeGenerator *code_generator,
   cg_gen_assignment(code_generator, variable, type, decl->expression);
 }
 
+size_t
+cg_count_structure_definition_fields(struct StructFieldDefinitionNode *field) {
+  size_t field_count = 0;
+  while (field != NULL) {
+    field_count++;
+    field = field->next;
+  }
+  return field_count;
+}
+
 void cg_visit_module_decl(struct CodeGenerator *code_generator,
                           struct DeclarationStatementNode *decl) {
   struct SymbolTableEntry *symbol =
@@ -506,6 +569,36 @@ void cg_visit_module_decl(struct CodeGenerator *code_generator,
   assert(symbol != NULL);
 
   printf("Code genning MODULE decl %s.\n", symbol->symbol.data);
+
+  if (decl->data_type->kind == DTK_STRUCTURE_DEF) {
+    puts("code genning struct definition");
+    struct StructFieldDefinitionNode *field =
+        decl->data_type->value.structure_definition.definition->fields;
+    size_t field_count = 0;
+    while (field != NULL) {
+      field_count++;
+      field = field->next;
+    }
+    field = decl->data_type->value.structure_definition.definition->fields;
+
+    LLVMTypeRef *field_types = arena_alloc(code_generator->allocator,
+                                           sizeof(LLVMTypeRef) * field_count);
+
+    size_t field_index = 0;
+    while (field != NULL) {
+      field_types[field_index++] = cg_get_type(code_generator, field->type);
+      field = field->next;
+    }
+
+    LLVMTypeRef type = LLVMStructType(field_types, field_count, false);
+    symbol->llvm_structure_type = type;
+
+    char *msg = LLVMPrintTypeToString(type);
+    printf("llvm struct def type: %s\n", msg);
+    LLVMDisposeMessage(msg);
+
+    return;
+  }
 
   LLVMTypeRef type = cg_get_type(code_generator, decl->data_type);
   // if (decl->data_type->kind == DTK_FUNCTION) {

@@ -13,10 +13,12 @@ const main = fn(): i32 {
         b: 1
     };
 
+    puts("test");
+
     // let foo = 10;
 
-    p.a = 10;
-    printf("pair: %d,%d\n", p.a, p.y);
+    // p.a = 10;
+    // printf("pair: %d,%d\n", p.a, p.y);
 
     // p.x.y.z.w;
     return 0;
