@@ -13,9 +13,10 @@ enum DataTypeKind {
   DTK_FUNCTION,
   DTK_VOID,
   DTK_POINTER,
-  DTK_STRUCTURE
+  DTK_STRUCTURE,
+  DTK_STRUCTURE_DEF
 };
-// TODO: strings arent primitives, i/u8 is prim
+
 enum PrimitiveType { P_I8, P_I32, P_BOOL };
 
 struct FunctionType {
@@ -25,10 +26,13 @@ struct FunctionType {
   bool is_variadic;
 };
 
+struct StructDefinitionType {
+  struct StructDefinitionExpressionNode *definition;
+};
+
 struct StructType {
   struct LunaString name;
-  // NOTE: This will be associated during annotation via lookup?
-  struct StructDefinitionExpressionNode* definition;
+  struct StructDefinitionExpressionNode *definition;
 };
 
 struct DataType {
@@ -37,7 +41,8 @@ struct DataType {
     struct FunctionType function;
     enum PrimitiveType primitive;
     struct DataType *pointer_inner;
-    struct StructType *structure;
+    struct StructType structure;
+    struct StructDefinitionType structure_definition;
   } value;
   struct DataType *next;
 };
@@ -95,6 +100,10 @@ struct SymbolTableEntry *lookup_symbol(struct Annotator *annotator,
                                        struct LunaString symbol);
 
 struct DataType *make_void_data_type(struct ArenaAllocator *allocator);
+struct DataType *make_structure_def_data_type(struct ArenaAllocator *allocator,
+                                              struct StructDefinitionType type);
+struct DataType *make_structure_data_type(struct ArenaAllocator *allocator,
+                                          struct StructType type);
 struct DataType *make_function_data_type(struct ArenaAllocator *allocator,
                                          struct FunctionArgumentNode *arguments,
                                          struct DataType *return_type,

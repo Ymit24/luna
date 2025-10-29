@@ -33,6 +33,25 @@ struct DataType *make_void_data_type(struct ArenaAllocator *allocator) {
                      sizeof(struct DataType));
 }
 
+struct DataType *make_structure_data_type(struct ArenaAllocator *allocator,
+                                          struct StructType type) {
+  return ast_promote(allocator,
+                     &(struct DataType){.kind = DTK_STRUCTURE,
+                                        .next = NULL,
+                                        .value.structure = type},
+                     sizeof(struct DataType));
+}
+
+struct DataType *
+make_structure_def_data_type(struct ArenaAllocator *allocator,
+                             struct StructDefinitionType type) {
+  return ast_promote(allocator,
+                     &(struct DataType){.kind = DTK_STRUCTURE_DEF,
+                                        .next = NULL,
+                                        .value.structure_definition = type},
+                     sizeof(struct DataType));
+}
+
 struct DataType *make_primitive_data_type(struct Annotator *annotator,
                                           enum PrimitiveType type) {
   return ast_promote(
@@ -262,6 +281,30 @@ struct DataType *infer_type(struct Annotator *annotator,
     printf("]\n\n\n\n\n");
     return inner->value.pointer_inner;
   }
+  case EXPR_STRUCT_DEF:
+    return make_structure_def_data_type(
+        annotator->allocator,
+        (struct StructDefinitionType){.definition = expr->node.struct_def});
+  case EXPR_STRUCT_INIT:
+    puts("expr struct init.");
+
+    puts("looking for structure definition..");
+    struct SymbolTableEntry *entry = lookup_symbol_in(
+        expr->node.struct_init->name, annotator->current_symbol_table);
+
+    printf("did find? %d\n", entry != NULL);
+    puts("doing checks..");
+
+    assert(entry != NULL);
+    assert(entry->type != NULL);
+    assert(entry->type->kind == DTK_STRUCTURE_DEF);
+    puts("passed checks.");
+
+    return make_structure_data_type(
+        annotator->allocator,
+        (struct StructType){
+            .name = expr->node.struct_init->name,
+            .definition = entry->type->value.structure_definition.definition});
   default:
     puts("fell through default");
     printf("kind: %d\n", expr->type);
@@ -394,22 +437,39 @@ void annotator_visit_expr(struct Annotator *annotator,
     puts("done visit deref.");
     break;
   }
+  case EXPR_STRUCT_DEF:
+    puts("[visit expr for struct] not sure if anything should happen here..");
+    break;
+  case EXPR_STRUCT_INIT:
+  case EXPR_FIELD_ACCESS:
+    puts("unimplemented behavior for structs.");
+    assert(0);
+    break;
   }
 }
 
 void annotator_visit_decl(struct Annotator *annotator,
                           struct DeclarationStatementNode *decl,
                           bool is_module) {
+  assert(decl != NULL);
+  printf("symbol is: %s\n", decl->symbol.data);
   assert(lookup_symbol(annotator, decl->symbol) == NULL);
+  puts("precheck");
   struct DataType *type = infer_type(annotator, decl->expression);
+  puts("postcheck");
+
+  assert(type != NULL);
 
   printf("\n");
   printf("[annotator_visit_decl] symbol (%s) has infered type: (",
          decl->symbol.data);
   print_data_type(decl->data_type);
+  puts("c.");
   printf(") and the decl expression type is inferred as (");
   print_data_type(type);
   printf(")\n");
+
+  puts("d.");
 
   printf("got type infer done for %s\n", decl->symbol.data);
   if (decl->data_type != NULL) {
@@ -678,8 +738,34 @@ bool data_types_equal(struct DataType *left, struct DataType *right) {
                             right->value.function.return_type);
   case DTK_VOID:
     return true;
+  case DTK_STRUCTURE:
+  case DTK_STRUCTURE_DEF:
+    puts("unimplemented behavior for structs.");
+    assert(0);
+    break;
   };
   return false;
+}
+
+// NOTE: hi it`s me grace your wife`
+
+void print_struct_def_data_type(
+    struct StructDefinitionExpressionNode *definition) {
+  if (definition == NULL) {
+    printf("struct{?}");
+    return;
+  }
+  printf("struct{");
+  struct StructFieldDefinitionNode *current = definition->fields;
+  while (current != NULL) {
+    printf("%s:", current->name.data);
+    print_data_type(current->type);
+    if (current->next != NULL) {
+      printf(",");
+    }
+    current = current->next;
+  }
+  printf("}");
 }
 
 void print_data_type(struct DataType *data_type) {
@@ -736,6 +822,15 @@ void print_data_type(struct DataType *data_type) {
       printf(":");
       print_data_type(function.return_type);
     }
+    break;
+  }
+  case DTK_STRUCTURE:
+    printf("(%s)", data_type->value.structure.name.data);
+    print_struct_def_data_type(data_type->value.structure.definition);
+    break;
+  case DTK_STRUCTURE_DEF: {
+    print_struct_def_data_type(
+        data_type->value.structure_definition.definition);
     break;
   }
   }

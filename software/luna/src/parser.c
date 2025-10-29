@@ -144,6 +144,10 @@ struct FunctionArgumentNode *parse_function_arguments(struct Parser *parser) {
 
 struct StructFieldDefinitionNode *
 parse_struct_field_definition(struct Parser *parser) {
+  if (parser_peek(parser).type != T_SYMBOL) {
+    return NULL;
+  }
+
   struct StructFieldDefinitionNode *field =
       ast_promote(parser->allocator,
                   &(struct StructFieldDefinitionNode){
@@ -151,26 +155,23 @@ parse_struct_field_definition(struct Parser *parser) {
                   },
                   sizeof(struct StructFieldDefinitionNode));
 
-  if (parser_peek(parser).type == T_SYMBOL) {
-    struct LunaString name = parser_peek(parser).value.symbol;
+  struct LunaString name = parser_peek(parser).value.symbol;
+  parser->position++;
 
-    assert(parser_peek(parser).type == T_COLON);
+  assert(parser_peek(parser).type == T_COLON);
+  parser->position++;
+
+  struct DataType *data_type = parse_data_type(parser);
+
+  // TODO: May remove this comma
+  if (parser_peek(parser).type == T_COMMA) {
     parser->position++;
-
-    struct DataType *data_type = parse_data_type(parser);
-
-    // TODO: May remove this comma
-    if (parser_peek(parser).type == T_COMMA) {
-      parser->position++;
-    }
-
-    field->name = name;
-    field->type = data_type;
-    field->next = parse_struct_field_definition(parser);
-    return field;
-  } else {
-    return NULL;
   }
+
+  field->name = name;
+  field->type = data_type;
+  field->next = parse_struct_field_definition(parser);
+  return field;
 }
 
 struct StructFieldInitializerExpressionNode *
@@ -297,8 +298,6 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
   case T_STRING: {
     parser->position++;
 
-    puts("STIRNG");
-    printf("%s\n", token.value.symbol.data);
     return ast_promote(
         parser->allocator,
         &(struct ExpressionNode){
@@ -653,20 +652,11 @@ struct DataType *parse_data_type(struct Parser *parser) {
     } else {
       printf("assuming unknown symbol is structure: %s\n",
              token.value.symbol.data);
+      parser->position++;
 
-      return ast_promote(
+      return make_structure_data_type(
           parser->allocator,
-          &(struct DataType){
-              .kind = DTK_STRUCTURE,
-              .value.structure = ast_promote(parser->allocator,
-                                             &(struct StructType){
-                                                 .name = token.value.symbol,
-                                                 .definition = NULL,
-                                             },
-                                             sizeof(struct StructType)),
-              .next = NULL,
-          },
-          sizeof(struct DataType));
+          (struct StructType){.name = token.value.symbol, .definition = NULL});
     }
     break;
   }
@@ -741,6 +731,8 @@ struct DeclarationStatementNode *parse_decl_statement(struct Parser *parser,
     data_type = parse_data_type(parser);
     has_type = true;
   }
+
+  printf("next tok is now: %d\n", parser_peek(parser).type);
 
   assert(parser_peek(parser).type == T_EQUALS);
   parser->position++;

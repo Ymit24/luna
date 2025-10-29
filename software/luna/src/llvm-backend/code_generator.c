@@ -287,9 +287,7 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
 
     switch (symbol->symbol_location) {
     case SL_MODULE:
-      puts("its a module symbol");
     case SL_ARGUMENT:
-      puts("its an argument symbol");
     case SL_LOCAL:
       puts("its local");
       return LLVMBuildLoad2(code_generator->builder, type, symbol->llvm_value,
@@ -426,6 +424,12 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
 
     return LLVMBuildLoad2(code_generator->builder, type, value, "");
   }
+  case EXPR_STRUCT_DEF:
+  case EXPR_STRUCT_INIT:
+  case EXPR_FIELD_ACCESS:
+    puts("unimplemented behavior for structs.");
+    assert(0);
+    break;
   }
   assert(0);
   return NULL;
