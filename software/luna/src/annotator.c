@@ -15,6 +15,9 @@ void annotator_visit_function_statements(
 void annotator_visit_function_statement(
     struct Annotator *annotator, struct FunctionStatementNode *statement);
 
+void print_struct_def_data_type(
+    struct StructDefinitionExpressionNode *definition);
+
 struct Annotator annotator_make(struct ArenaAllocator *allocator) {
   struct Annotator annotator = (struct Annotator){
       .allocator = allocator,
@@ -299,12 +302,23 @@ struct DataType *infer_type(struct Annotator *annotator,
     assert(entry->type != NULL);
     assert(entry->type->kind == DTK_STRUCTURE_DEF);
     puts("passed checks.");
+    printf("struct def symbol has type:\n\t");
+    print_data_type(entry->type);
+    puts("");
+    printf("definition is:\n\t");
+    print_struct_def_data_type(
+        entry->type->value.structure_definition.definition);
+    puts("");
 
-    return make_structure_data_type(
+    struct DataType *data_type = make_structure_data_type(
         annotator->allocator,
         (struct StructType){
             .name = expr->node.struct_init->name,
             .definition = entry->type->value.structure_definition.definition});
+    printf("created data type:\n\t");
+    print_data_type(data_type);
+    puts("");
+    return data_type;
   default:
     puts("fell through default");
     printf("kind: %d\n", expr->type);
@@ -441,8 +455,41 @@ void annotator_visit_expr(struct Annotator *annotator,
     puts("[visit expr for struct] not sure if anything should happen here..");
     break;
   case EXPR_STRUCT_INIT:
+    puts("[visit expr for struct initializer] not sure if anything should "
+         "happen here..");
+    // TODO: check that the fields have same type as definition
+    struct SymbolTableEntry *struct_def_symbol =
+        lookup_symbol(annotator, expr->node.struct_init->name);
+    assert(struct_def_symbol != NULL);
+    assert(struct_def_symbol->type != NULL);
+    assert(struct_def_symbol->type->kind == DTK_STRUCTURE_DEF);
+
+    struct StructDefinitionExpressionNode *def =
+        struct_def_symbol->type->value.structure_definition.definition;
+
+    assert(def != NULL);
+
+    if (def->fields != NULL) {
+      assert(expr->node.struct_init->fields != NULL);
+
+      struct StructFieldDefinitionNode *field_def = def->fields;
+      struct StructFieldInitializerExpressionNode *field_init =
+          expr->node.struct_init->fields;
+
+      while (field_def != NULL) {
+        assert(field_init != NULL);
+        assert(strings_equal(field_def->name, field_init->name));
+
+        assert(data_types_equal(infer_type(annotator, field_init->expression),
+                                field_def->type));
+
+        field_def = field_def->next;
+        field_init = field_init->next;
+      }
+    }
+    break;
   case EXPR_FIELD_ACCESS:
-    puts("unimplemented behavior for structs.");
+    puts("unimplemented behavior for struct field access");
     assert(0);
     break;
   }
@@ -460,11 +507,24 @@ void annotator_visit_decl(struct Annotator *annotator,
 
   assert(type != NULL);
 
+  if (decl->data_type != NULL && decl->data_type->kind == DTK_STRUCTURE) {
+    if (decl->data_type->value.structure.definition == NULL) {
+      puts("structure type hasnt been resolved yet, resolving.");
+      struct SymbolTableEntry *struct_def_symbol =
+          lookup_symbol(annotator, decl->data_type->value.structure.name);
+      assert(struct_def_symbol != NULL);
+      assert(struct_def_symbol->type != NULL);
+      assert(struct_def_symbol->type->kind == DTK_STRUCTURE_DEF);
+
+      decl->data_type->value.structure.definition =
+          struct_def_symbol->type->value.structure_definition.definition;
+    }
+  }
+
   printf("\n");
   printf("[annotator_visit_decl] symbol (%s) has infered type: (",
          decl->symbol.data);
   print_data_type(decl->data_type);
-  puts("c.");
   printf(") and the decl expression type is inferred as (");
   print_data_type(type);
   printf(")\n");
@@ -739,8 +799,22 @@ bool data_types_equal(struct DataType *left, struct DataType *right) {
   case DTK_VOID:
     return true;
   case DTK_STRUCTURE:
-  case DTK_STRUCTURE_DEF:
     puts("unimplemented behavior for structs.");
+    if (!strings_equal(left->value.structure.name,
+                       right->value.structure.name)) {
+      return false;
+    }
+
+    puts("[NOTE] we should check for more than just symbol equality, but for "
+         "now lets just do this.");
+
+    // TODO: implement structural equality check.
+
+    return true;
+    assert(0);
+    break;
+  case DTK_STRUCTURE_DEF:
+    puts("unimplemented behavior for struct defs.");
     assert(0);
     break;
   };
