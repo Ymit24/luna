@@ -560,13 +560,19 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
     size_t index = 1;
     field_access_expr = field_access_expr->next;
     while (field_access_expr != NULL) {
-      printf("looking for field %s..\n", field_access_expr->symbol.data);
+      printf("looking for field %s (%zu)..\n", field_access_expr->symbol.data,
+             index);
       struct StructFieldDefinitionNode *field_def = field_defs;
       size_t field_index = 0;
       bool found_field = false;
       while (field_def != NULL) {
         if (strings_equal(field_access_expr->symbol, field_def->name)) {
           found_field = true;
+          if (field_access_expr->next != NULL) {
+            assert(field_def->type->kind == DTK_STRUCTURE);
+            assert(field_def->type->value.structure.definition != NULL);
+            field_defs = field_def->type->value.structure.definition->fields;
+          }
           break;
         }
         field_index++;

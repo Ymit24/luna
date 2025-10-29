@@ -18,6 +18,9 @@ void annotator_visit_function_statement(
 void print_struct_def_data_type(
     struct StructDefinitionExpressionNode *definition);
 
+void annotator_visit_expr(struct Annotator *annotator,
+                          struct ExpressionNode *expr);
+
 struct Annotator annotator_make(struct ArenaAllocator *allocator) {
   struct Annotator annotator = (struct Annotator){
       .allocator = allocator,
@@ -315,10 +318,40 @@ struct DataType *infer_type(struct Annotator *annotator,
     printf("]\n\n\n\n\n");
     return inner->value.pointer_inner;
   }
-  case EXPR_STRUCT_DEF:
-    return make_structure_def_data_type(
+  case EXPR_STRUCT_DEF: {
+    puts("making structure definition.");
+    struct StructFieldDefinitionNode *field = expr->node.struct_def->fields;
+    while (field != NULL) {
+      if (field->type->kind == DTK_STRUCTURE &&
+          field->type->value.structure.definition == NULL) {
+        puts("structure type hasnt been resolved yet, resolving.");
+        struct SymbolTableEntry *struct_def_symbol =
+            lookup_symbol(annotator, field->type->value.structure.name);
+        assert(struct_def_symbol != NULL);
+        assert(struct_def_symbol->type != NULL);
+        assert(struct_def_symbol->type->kind == DTK_STRUCTURE_DEF);
+
+        field->type->value.structure.definition =
+            struct_def_symbol->type->value.structure_definition.definition;
+        printf("field type: ");
+        print_data_type(field->type);
+        puts("");
+      }
+      field = field->next;
+    }
+    struct DataType *data_type = make_structure_def_data_type(
         annotator->allocator,
         (struct StructDefinitionType){.definition = expr->node.struct_def});
+
+    if (expr->node.struct_def->fields != NULL &&
+        expr->node.struct_def->fields->type->kind == DTK_STRUCTURE) {
+      printf("data type result: ");
+      print_data_type(data_type);
+      puts("");
+    }
+
+    return data_type;
+  }
   case EXPR_STRUCT_INIT:
     puts("expr struct init.");
 
@@ -475,7 +508,7 @@ void annotator_visit_expr(struct Annotator *annotator,
       annotator_visit_expr(annotator, arg->argument);
       arg = arg->next;
     }
-    assert(0);
+    // assert(0);
     // TODO: Do we need to do anything here?
     break;
   case EXPR_REF: {
@@ -596,6 +629,9 @@ void annotator_visit_decl(struct Annotator *annotator,
       assert(struct_def_symbol != NULL);
       assert(struct_def_symbol->type != NULL);
       assert(struct_def_symbol->type->kind == DTK_STRUCTURE_DEF);
+
+      // puts("should remove this.");
+      // assert(0);
 
       decl->data_type->value.structure.definition =
           struct_def_symbol->type->value.structure_definition.definition;
