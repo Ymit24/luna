@@ -95,7 +95,7 @@ struct ExpressionNode {
     struct BinaryExpressionNode *binary;
     struct FunctionDefinitionExpressionNode *fn_def;
     struct FunctionCallExpressionNode *fn_call;
-    struct SymbolLiteralNode *ref_symbol;
+    struct StructFieldAccessExpressionNode *ref_symbol;
     struct ExpressionNode *deref;
     struct StructDefinitionExpressionNode *struct_def;
     struct StructInitializationExpressionNode *struct_init;

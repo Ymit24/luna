@@ -335,10 +335,9 @@ struct DataType *infer_type(struct Annotator *annotator,
     return entry->type->value.function.return_type;
   }
   case EXPR_REF: {
-    struct SymbolTableEntry *entry =
-        lookup_symbol(annotator, expr->node.ref_symbol->value);
-    assert(entry != NULL);
-    return make_pointer_data_type(annotator, entry->type);
+    return make_pointer_data_type(
+        annotator,
+        infer_type_of_field_access(annotator, expr->node.struct_field_access));
   }
   case EXPR_DEREF: {
     puts("doing deref");
@@ -549,7 +548,7 @@ void annotator_visit_expr(struct Annotator *annotator,
   case EXPR_REF: {
     puts("deleteme: (fn_ref) Got to this spot and not sure if needed.");
     struct SymbolTableEntry *entry =
-        lookup_symbol(annotator, expr->node.ref_symbol->value);
+        lookup_symbol(annotator, expr->node.ref_symbol->symbol);
 
     assert(entry != NULL);
     assert(entry->type != NULL);
