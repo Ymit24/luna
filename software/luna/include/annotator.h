@@ -8,8 +8,15 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-enum DataTypeKind { DTK_PRIMITIVE, DTK_FUNCTION, DTK_VOID, DTK_POINTER };
-// TODO: strings arent primitives, i/u8 is prim
+enum DataTypeKind {
+  DTK_PRIMITIVE,
+  DTK_FUNCTION,
+  DTK_VOID,
+  DTK_POINTER,
+  DTK_STRUCTURE,
+  DTK_STRUCTURE_DEF
+};
+
 enum PrimitiveType { P_I8, P_I32, P_BOOL };
 
 struct FunctionType {
@@ -19,12 +26,23 @@ struct FunctionType {
   bool is_variadic;
 };
 
+struct StructDefinitionType {
+  struct StructDefinitionExpressionNode *definition;
+};
+
+struct StructType {
+  struct LunaString name;
+  struct StructDefinitionExpressionNode *definition;
+};
+
 struct DataType {
   enum DataTypeKind kind;
   union {
     struct FunctionType function;
     enum PrimitiveType primitive;
     struct DataType *pointer_inner;
+    struct StructType structure;
+    struct StructDefinitionType structure_definition;
   } value;
   struct DataType *next;
 };
@@ -43,6 +61,7 @@ struct SymbolTableEntry {
   struct LunaString symbol;
   struct DataType *type;
   LLVMValueRef llvm_value;
+  LLVMTypeRef llvm_structure_type;
   struct SymbolTableEntry *next;
   enum MemorySegment memory_segment;
   enum SymbolLocation symbol_location;
@@ -50,7 +69,7 @@ struct SymbolTableEntry {
 };
 
 // NOTE: STT_SCOPE is for control flow like if, for, while, etc...
-enum SymbolTableType { STT_MOD, STT_FN, STT_SCOPE };
+enum SymbolTableType { STT_MOD, STT_FN, STT_SCOPE, STT_STRUCT };
 
 struct SymbolTable {
   struct SymbolTableEntry *head;
@@ -81,6 +100,10 @@ struct SymbolTableEntry *lookup_symbol(struct Annotator *annotator,
                                        struct LunaString symbol);
 
 struct DataType *make_void_data_type(struct ArenaAllocator *allocator);
+struct DataType *make_structure_def_data_type(struct ArenaAllocator *allocator,
+                                              struct StructDefinitionType type);
+struct DataType *make_structure_data_type(struct ArenaAllocator *allocator,
+                                          struct StructType type);
 struct DataType *make_function_data_type(struct ArenaAllocator *allocator,
                                          struct FunctionArgumentNode *arguments,
                                          struct DataType *return_type,
@@ -88,6 +111,10 @@ struct DataType *make_function_data_type(struct ArenaAllocator *allocator,
                                          bool is_variadic);
 
 void print_data_type(struct DataType *data_type);
+
+struct StructDefinitionExpressionNode *
+get_or_resolve_struct_definition_from_type(struct DataType *type,
+                                           struct SymbolTable *symbol_table);
 
 struct ExpressionNode;
 struct DataType *infer_type(struct Annotator *annotator,

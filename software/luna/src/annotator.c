@@ -15,6 +15,12 @@ void annotator_visit_function_statements(
 void annotator_visit_function_statement(
     struct Annotator *annotator, struct FunctionStatementNode *statement);
 
+void print_struct_def_data_type(
+    struct StructDefinitionExpressionNode *definition);
+
+void annotator_visit_expr(struct Annotator *annotator,
+                          struct ExpressionNode *expr);
+
 struct Annotator annotator_make(struct ArenaAllocator *allocator) {
   struct Annotator annotator = (struct Annotator){
       .allocator = allocator,
@@ -30,6 +36,25 @@ struct Annotator annotator_make(struct ArenaAllocator *allocator) {
 
 struct DataType *make_void_data_type(struct ArenaAllocator *allocator) {
   return ast_promote(allocator, &(struct DataType){.kind = DTK_VOID},
+                     sizeof(struct DataType));
+}
+
+struct DataType *make_structure_data_type(struct ArenaAllocator *allocator,
+                                          struct StructType type) {
+  return ast_promote(allocator,
+                     &(struct DataType){.kind = DTK_STRUCTURE,
+                                        .next = NULL,
+                                        .value.structure = type},
+                     sizeof(struct DataType));
+}
+
+struct DataType *
+make_structure_def_data_type(struct ArenaAllocator *allocator,
+                             struct StructDefinitionType type) {
+  return ast_promote(allocator,
+                     &(struct DataType){.kind = DTK_STRUCTURE_DEF,
+                                        .next = NULL,
+                                        .value.structure_definition = type},
                      sizeof(struct DataType));
 }
 
@@ -93,6 +118,7 @@ void annotator_initialize_primitives(struct Annotator *annotator) {
                                      .symbol = string_make("true"),
                                      .type = primitives[1],
                                      .llvm_value = NULL,
+                                     .llvm_structure_type = NULL,
                                      .next = NULL,
                                      .memory_segment = MS_STATIC,
                                      .symbol_location = SL_MODULE,
@@ -101,6 +127,7 @@ void annotator_initialize_primitives(struct Annotator *annotator) {
                                      .symbol = string_make("false"),
                                      .type = primitives[1],
                                      .llvm_value = NULL,
+                                     .llvm_structure_type = NULL,
                                      .next = NULL,
                                      .memory_segment = MS_STATIC,
                                      .symbol_location = SL_MODULE,
@@ -191,6 +218,70 @@ struct SymbolTableEntry *lookup_symbol(struct Annotator *annotator,
   return lookup_symbol_in(symbol, annotator->current_symbol_table);
 }
 
+struct StructDefinitionExpressionNode *
+get_or_resolve_struct_definition_from_type(struct DataType *type,
+                                           struct SymbolTable *symbol_table) {
+  assert(type != NULL);
+
+  assert(type->kind == DTK_STRUCTURE ||
+         (type->kind == DTK_POINTER && type->value.pointer_inner != NULL &&
+          type->value.pointer_inner->kind == DTK_STRUCTURE));
+
+  struct StructType *struct_type = NULL;
+  if (type->kind == DTK_STRUCTURE) {
+    struct_type = &type->value.structure;
+  } else {
+    struct_type = &type->value.pointer_inner->value.structure;
+  }
+
+  if (struct_type->definition != NULL) {
+    return struct_type->definition;
+  }
+
+  struct SymbolTableEntry *entry =
+      lookup_symbol_in(struct_type->name, symbol_table);
+  assert(entry != NULL);
+
+  assert(entry->type != NULL);
+  assert(entry->type->kind == DTK_STRUCTURE_DEF);
+  assert(entry->type->value.structure_definition.definition != NULL);
+
+  struct_type->definition = entry->type->value.structure_definition.definition;
+
+  return struct_type->definition;
+}
+
+struct DataType *infer_type_of_field_access(
+    struct Annotator *annotator,
+    struct StructFieldAccessExpressionNode *field_accessor) {
+  assert(field_accessor != NULL);
+
+  struct SymbolTableEntry *entry =
+      lookup_symbol(annotator, field_accessor->symbol);
+
+  assert(entry != NULL);
+  assert(entry->type != NULL);
+  if (field_accessor->next == NULL) {
+    return entry->type;
+  }
+
+  struct StructDefinitionExpressionNode *definition =
+      get_or_resolve_struct_definition_from_type(
+          entry->type, annotator->current_symbol_table);
+
+  assert(definition != NULL);
+
+  struct SymbolTable *old_symbol_table = annotator->current_symbol_table;
+
+  annotator->current_symbol_table = &definition->symbol_table;
+
+  struct DataType *next =
+      infer_type_of_field_access(annotator, field_accessor->next);
+  annotator->current_symbol_table = old_symbol_table;
+
+  return next;
+}
+
 struct DataType *infer_type(struct Annotator *annotator,
                             struct ExpressionNode *expr) {
   assert(expr != NULL);
@@ -262,6 +353,79 @@ struct DataType *infer_type(struct Annotator *annotator,
     printf("]\n\n\n\n\n");
     return inner->value.pointer_inner;
   }
+  case EXPR_STRUCT_DEF: {
+    puts("making structure definition.");
+    struct StructFieldDefinitionNode *field = expr->node.struct_def->fields;
+    while (field != NULL) {
+      if (field->type->kind == DTK_STRUCTURE &&
+          field->type->value.structure.definition == NULL) {
+        puts("structure type hasnt been resolved yet, resolving.");
+        struct SymbolTableEntry *struct_def_symbol =
+            lookup_symbol(annotator, field->type->value.structure.name);
+        assert(struct_def_symbol != NULL);
+        assert(struct_def_symbol->type != NULL);
+        assert(struct_def_symbol->type->kind == DTK_STRUCTURE_DEF);
+
+        field->type->value.structure.definition =
+            struct_def_symbol->type->value.structure_definition.definition;
+        printf("field type: ");
+        print_data_type(field->type);
+        puts("");
+      }
+      field = field->next;
+    }
+    struct DataType *data_type = make_structure_def_data_type(
+        annotator->allocator,
+        (struct StructDefinitionType){.definition = expr->node.struct_def});
+
+    if (expr->node.struct_def->fields != NULL &&
+        expr->node.struct_def->fields->type->kind == DTK_STRUCTURE) {
+      printf("data type result: ");
+      print_data_type(data_type);
+      puts("");
+    }
+
+    return data_type;
+  }
+  case EXPR_STRUCT_INIT:
+    puts("expr struct init.");
+
+    puts("looking for structure definition..");
+    struct SymbolTableEntry *entry = lookup_symbol_in(
+        expr->node.struct_init->name, annotator->current_symbol_table);
+
+    printf("did find? %d\n", entry != NULL);
+    puts("doing checks..");
+
+    assert(entry != NULL);
+    assert(entry->type != NULL);
+    assert(entry->type->kind == DTK_STRUCTURE_DEF);
+    puts("passed checks.");
+    printf("struct def symbol has type:\n\t");
+    print_data_type(entry->type);
+    puts("");
+    printf("definition is:\n\t");
+    print_struct_def_data_type(
+        entry->type->value.structure_definition.definition);
+    puts("");
+
+    struct DataType *data_type = make_structure_data_type(
+        annotator->allocator,
+        (struct StructType){
+            .name = expr->node.struct_init->name,
+            .definition = entry->type->value.structure_definition.definition});
+    printf("created data type:\n\t");
+    print_data_type(data_type);
+    puts("");
+    return data_type;
+  case EXPR_FIELD_ACCESS:
+    puts("expr field access");
+    struct DataType *field_accessor_type =
+        infer_type_of_field_access(annotator, expr->node.struct_field_access);
+    printf("found field accessor of type: ");
+    print_data_type(field_accessor_type);
+    puts("");
+    return field_accessor_type;
   default:
     puts("fell through default");
     printf("kind: %d\n", expr->type);
@@ -308,6 +472,7 @@ find_parent_table(struct SymbolTable *symbol_table,
     return current;
   case STT_MOD:
   case STT_SCOPE:
+  case STT_STRUCT:
     puts("looking from scope");
     // current = current->parent;
     break;
@@ -355,6 +520,7 @@ void annotator_visit_expr(struct Annotator *annotator,
                                  .symbol = argument->symbol,
                                  .type = argument->data_type,
                                  .llvm_value = NULL,
+                                 .llvm_structure_type = NULL,
                                  .next = NULL,
                                  .symbol_location = SL_ARGUMENT,
                              });
@@ -370,6 +536,14 @@ void annotator_visit_expr(struct Annotator *annotator,
   }
   case EXPR_FN_CALL:
     puts("deleteme: (fn_call) Got to this spot and not sure if needed.");
+    assert(expr->node.fn_call != NULL);
+    struct FunctionCallArgumentExpressionsNode *arg =
+        expr->node.fn_call->arguments;
+    while (arg != NULL) {
+      annotator_visit_expr(annotator, arg->argument);
+      arg = arg->next;
+    }
+    // assert(0);
     // TODO: Do we need to do anything here?
     break;
   case EXPR_REF: {
@@ -394,14 +568,110 @@ void annotator_visit_expr(struct Annotator *annotator,
     puts("done visit deref.");
     break;
   }
+  case EXPR_STRUCT_DEF: {
+    puts("[visit expr for struct] not sure if anything should happen here..");
+    assert(expr->node.struct_def != NULL);
+
+    struct SymbolTable *old_symbol_table = annotator->current_symbol_table;
+
+    expr->node.struct_def->symbol_table = (struct SymbolTable){
+        .head = NULL,
+        .type = STT_STRUCT,
+        .parent =
+            find_parent_table(annotator->current_symbol_table, STT_STRUCT),
+    };
+
+    annotator->current_symbol_table = &expr->node.struct_def->symbol_table;
+
+    struct StructFieldDefinitionNode *field = expr->node.struct_def->fields;
+
+    while (field != NULL) {
+      insert_symbol_entry_in(annotator, annotator->current_symbol_table,
+                             (struct SymbolTableEntry){
+                                 .symbol = field->name,
+                                 .type = field->type,
+                                 .llvm_value = NULL,
+                                 .llvm_structure_type = NULL,
+                                 // TODO: do we need new symbol location?
+                                 .symbol_location = SL_LOCAL,
+                                 .next = NULL,
+
+                             });
+      field = field->next;
+    }
+
+    annotator->current_symbol_table = old_symbol_table;
+    break;
+  }
+  case EXPR_STRUCT_INIT:
+    puts("[visit expr for struct initializer] not sure if anything should "
+         "happen here..");
+
+    struct SymbolTableEntry *struct_def_symbol =
+        lookup_symbol(annotator, expr->node.struct_init->name);
+    assert(struct_def_symbol != NULL);
+    assert(struct_def_symbol->type != NULL);
+    assert(struct_def_symbol->type->kind == DTK_STRUCTURE_DEF);
+
+    struct StructDefinitionExpressionNode *def =
+        struct_def_symbol->type->value.structure_definition.definition;
+
+    assert(def != NULL);
+
+    if (def->fields != NULL) {
+      assert(expr->node.struct_init->fields != NULL);
+
+      struct StructFieldDefinitionNode *field_def = def->fields;
+      struct StructFieldInitializerExpressionNode *field_init =
+          expr->node.struct_init->fields;
+
+      while (field_def != NULL) {
+        assert(field_init != NULL);
+        assert(strings_equal(field_def->name, field_init->name));
+
+        assert(data_types_equal(infer_type(annotator, field_init->expression),
+                                field_def->type));
+
+        field_def = field_def->next;
+        field_init = field_init->next;
+      }
+    }
+    break;
+  case EXPR_FIELD_ACCESS:
+    puts("[visit expr for struct field access] not sure if anything should "
+         "happen here..");
+    break;
   }
 }
 
 void annotator_visit_decl(struct Annotator *annotator,
                           struct DeclarationStatementNode *decl,
                           bool is_module) {
+  assert(decl != NULL);
+  printf("symbol is: %s\n", decl->symbol.data);
   assert(lookup_symbol(annotator, decl->symbol) == NULL);
+  puts("precheck");
   struct DataType *type = infer_type(annotator, decl->expression);
+  puts("postcheck");
+
+  assert(type != NULL);
+
+  if (decl->data_type != NULL && decl->data_type->kind == DTK_STRUCTURE) {
+    if (decl->data_type->value.structure.definition == NULL) {
+      puts("structure type hasnt been resolved yet, resolving.");
+      struct SymbolTableEntry *struct_def_symbol =
+          lookup_symbol(annotator, decl->data_type->value.structure.name);
+      assert(struct_def_symbol != NULL);
+      assert(struct_def_symbol->type != NULL);
+      assert(struct_def_symbol->type->kind == DTK_STRUCTURE_DEF);
+
+      // puts("should remove this.");
+      // assert(0);
+
+      decl->data_type->value.structure.definition =
+          struct_def_symbol->type->value.structure_definition.definition;
+    }
+  }
 
   printf("\n");
   printf("[annotator_visit_decl] symbol (%s) has infered type: (",
@@ -410,6 +680,8 @@ void annotator_visit_decl(struct Annotator *annotator,
   printf(") and the decl expression type is inferred as (");
   print_data_type(type);
   printf(")\n");
+
+  puts("d.");
 
   printf("got type infer done for %s\n", decl->symbol.data);
   if (decl->data_type != NULL) {
@@ -440,6 +712,7 @@ void annotator_visit_decl(struct Annotator *annotator,
                           .symbol = decl->symbol,
                           .type = decl->data_type,
                           .llvm_value = NULL,
+                          .llvm_structure_type = NULL,
                           .next = NULL,
                           .symbol_location = is_module ? SL_MODULE : SL_LOCAL,
                       });
@@ -678,8 +951,48 @@ bool data_types_equal(struct DataType *left, struct DataType *right) {
                             right->value.function.return_type);
   case DTK_VOID:
     return true;
+  case DTK_STRUCTURE:
+    puts("unimplemented behavior for structs.");
+    if (!strings_equal(left->value.structure.name,
+                       right->value.structure.name)) {
+      return false;
+    }
+
+    puts("[NOTE] we should check for more than just symbol equality, but for "
+         "now lets just do this.");
+
+    // TODO: implement structural equality check.
+
+    return true;
+    assert(0);
+    break;
+  case DTK_STRUCTURE_DEF:
+    puts("unimplemented behavior for struct defs.");
+    assert(0);
+    break;
   };
   return false;
+}
+
+// NOTE: hi it`s me grace your wife`
+
+void print_struct_def_data_type(
+    struct StructDefinitionExpressionNode *definition) {
+  if (definition == NULL) {
+    printf("struct{?}");
+    return;
+  }
+  printf("struct{");
+  struct StructFieldDefinitionNode *current = definition->fields;
+  while (current != NULL) {
+    printf("%s:", current->name.data);
+    print_data_type(current->type);
+    if (current->next != NULL) {
+      printf(",");
+    }
+    current = current->next;
+  }
+  printf("}");
 }
 
 void print_data_type(struct DataType *data_type) {
@@ -736,6 +1049,15 @@ void print_data_type(struct DataType *data_type) {
       printf(":");
       print_data_type(function.return_type);
     }
+    break;
+  }
+  case DTK_STRUCTURE:
+    printf("(%s)", data_type->value.structure.name.data);
+    print_struct_def_data_type(data_type->value.structure.definition);
+    break;
+  case DTK_STRUCTURE_DEF: {
+    print_struct_def_data_type(
+        data_type->value.structure_definition.definition);
     break;
   }
   }

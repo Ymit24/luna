@@ -4,6 +4,8 @@
 #include "annotator.h"
 #include "arena_allocator.h"
 #include "llvm-c/Types.h"
+#include <llvm-c/Target.h>
+#include <llvm-c/TargetMachine.h>
 
 struct CodeGenerator {
   struct ArenaAllocator *allocator;
@@ -12,6 +14,12 @@ struct CodeGenerator {
   LLVMModuleRef module;
   LLVMBuilderRef builder;
   LLVMBasicBlockRef current_block;
+  LLVMTargetDataRef target_data;
+};
+
+struct FindFieldDefinitionResult {
+  struct StructFieldDefinitionNode *field_definition;
+  size_t index;
 };
 
 struct CodeGenerator cg_make(struct ArenaAllocator *allocator,
