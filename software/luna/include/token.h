@@ -31,6 +31,7 @@ enum TokenType {
   T_SYMBOL,
   T_FN,
   T_RETURN,
+  T_CAST,
   T_EXTERN,
   T_VARIADIC,
   T_STRING,

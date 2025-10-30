@@ -83,7 +83,13 @@ enum ExpressionType {
   EXPR_DEREF,
   EXPR_STRUCT_DEF,
   EXPR_STRUCT_INIT,
-  EXPR_FIELD_ACCESS
+  EXPR_FIELD_ACCESS,
+  EXPR_CAST,
+};
+
+struct CastExpressionNode {
+  struct ExpressionNode *expr;
+  struct DataType *type;
 };
 
 struct ExpressionNode {
@@ -100,6 +106,7 @@ struct ExpressionNode {
     struct StructDefinitionExpressionNode *struct_def;
     struct StructInitializationExpressionNode *struct_init;
     struct StructFieldAccessExpressionNode *struct_field_access;
+    struct CastExpressionNode *cast;
   } node;
 };
 

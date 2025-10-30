@@ -1,5 +1,6 @@
 const puts = fn@extern["puts"](fmt: *i8):i32;
 const printf = fn@extern["printf"]@variadic(fmt: *i8): i32;
+const malloc = fn@extern["malloc"](size: i32): *i8;
 
 const foo = struct { x: *i32, y: i32, z: **i32 };
 
@@ -15,6 +16,13 @@ const make_string = fn(d: *i8): string {
         data: d,
         len: 0,
     };
+};
+
+const make_heap_string = fn(d: *i8): *string {
+    const s: *string = @cast(*string, malloc(8));
+    s.data=d;
+    s.len=1;
+    return s;
 };
 
 const main = fn(): i32 {
@@ -35,6 +43,11 @@ const main = fn(): i32 {
     printstring(make_string("abc"));
 
     printf("address of f.x: %p %d\n", &f.y, *&f.y);
+
+    const ss = make_heap_string("fooo");
+
+    printf("ss len: %d\n", ss.len);
+    printstring(*ss);
 
     return 0;
 };

@@ -202,6 +202,11 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
       out_token->type = T_VARIADIC;
       lexer->position += 8;
       return true;
+    } else if (lexer->source.length - lexer->position >= 4 &&
+               strncmp("cast", &lexer->source.data[lexer->position], 4) == 0) {
+      out_token->type = T_CAST;
+      lexer->position += 4;
+      return true;
     }
     break;
   default: {
