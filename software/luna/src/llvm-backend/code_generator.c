@@ -504,10 +504,10 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
 
     LLVMValueRef value = inner;
 
-    if (LLVMGetTypeKind(type) == LLVMPointerTypeKind) {
-      puts("type was pointer type so adding extra load.");
-      value = LLVMBuildLoad2(code_generator->builder, type, inner, "");
-    }
+    // if (LLVMGetTypeKind(type) == LLVMPointerTypeKind) {
+    //   puts("type was pointer type so adding extra load.");
+    //   value = LLVMBuildLoad2(code_generator->builder, type, inner, "");
+    // }
 
     return LLVMBuildLoad2(code_generator->builder, type, value, "");
   }
@@ -558,7 +558,8 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
     }
     puts("Done.");
 
-    return local_struct;
+    return LLVMBuildLoad2(code_generator->builder, entry->llvm_structure_type,
+                          local_struct, "");
   }
   case EXPR_FIELD_ACCESS: {
     puts("cg visit expr for struct field access.");
@@ -638,9 +639,8 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
       field_access_expr = field_access_expr->next;
     }
 
-    LLVMValueRef field_ptr =
-        LLVMBuildGEP2(code_generator->builder, source_type, source,
-                      field_indicies, index, "");
+    LLVMValueRef field_ptr = LLVMBuildGEP2(code_generator->builder, source_type,
+                                           source, field_indicies, index, "");
 
     return LLVMBuildLoad2(
         code_generator->builder,
@@ -817,18 +817,6 @@ void cg_gen_assignment(struct CodeGenerator *code_generator,
   // } else if (symbol->type->kind == DTK_POINTER) {
   //   puts("kind is pointer.");
   // }
-
-  if (cg_infer_type(code_generator, expression)->kind == DTK_STRUCTURE) {
-    uint32_t data_align =
-        LLVMABIAlignmentOfType(code_generator->target_data, source_type);
-    // NOTE: Source and dest alignment should be the same.
-    LLVMBuildMemCpy(
-        code_generator->builder, source_value, data_align, result, data_align,
-        LLVMConstInt(
-            LLVMInt32Type(),
-            LLVMABISizeOfType(code_generator->target_data, source_type), 0));
-    return;
-  }
 
   LLVMValueRef coerced = cg_coerce(code_generator, result, source_type);
 

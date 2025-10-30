@@ -275,18 +275,11 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
     puts("parsing deref");
     parser->position++;
 
-    assert(parser_peek(parser).type == T_SYMBOL);
-
-    struct SymbolLiteralNode *symbol = parse_symbol_literal(parser);
+    struct ExpressionNode *deref_expr = parse_expression(parser, 0);
 
     return ast_promote(
         parser->allocator,
-        &(struct ExpressionNode){
-            .type = EXPR_DEREF,
-            .node.deref = ast_promote_expression_node(
-                parser->allocator,
-                (struct ExpressionNode){.type = EXPR_SYMBOL_LITERAL,
-                                        .node.symbol = symbol})},
+        &(struct ExpressionNode){.type = EXPR_DEREF, .node.deref = deref_expr},
         sizeof(struct ExpressionNode));
   }
   case T_AMPERSAND: {
