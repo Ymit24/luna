@@ -10,6 +10,13 @@ const printstring = fn(s: string) {
     return;
 };
 
+const make_string = fn(d: *i8): string {
+    return .string {
+        data: d,
+        len: 0,
+    };
+};
+
 const main = fn(): i32 {
     puts("hello world");
 
@@ -24,6 +31,10 @@ const main = fn(): i32 {
 
     printstring(s);
     printstring(.string { data: "oh", len: 2});
+
+    printstring(make_string("abc"));
+
+    printf("address of f.x: %p %d\n", &f.y, *&f.y);
 
     return 0;
 };

@@ -286,13 +286,20 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
     parser->position++;
 
     assert(parser_peek(parser).type == T_SYMBOL);
-
     struct SymbolLiteralNode *symbol = parse_symbol_literal(parser);
 
-    return ast_promote(
-        parser->allocator,
-        &(struct ExpressionNode){.type = EXPR_REF, .node.ref_symbol = symbol},
-        sizeof(struct ExpressionNode));
+    puts("Looking for field access expr for ref");
+
+    return ast_promote(parser->allocator,
+                       &(struct ExpressionNode){
+                           .type = EXPR_REF,
+                           .node.ref_symbol = ast_promote(
+                               parser->allocator,
+                               &(struct StructFieldAccessExpressionNode){
+                                   .symbol = symbol->value,
+                                   .next = parse_struct_field_access(parser)},
+                               sizeof(struct StructFieldAccessExpressionNode))},
+                       sizeof(struct ExpressionNode));
   }
   case T_STRING: {
     parser->position++;
