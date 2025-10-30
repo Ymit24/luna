@@ -315,6 +315,31 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
         sizeof(struct ExpressionNode));
     break;
   }
+  case T_CAST: {
+    parser->position++;
+
+    assert(parser_peek(parser).type == T_LPAREN);
+    parser->position++;
+
+    struct DataType *type = parse_data_type(parser);
+
+    assert(parser_peek(parser).type == T_COMMA);
+    parser->position++;
+
+    struct ExpressionNode *expr = parse_expression(parser, 0);
+
+    assert(parser_peek(parser).type == T_RPAREN);
+    parser->position++;
+
+    return ast_promote_expression_node(
+        parser->allocator,
+        (struct ExpressionNode){
+            .type = EXPR_CAST,
+            .node.cast = ast_promote(
+                parser->allocator,
+                &(struct CastExpressionNode){.expr = expr, .type = type},
+                sizeof(struct CastExpressionNode))});
+  }
   case T_LPAREN: {
     assert(parser_peek(parser).type == T_LPAREN);
     parser->position++;
@@ -984,6 +1009,7 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
     case EXPR_STRUCT_DEF:
     case EXPR_STRUCT_INIT:
     case EXPR_REF:
+    case EXPR_CAST:
       puts("illegal expression type as function statement.");
       assert(0);
       return NULL;

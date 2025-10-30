@@ -662,6 +662,9 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
                                    expr->node.struct_field_access),
         "");
   }
+  case EXPR_CAST:
+    puts("cg expr cast");
+    return cg_visit_expr(code_generator, expr->node.cast->expr);
   }
   assert(0);
   return NULL;
@@ -717,6 +720,7 @@ void cg_visit_decl(struct CodeGenerator *code_generator,
   printf("Code genning decl %s.\n", symbol->symbol.data);
 
   LLVMTypeRef type = cg_get_type(code_generator, decl->data_type);
+
   // if (decl->data_type->kind == DTK_FUNCTION) {
   //   type = LLVMPointerType(type, 0);
   // } else if (decl->data_type->kind == DTK_POINTER) {
@@ -966,11 +970,6 @@ void cg_visit_function_statement(struct CodeGenerator *code_generator,
       cg_gen_assignment(code_generator, symbol->llvm_value, type,
                         node->result_expression);
       break;
-
-      // cg_gen_assignment(code_generator,
-      //                   cg_visit_expr(code_generator,
-      //                   node->source_expression), cg_get_type(code_generator,
-      //                   source_type), node->result_expression);
     } else if (node->source_expression->type == EXPR_DEREF) {
       struct DataType *source_type =
           cg_infer_type(code_generator, node->source_expression->node.deref);
@@ -980,6 +979,21 @@ void cg_visit_function_statement(struct CodeGenerator *code_generator,
           cg_visit_expr(code_generator, node->source_expression->node.deref),
           cg_get_type(code_generator, source_type->value.pointer_inner),
           node->result_expression);
+      break;
+    } else if (node->source_expression->type == EXPR_FIELD_ACCESS) {
+      puts("in field access");
+      struct DataType *source_type = infer_type_of_field_access(
+          node->source_expression->node.struct_field_access,
+          code_generator->current_symbol_table);
+
+      puts("about to gen assignment");
+
+      cg_gen_assignment(code_generator,
+                        cg_visit_field_access_expr(
+                            code_generator,
+                            node->source_expression->node.struct_field_access),
+                        cg_get_type(code_generator, source_type),
+                        node->result_expression);
       break;
     }
 

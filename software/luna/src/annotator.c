@@ -252,12 +252,12 @@ get_or_resolve_struct_definition_from_type(struct DataType *type,
 }
 
 struct DataType *infer_type_of_field_access(
-    struct Annotator *annotator,
-    struct StructFieldAccessExpressionNode *field_accessor) {
+    struct StructFieldAccessExpressionNode *field_accessor,
+    struct SymbolTable *symbol_table) {
   assert(field_accessor != NULL);
 
   struct SymbolTableEntry *entry =
-      lookup_symbol(annotator, field_accessor->symbol);
+      lookup_symbol_in(field_accessor->symbol, symbol_table);
 
   assert(entry != NULL);
   assert(entry->type != NULL);
@@ -266,18 +266,12 @@ struct DataType *infer_type_of_field_access(
   }
 
   struct StructDefinitionExpressionNode *definition =
-      get_or_resolve_struct_definition_from_type(
-          entry->type, annotator->current_symbol_table);
+      get_or_resolve_struct_definition_from_type(entry->type, symbol_table);
 
   assert(definition != NULL);
 
-  struct SymbolTable *old_symbol_table = annotator->current_symbol_table;
-
-  annotator->current_symbol_table = &definition->symbol_table;
-
-  struct DataType *next =
-      infer_type_of_field_access(annotator, field_accessor->next);
-  annotator->current_symbol_table = old_symbol_table;
+  struct DataType *next = infer_type_of_field_access(field_accessor->next,
+                                                     &definition->symbol_table);
 
   return next;
 }
@@ -336,8 +330,8 @@ struct DataType *infer_type(struct Annotator *annotator,
   }
   case EXPR_REF: {
     return make_pointer_data_type(
-        annotator,
-        infer_type_of_field_access(annotator, expr->node.struct_field_access));
+        annotator, infer_type_of_field_access(expr->node.struct_field_access,
+                                              annotator->current_symbol_table));
   }
   case EXPR_DEREF: {
     puts("doing deref");
@@ -419,12 +413,15 @@ struct DataType *infer_type(struct Annotator *annotator,
     return data_type;
   case EXPR_FIELD_ACCESS:
     puts("expr field access");
-    struct DataType *field_accessor_type =
-        infer_type_of_field_access(annotator, expr->node.struct_field_access);
+    struct DataType *field_accessor_type = infer_type_of_field_access(
+        expr->node.struct_field_access, annotator->current_symbol_table);
     printf("found field accessor of type: ");
     print_data_type(field_accessor_type);
     puts("");
     return field_accessor_type;
+  case EXPR_CAST:
+    assert(expr->node.cast != NULL);
+    return expr->node.cast->type;
   default:
     puts("fell through default");
     printf("kind: %d\n", expr->type);
@@ -639,6 +636,10 @@ void annotator_visit_expr(struct Annotator *annotator,
   case EXPR_FIELD_ACCESS:
     puts("[visit expr for struct field access] not sure if anything should "
          "happen here..");
+    break;
+  case EXPR_CAST:
+    puts("[visit cast]");
+    annotator_visit_expr(annotator, expr->node.cast->expr);
     break;
   }
 }

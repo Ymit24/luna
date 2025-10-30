@@ -120,6 +120,12 @@ struct ExpressionNode;
 struct DataType *infer_type(struct Annotator *annotator,
                             struct ExpressionNode *expr);
 
+struct StructFieldAccessExpressionNode;
+struct DataType *infer_type_of_field_access(
+    struct StructFieldAccessExpressionNode *field_accessor,
+    struct SymbolTable *symbol_table);
+
 void print_symbol_table(struct LunaString name,
                         struct SymbolTable *symbol_table);
+
 #endif
