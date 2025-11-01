@@ -13,6 +13,7 @@ enum DataTypeKind {
   DTK_FUNCTION,
   DTK_VOID,
   DTK_POINTER,
+  DTK_ARRAY,
   DTK_STRUCTURE,
   DTK_STRUCTURE_DEF
 };
@@ -41,6 +42,11 @@ struct StructType {
   struct StructDefinitionExpressionNode *definition;
 };
 
+struct ArrayType {
+  struct DataType *element_type;
+  uint64_t length;
+};
+
 struct DataType {
   enum DataTypeKind kind;
   union {
@@ -48,6 +54,7 @@ struct DataType {
     struct PrimitiveType primitive;
     struct DataType *pointer_inner;
     struct StructType structure;
+    struct ArrayType array;
     struct StructDefinitionType structure_definition;
   } value;
   struct DataType *next;
@@ -137,4 +144,7 @@ void print_symbol_table(struct LunaString name,
 struct DataType *
 make_integer_primitive_data_type(struct ArenaAllocator *allocator,
                                  uint16_t bitwidth, bool is_signed);
+struct DataType *make_array_data_type(struct ArenaAllocator *allocator,
+                                      struct DataType *element_type,
+                                      uint64_t length);
 #endif

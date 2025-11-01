@@ -97,6 +97,19 @@ struct DataType *make_function_data_type(struct ArenaAllocator *allocator,
                      sizeof(struct DataType));
 }
 
+struct DataType *make_array_data_type(struct ArenaAllocator *allocator,
+                                      struct DataType *element_type,
+                                      uint64_t length) {
+  return ast_promote(allocator,
+                     &(struct DataType){
+                         .kind = DTK_ARRAY,
+                         .value.array.element_type = element_type,
+                         .value.array.length = length,
+                         .next = NULL,
+                     },
+                     sizeof(struct DataType));
+}
+
 void annotator_initialize_primitives(struct Annotator *annotator) {
   annotator->data_type_table.head = NULL;
   // struct DataType *primitives[] = {
@@ -927,6 +940,13 @@ bool data_types_equal(struct DataType *left, struct DataType *right) {
     return true;
   }
 
+  if (left->kind == DTK_ARRAY && right->kind == DTK_POINTER) {
+    puts("Found array -> pointer, checking if array element is of coereceable "
+         "type as pointer inner.");
+    return data_types_equal(left->value.array.element_type,
+                            right->value.pointer_inner);
+  }
+
   if (left->kind != right->kind) {
     return false;
   }
@@ -989,6 +1009,14 @@ bool data_types_equal(struct DataType *left, struct DataType *right) {
     puts("unimplemented behavior for struct defs.");
     assert(0);
     break;
+  case DTK_ARRAY:
+    puts("Found case of array -> array");
+    if (left->value.array.length > right->value.array.length) {
+      puts("Value array had more elements than storage.");
+      return false;
+    }
+    return data_types_equal(left->value.array.element_type,
+                            right->value.array.element_type);
   };
   return false;
 }
@@ -1081,5 +1109,10 @@ void print_data_type(struct DataType *data_type) {
         data_type->value.structure_definition.definition);
     break;
   }
+  case DTK_ARRAY:
+    printf("[");
+    print_data_type(data_type->value.array.element_type);
+    printf(";%llu]", data_type->value.array.length);
+    break;
   }
 }
