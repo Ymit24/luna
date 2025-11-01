@@ -2,7 +2,7 @@ const puts = fn@extern["puts"](fmt: *i8):i32;
 const printf = fn@extern["printf"]@variadic(fmt: *i8): i32;
 
 const pair = struct { a: i32, b: i32 };
-const triple = struct { x: i32, y: i32, z: i32 };
+const triple = struct { x: i32, y: i16, z: i32 };
 const complex = struct { first: pair, second: triple };
 
 const sum = fn(x: i32, y: i32): i32 { return x + y; };
@@ -31,7 +31,7 @@ const main = fn(): i32 {
         c.second.z
     );
 
-    const addone = fn(x: i32): i32 { return 1 + x; };
+    const addone = fn(x: i32): i32 { return x + 1; };
     const f = .foo { thing: addone };
     const tt = f.thing;
 
@@ -47,6 +47,10 @@ const main = fn(): i32 {
     };
 
     print_string(&str);
+
+    const thething: i32 = 40;
+    const thething_truthy: i1 = thething;
+    printf("the thing truthy: %d\n", thething_truthy);
 
     return 0;
 };

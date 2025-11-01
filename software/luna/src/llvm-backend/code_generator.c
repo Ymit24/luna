@@ -160,17 +160,13 @@ LLVMTypeRef cg_get_type(struct CodeGenerator *code_generator,
   printf("\n");
   switch (data_type->kind) {
   case DTK_PRIMITIVE:
-    switch (data_type->value.primitive) {
-    case P_I8:
-      return LLVMInt8Type();
-    case P_I32:
-      return LLVMInt32Type();
-    case P_BOOL:
-      return LLVMInt1Type();
-    default:
-      puts("Unknown primitive data type.");
+    switch (data_type->value.primitive.kind) {
+    case P_INT:
+      return LLVMIntType(data_type->value.primitive.bitwidth);
+    case P_FLOAT:
+      puts("Floats not impl yet.");
       assert(0);
-      return NULL;
+      break;
     }
     break;
   case DTK_FUNCTION:
@@ -703,6 +699,11 @@ LLVMValueRef cg_coerce(struct CodeGenerator *cg, LLVMValueRef val,
       return LLVMBuildSExt(cg->builder, val, dest_type, "");
     } else if (source_width > dest_width) {
       puts("need to trunc source");
+      if (dest_width == 1) {
+        puts("Converting to truthy i1");
+        return LLVMBuildICmp(cg->builder, LLVMIntSGT, val,
+                             LLVMConstInt(source_type, 1, 0), "");
+      }
       return LLVMBuildTrunc(cg->builder, val, dest_type, "");
     } else {
       puts("types are same width");

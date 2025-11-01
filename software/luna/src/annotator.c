@@ -98,7 +98,6 @@ struct DataType *make_function_data_type(struct ArenaAllocator *allocator,
 }
 
 void annotator_initialize_primitives(struct Annotator *annotator) {
-  assert(0);
   annotator->data_type_table.head = NULL;
   // struct DataType *primitives[] = {
   //     ast_promote(

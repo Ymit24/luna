@@ -642,10 +642,7 @@ struct DataType *parse_data_type(struct Parser *parser) {
     return data_type;
   }
   case T_SYMBOL: {
-    if (strncmp("i1", token.value.symbol.data, 2) == 0) {
-      parser->position++;
-      return make_integer_primitive_data_type(parser->allocator, 1, 1);
-    } else if (strncmp("i8", token.value.symbol.data, 2) == 0) {
+    if (strncmp("i8", token.value.symbol.data, 2) == 0) {
       parser->position++;
       return make_integer_primitive_data_type(parser->allocator, 8, 1);
     } else if (strncmp("i16", token.value.symbol.data, 3) == 0) {
@@ -669,6 +666,9 @@ struct DataType *parse_data_type(struct Parser *parser) {
     } else if (strncmp("u64", token.value.symbol.data, 3) == 0) {
       parser->position++;
       return make_integer_primitive_data_type(parser->allocator, 64, 0);
+    } else if (strncmp("i1", token.value.symbol.data, 2) == 0) {
+      parser->position++;
+      return make_integer_primitive_data_type(parser->allocator, 1, 1);
     } else if (strncmp("void", token.value.symbol.data, 4) == 0) {
       printf("\n\n\tVOID\n");
       parser->position++;
