@@ -874,6 +874,41 @@ void cg_visit_else(struct CodeGenerator *code_generator,
   }
 }
 
+void cg_visit_while(struct CodeGenerator *code_generator,
+                    struct WhileStatementNode *while_stmt) {
+  LLVMValueRef fn = LLVMGetBasicBlockParent(code_generator->current_block);
+  LLVMBasicBlockRef cond_block = LLVMAppendBasicBlock(fn, "while.cond");
+  LLVMBasicBlockRef body_block = LLVMAppendBasicBlock(fn, "while.body");
+  LLVMBasicBlockRef end_block = LLVMAppendBasicBlock(fn, "while.end");
+
+  LLVMBuildBr(code_generator->builder, cond_block);
+  LLVMPositionBuilderAtEnd(code_generator->builder, cond_block);
+
+  LLVMValueRef conditional =
+      cg_visit_expr(code_generator, while_stmt->condition);
+  conditional = cg_coerce(code_generator, conditional, LLVMInt1Type());
+
+
+  LLVMBuildCondBr(code_generator->builder, conditional, body_block, end_block);
+  LLVMPositionBuilderAtEnd(code_generator->builder, body_block);
+
+  struct SymbolTable *old_current = code_generator->current_symbol_table;
+  code_generator->current_symbol_table = &while_stmt->symbol_table;
+
+  LLVMBasicBlockRef old_block = code_generator->current_block;
+  code_generator->current_block = body_block;
+
+  cg_visit_function_statements(code_generator, while_stmt->body);
+
+  LLVMBuildBr(code_generator->builder, cond_block);
+
+  code_generator->current_symbol_table = old_current;
+  code_generator->current_block = old_block;
+
+  LLVMPositionBuilderAtEnd(code_generator->builder, end_block);
+  code_generator->current_block = end_block;
+}
+
 void cg_visit_if(struct CodeGenerator *code_generator,
                  struct IfStatementNode *if_stmt,
                  LLVMBasicBlockRef prev_merge_block) {
@@ -1051,6 +1086,10 @@ void cg_visit_function_statement(struct CodeGenerator *code_generator,
     break;
   case FN_STMT_FN_CALL:
     cg_visit_function_call(code_generator, stmt->node.fn_call);
+    break;
+  case FN_STMT_WHILE:
+    puts("generating while..");
+    cg_visit_while(code_generator, stmt->node.while_stmt);
     break;
   case FN_STMT_IF:
     puts("generating if..");

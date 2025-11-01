@@ -38,6 +38,7 @@ enum TokenType {
   T_IF,
   T_ELSE,
   T_STRUCT,
+  T_WHILE,
 };
 
 struct Token {

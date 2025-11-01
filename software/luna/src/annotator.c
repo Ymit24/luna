@@ -748,6 +748,28 @@ void annotator_visit_function_statements(
   puts("Finished function annotation.");
 }
 
+void annotator_visit_while_statement(struct Annotator *annotator,
+                                  struct WhileStatementNode *while_stmt) {
+  assert(while_stmt!=NULL);
+
+
+  struct SymbolTable *old_current = annotator->current_symbol_table;
+
+  while_stmt->symbol_table = (struct SymbolTable){
+      .head = NULL,
+      .type = STT_SCOPE,
+      .parent = find_parent_table(annotator->current_symbol_table, STT_SCOPE),
+  };
+
+  annotator->current_symbol_table = &while_stmt->symbol_table;
+
+  annotator_visit_function_statements(annotator, while_stmt->body);
+
+  annotator->current_symbol_table = old_current;
+
+
+}
+
 void annotator_visit_if_statement(struct Annotator *annotator,
                                   struct IfStatementNode *if_stmt) {
   if (if_stmt->condition != NULL) {
@@ -851,6 +873,11 @@ void annotator_visit_function_statement(
     // TODO: check types
     break;
   }
+  case FN_STMT_WHILE:
+    puts("TODO: do stuff for while.");
+
+    annotator_visit_while_statement(annotator, statement->node.while_stmt);
+    break;
   case FN_STMT_IF:
     puts("TODO: do stuff for if.");
 
