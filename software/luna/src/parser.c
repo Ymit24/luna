@@ -832,6 +832,39 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
                                                        .next = NULL},
                        sizeof(struct FunctionStatementNode));
   }
+  case T_WHILE: {
+    puts("found while.");
+    printf("\n\n\n-------------------------------------------------------------"
+           "---\n\n");
+    parser->position++;
+
+    struct WhileStatementNode while_stmt =
+        (struct WhileStatementNode){.body = NULL, .condition = NULL};
+
+    struct ExpressionNode *conditional = parse_expression(parser, 0);
+
+    assert(parser_peek(parser).type == T_LBRACE);
+    parser->position++;
+
+    struct FunctionStatementNode *body = parse_function_statements(parser);
+
+    assert(parser_peek(parser).type == T_RBRACE);
+    parser->position++;
+
+    while_stmt.condition = conditional;
+    while_stmt.body = body;
+
+    assert(parser_peek(parser).type == T_SEMICOLON);
+    parser->position++;
+
+    return ast_promote(
+        parser->allocator,
+        &(struct FunctionStatementNode){
+            .type = FN_STMT_WHILE,
+            .node.while_stmt = ast_promote(parser->allocator, &while_stmt,
+                                           sizeof(struct WhileStatementNode))},
+        sizeof(struct FunctionStatementNode));
+  }
   case T_IF: {
     puts("found if.");
     printf("\n\n\n-------------------------------------------------------------"

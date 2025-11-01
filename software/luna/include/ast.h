@@ -20,6 +20,7 @@ enum FunctionStatementType {
   FN_STMT_RETURN,
   FN_STMT_FN_CALL, // TODO: maybe this becomes general expression
   FN_STMT_IF,
+  FN_STMT_WHILE,
 };
 
 struct FunctionArgumentNode {
@@ -61,6 +62,7 @@ struct FunctionStatementNode {
     struct ReturnStatementNode *ret;
     struct FunctionCallExpressionNode *fn_call;
     struct IfStatementNode *if_stmt;
+    struct WhileStatementNode *while_stmt;
   } node;
   struct FunctionStatementNode *next;
 };
@@ -69,6 +71,12 @@ struct IfStatementNode {
   struct ExpressionNode *condition;
   struct FunctionStatementNode *body;
   struct IfStatementNode *next;
+  struct SymbolTable symbol_table;
+};
+
+struct WhileStatementNode {
+  struct ExpressionNode *condition;
+  struct FunctionStatementNode *body;
   struct SymbolTable symbol_table;
 };
 
