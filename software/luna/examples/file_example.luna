@@ -1,0 +1,35 @@
+const puts = fn@extern["puts"](fmt: *i8):i32;
+const printf = fn@extern["printf"]@variadic(fmt: *i8): i32;
+const malloc = fn@extern["malloc"](size:i32):*i8;
+
+const file_open = fn@extern["fopen"](path: *i8, mode: *i8): *i8;
+const file_seek = fn@extern["fseek"](file: *i8, loc: i32, v: i32);
+const file_tell = fn@extern["ftell"](file: *i8, loc: i32, v: i32): i32;
+const file_read = fn@extern["fread"](buffer: *i8, size: i32, count: i32, file: *i8): i32;
+const file_close = fn@extern["fclose"](file: *i8);
+
+const SEEK_END: i32 = 2;
+const SEEK_SET: i32 = 0;
+
+const main = fn() {
+    const file = file_open("Makefile", "rb");
+
+    printf("File: %d\n", file);
+
+    file_seek(file, 0, SEEK_END);
+    const size = file_tell(file);
+    file_seek(file, 0, SEEK_SET);
+
+    printf("size: %d\n", size);
+
+    const buffer = malloc(size);
+
+    const read = file_read(buffer, 1, size, file);
+
+    printf("read %d bytes\n", read);
+
+    printf("File: %s\n", buffer);
+
+    file_close(file);
+    return;
+};
