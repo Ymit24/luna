@@ -1,9 +1,18 @@
 const puts = fn@extern["puts"](str:*i8);
+const printf = fn@extern["printf"]@variadic(fmt: *i8);
+
 const init_window = fn@extern["InitWindow"](w: i32, h: i32, title: *i8);
 const set_target_fps = fn@extern["SetTargetFPS"](fps: i32);
 const window_should_close = fn@extern["WindowShouldClose"](): i8;
 const begin_drawing = fn@extern["BeginDrawing"]();
+
 const end_drawing = fn@extern["EndDrawing"]();
+
+const clear_background = fn@extern["ClearBackground"](color: i32);
+const draw_text = fn@extern["DrawText"](title: *i8, x: i32, y: i32, fs: i32, color: i32);
+const draw_rect = fn@extern["DrawRectangle"](posX: i32, posY: i32, width: i32, height: i32, color: i32);
+const close_window = fn@extern["CloseWindow"]();
+
 
 const Color = struct {
     r: i8,
@@ -12,25 +21,28 @@ const Color = struct {
     a: i8
 };
 
-const clear_background = fn@extern["ClearBackground"](color: Color);
-const draw_text = fn@extern["DrawText"](title: *i8, x: i32, y: i32, fs: i32, color: Color);
-const close_window = fn@extern["CloseWindow"]();
-
-const loop = fn() {
-    if window_should_close() {
-        return;
-    };
-    puts("looping...");
-    loop();
-    return;
-};
-
 const main = fn() {
     init_window(800, 450, "Hello Raylib from Luna");
 
     set_target_fps(60);
 
-    loop();
+    let v: i8 = 1;
+
+    const white_color = .Color { r: 255, g: 255, b: 255, a: 255 };
+    const red_color = .Color { r: 0, g: 255, b: 0, a: 255 };
+
+    const white_color_int = @cast(i32,white_color);
+    const red_color_int = @cast(i32,red_color);
+
+    while window_should_close() < v {
+        begin_drawing();
+
+        clear_background(white_color_int);
+        draw_text("Hello world from luna.", 190, 200, 20, red_color_int);
+        draw_rect(50, 50, 100, 200, red_color_int);
+
+        end_drawing();
+    };
 
     close_window();
 
