@@ -642,34 +642,33 @@ struct DataType *parse_data_type(struct Parser *parser) {
     return data_type;
   }
   case T_SYMBOL: {
-    if (strncmp("i8", token.value.symbol.data, 2) == 0) {
+    if (strncmp("i1", token.value.symbol.data, 2) == 0) {
       parser->position++;
-      return ast_promote(parser->allocator,
-                         &(struct DataType){
-                             .kind = DTK_PRIMITIVE,
-                             .value.primitive = P_I8,
-                             .next = NULL,
-                         },
-                         sizeof(struct DataType));
+      return make_integer_primitive_data_type(parser->allocator, 1, 1);
+    } else if (strncmp("i8", token.value.symbol.data, 2) == 0) {
+      parser->position++;
+      return make_integer_primitive_data_type(parser->allocator, 8, 1);
+    } else if (strncmp("i16", token.value.symbol.data, 3) == 0) {
+      parser->position++;
+      return make_integer_primitive_data_type(parser->allocator, 16, 1);
     } else if (strncmp("i32", token.value.symbol.data, 3) == 0) {
       parser->position++;
-      return ast_promote(parser->allocator,
-                         &(struct DataType){
-                             .kind = DTK_PRIMITIVE,
-                             .value.primitive = P_I32,
-                             .next = NULL,
-                         },
-                         sizeof(struct DataType));
-    } else if (strncmp("bool", token.value.symbol.data, 4) == 0) {
+      return make_integer_primitive_data_type(parser->allocator, 32, 1);
+    } else if (strncmp("i64", token.value.symbol.data, 3) == 0) {
       parser->position++;
-
-      return ast_promote(parser->allocator,
-                         &(struct DataType){
-                             .kind = DTK_PRIMITIVE,
-                             .value.primitive = P_BOOL,
-                             .next = NULL,
-                         },
-                         sizeof(struct DataType));
+      return make_integer_primitive_data_type(parser->allocator, 64, 1);
+    } else if (strncmp("u8", token.value.symbol.data, 2) == 0) {
+      parser->position++;
+      return make_integer_primitive_data_type(parser->allocator, 8, 0);
+    } else if (strncmp("u16", token.value.symbol.data, 3) == 0) {
+      parser->position++;
+      return make_integer_primitive_data_type(parser->allocator, 16, 0);
+    } else if (strncmp("u32", token.value.symbol.data, 3) == 0) {
+      parser->position++;
+      return make_integer_primitive_data_type(parser->allocator, 32, 0);
+    } else if (strncmp("u64", token.value.symbol.data, 3) == 0) {
+      parser->position++;
+      return make_integer_primitive_data_type(parser->allocator, 64, 0);
     } else if (strncmp("void", token.value.symbol.data, 4) == 0) {
       printf("\n\n\tVOID\n");
       parser->position++;

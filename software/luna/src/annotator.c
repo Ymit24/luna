@@ -5,6 +5,7 @@
 #include <alloca.h>
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 bool data_types_equal(struct DataType *left, struct DataType *right);
@@ -58,11 +59,16 @@ make_structure_def_data_type(struct ArenaAllocator *allocator,
                      sizeof(struct DataType));
 }
 
-struct DataType *make_primitive_data_type(struct Annotator *annotator,
-                                          enum PrimitiveType type) {
+struct DataType *
+make_integer_primitive_data_type(struct ArenaAllocator *allocator,
+                                 uint16_t bitwidth, bool is_signed) {
   return ast_promote(
-      annotator->allocator,
-      &(struct DataType){.kind = DTK_PRIMITIVE, .value.primitive = type},
+      allocator,
+      &(struct DataType){.kind = DTK_PRIMITIVE,
+                         .value.primitive =
+                             (struct PrimitiveType){.kind = P_INT,
+                                                    .bitwidth = bitwidth,
+                                                    .is_signed = is_signed}},
       sizeof(struct DataType));
 }
 
@@ -92,46 +98,47 @@ struct DataType *make_function_data_type(struct ArenaAllocator *allocator,
 }
 
 void annotator_initialize_primitives(struct Annotator *annotator) {
+  assert(0);
   annotator->data_type_table.head = NULL;
-  struct DataType *primitives[] = {
-      ast_promote(
-          annotator->allocator,
-          &(struct DataType){.kind = DTK_PRIMITIVE, .value.primitive = P_I8},
-          sizeof(struct DataType)),
-      ast_promote(
-          annotator->allocator,
-          &(struct DataType){.kind = DTK_PRIMITIVE, .value.primitive = P_I32},
-          sizeof(struct DataType)),
-      ast_promote(
-          annotator->allocator,
-          &(struct DataType){.kind = DTK_PRIMITIVE, .value.primitive = P_BOOL},
-          sizeof(struct DataType))
-
-  };
-
-  for (uint16_t i = 0; i < 1; i++) {
-    primitives[i]->next = annotator->data_type_table.head;
-    annotator->data_type_table.head = primitives[i];
-  }
-
-  insert_symbol_entry(annotator, (struct SymbolTableEntry){
-                                     .symbol = string_make("true"),
-                                     .type = primitives[1],
-                                     .llvm_value = NULL,
-                                     .llvm_structure_type = NULL,
-                                     .next = NULL,
-                                     .memory_segment = MS_STATIC,
-                                     .symbol_location = SL_MODULE,
-                                 });
-  insert_symbol_entry(annotator, (struct SymbolTableEntry){
-                                     .symbol = string_make("false"),
-                                     .type = primitives[1],
-                                     .llvm_value = NULL,
-                                     .llvm_structure_type = NULL,
-                                     .next = NULL,
-                                     .memory_segment = MS_STATIC,
-                                     .symbol_location = SL_MODULE,
-                                 });
+  // struct DataType *primitives[] = {
+  //     ast_promote(
+  //         annotator->allocator,
+  //         &(struct DataType){.kind = DTK_PRIMITIVE, .value.primitive = P_I8},
+  //         sizeof(struct DataType)),
+  //     ast_promote(
+  //         annotator->allocator,
+  //         &(struct DataType){.kind = DTK_PRIMITIVE, .value.primitive =
+  //         P_I32}, sizeof(struct DataType)),
+  //     ast_promote(
+  //         annotator->allocator,
+  //         &(struct DataType){.kind = DTK_PRIMITIVE, .value.primitive =
+  //         P_BOOL}, sizeof(struct DataType))
+  //
+  // };
+  //
+  // for (uint16_t i = 0; i < 1; i++) {
+  //   primitives[i]->next = annotator->data_type_table.head;
+  //   annotator->data_type_table.head = primitives[i];
+  // }
+  //
+  // insert_symbol_entry(annotator, (struct SymbolTableEntry){
+  //                                    .symbol = string_make("true"),
+  //                                    .type = primitives[1],
+  //                                    .llvm_value = NULL,
+  //                                    .llvm_structure_type = NULL,
+  //                                    .next = NULL,
+  //                                    .memory_segment = MS_STATIC,
+  //                                    .symbol_location = SL_MODULE,
+  //                                });
+  // insert_symbol_entry(annotator, (struct SymbolTableEntry){
+  //                                    .symbol = string_make("false"),
+  //                                    .type = primitives[1],
+  //                                    .llvm_value = NULL,
+  //                                    .llvm_structure_type = NULL,
+  //                                    .next = NULL,
+  //                                    .memory_segment = MS_STATIC,
+  //                                    .symbol_location = SL_MODULE,
+  //                                });
 }
 
 void print_symbol_table(struct LunaString name,
@@ -284,12 +291,22 @@ struct DataType *infer_type(struct Annotator *annotator,
   case EXPR_INTEGER_LITERAL:
     // TODO: Do we want to auto downsize to I8? we need to handle implicit
     // casting
-    if (expr->node.integer->value < 256) {
-      puts("infered i8");
-      return make_primitive_data_type(annotator, P_I8);
+    if (labs(expr->node.integer->value) < UINT8_MAX) {
+      puts("infered i/u8");
+      return make_integer_primitive_data_type(annotator->allocator, 8,
+                                              expr->node.integer->value < 0);
+    } else if (labs(expr->node.integer->value) < UINT16_MAX) {
+      puts("infered i/u16");
+      return make_integer_primitive_data_type(annotator->allocator, 16,
+                                              expr->node.integer->value < 0);
+    } else if (labs(expr->node.integer->value) < UINT32_MAX) {
+      puts("infered i/u32");
+      return make_integer_primitive_data_type(annotator->allocator, 32,
+                                              expr->node.integer->value < 0);
     }
-    puts("infered i32");
-    return make_primitive_data_type(annotator, P_I32);
+    puts("infered by default i/u64");
+    return make_integer_primitive_data_type(annotator->allocator, 64,
+                                            expr->node.integer->value < 0);
   case EXPR_SYMBOL_LITERAL: {
     puts("inferring on symb lit.");
     assert(expr->node.symbol != NULL);
@@ -301,8 +318,8 @@ struct DataType *infer_type(struct Annotator *annotator,
   }
   case EXPR_STRING_LITERAL: {
     puts("infered string");
-    return make_pointer_data_type(annotator,
-                                  make_primitive_data_type(annotator, P_I8));
+    return make_pointer_data_type(annotator, make_integer_primitive_data_type(
+                                                 annotator->allocator, 8, 0));
   }
   case EXPR_BINARY: {
     puts("Infering on binary..");
@@ -749,9 +766,8 @@ void annotator_visit_function_statements(
 }
 
 void annotator_visit_while_statement(struct Annotator *annotator,
-                                  struct WhileStatementNode *while_stmt) {
-  assert(while_stmt!=NULL);
-
+                                     struct WhileStatementNode *while_stmt) {
+  assert(while_stmt != NULL);
 
   struct SymbolTable *old_current = annotator->current_symbol_table;
 
@@ -766,8 +782,6 @@ void annotator_visit_while_statement(struct Annotator *annotator,
   annotator_visit_function_statements(annotator, while_stmt->body);
 
   annotator->current_symbol_table = old_current;
-
-
 }
 
 void annotator_visit_if_statement(struct Annotator *annotator,
@@ -908,19 +922,10 @@ bool data_types_equal(struct DataType *left, struct DataType *right) {
   assert(left != NULL);
   assert(right != NULL);
 
-  if (left->kind == DTK_PRIMITIVE &&
-      (left->value.primitive == P_I8 || left->value.primitive == P_I32)) {
-    puts("left is primitive");
-    if (right->kind == DTK_POINTER &&
-        right->value.pointer_inner->kind == DTK_PRIMITIVE) {
-      puts("right is pointer to primitive");
-
-      if ((right->value.pointer_inner->value.primitive == P_I8 ||
-           right->value.pointer_inner->value.primitive == P_I32)) {
-        puts("infered magic pointer case");
-        return true;
-      }
-    }
+  if (left->kind == DTK_PRIMITIVE && left->value.primitive.kind == P_INT &&
+      right->kind == DTK_POINTER) {
+    // TODO: Handle proper pointer math stuff
+    return true;
   }
 
   if (left->kind != right->kind) {
@@ -929,28 +934,16 @@ bool data_types_equal(struct DataType *left, struct DataType *right) {
 
   switch (left->kind) {
   case DTK_PRIMITIVE:
-    if ((left->value.primitive == P_I8 || left->value.primitive == P_I32) &&
-        (right->value.primitive == P_I8 || right->value.primitive == P_I32)) {
-      if (left->value.primitive == P_I8) {
-        puts("left is i8");
-      } else {
-        puts("left is i32");
-      }
-      if (right->value.primitive == P_I8) {
-        puts("right is i8");
-      } else {
-        puts("right is i32");
-      }
-      if (left->value.primitive == P_I32 && right->value.primitive == P_I8) {
-        puts("Tried to put i32 into an i8 storage.");
-        return false;
-      }
-      puts("compatible int to int storage.");
+    if (left->value.primitive.kind == P_INT &&
+        right->value.primitive.kind == P_INT) {
+      puts("Allowing any int to go into any other int.");
       return true;
-    }
-    if (left->value.primitive != right->value.primitive) {
+    } else if (left->value.primitive.kind == P_FLOAT &&
+               right->value.primitive.kind == P_INT) {
+      puts("Illegal to store float directly into int, must convert manually.");
       return false;
     }
+    puts("Other prim prim is valid.");
     return true;
   case DTK_POINTER:
     return data_types_equal(left->value.pointer_inner,
@@ -1032,15 +1025,17 @@ void print_data_type(struct DataType *data_type) {
     printf("void");
     break;
   case DTK_PRIMITIVE:
-    switch (data_type->value.primitive) {
-    case P_I8:
-      printf("i8");
+    switch (data_type->value.primitive.kind) {
+    case P_INT:
+      if (data_type->value.primitive.is_signed) {
+        printf("i");
+      } else {
+        printf("u");
+      }
+      printf("%d", data_type->value.primitive.bitwidth);
       break;
-    case P_I32:
-      printf("i32");
-      break;
-    case P_BOOL:
-      printf("bool");
+    case P_FLOAT:
+      printf("<float, unimplemented>");
       break;
       ;
     }

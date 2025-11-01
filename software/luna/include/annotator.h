@@ -17,7 +17,13 @@ enum DataTypeKind {
   DTK_STRUCTURE_DEF
 };
 
-enum PrimitiveType { P_I8, P_I32, P_BOOL };
+enum PrimitiveKind { P_INT, P_FLOAT };
+
+struct PrimitiveType {
+  enum PrimitiveKind kind;
+  uint8_t bitwidth;
+  bool is_signed; // ONLY for int types
+};
 
 struct FunctionType {
   struct DataType *return_type;
@@ -39,7 +45,7 @@ struct DataType {
   enum DataTypeKind kind;
   union {
     struct FunctionType function;
-    enum PrimitiveType primitive;
+    struct PrimitiveType primitive;
     struct DataType *pointer_inner;
     struct StructType structure;
     struct StructDefinitionType structure_definition;
@@ -128,4 +134,7 @@ struct DataType *infer_type_of_field_access(
 void print_symbol_table(struct LunaString name,
                         struct SymbolTable *symbol_table);
 
+struct DataType *
+make_integer_primitive_data_type(struct ArenaAllocator *allocator,
+                                 uint16_t bitwidth, bool is_signed);
 #endif

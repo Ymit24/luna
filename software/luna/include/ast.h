@@ -119,7 +119,7 @@ struct ExpressionNode {
 };
 
 struct IntegerLiteralNode {
-  uint16_t value;
+  int64_t value;
 };
 
 struct SymbolLiteralNode {
