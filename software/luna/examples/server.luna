@@ -1,0 +1,88 @@
+const af_inet: i32 = 2;
+const sock_stream: i32 = 1;
+const sol_socket: i32 = 65535;
+const so_reuse_addr: i32 = 4;
+const inaddr_any: i32 = 0;
+
+const puts = fn@extern["puts"](fmt: *i8): i32;
+const printf = fn@extern["printf"]@variadic(fmt: *i8): i32;
+
+const socket_address = struct {
+    sa_len: i8,
+    sa_family: i8,
+    sa_data: [i8; 14],
+};
+
+const in_addr = struct {
+    addr: i32
+};
+
+const sockaddr_in = struct {
+    sin_len: i8,
+    sin_family: i8,
+    sin_port: i16,
+    sin_addr: in_addr,
+    sin_zero: [i8; 8],
+};
+
+const socket = fn@extern["socket"](domain: i32, type: i32, protocol: i32): i32;
+const bind = fn@extern["bind"](sockfd: i32, addr: *socket_address, addrlen: i32): i32;
+const listen = fn@extern["listen"](sockfd: i32, backlog: i32): i32;
+const accept = fn@extern["accept"](sockfd: i32, addr: *socket_address, addrlen: *i32): i32;
+const set_socket_option = fn@extern["setsockopt"](
+    sockfd: i32, level: i32, optname: i32,
+    optval: *i8, optlen: i32
+);
+
+const write = fn@extern["write"](fd: i32, buf: *i8, count: i32): i32;
+const close = fn@extern["close"](fd: i32): i32;
+
+const perror = fn@extern["perror"](s: *i8);
+const exit = fn@extern["exit"](status: i32);
+const strlen: fn@extern["strlen"](s: *i8): i32;
+
+const main = fn() {
+    const server_fd = socket(af_inet, sock_stream, 0);
+    if server_fd < 0 {
+        puts("Error opening socket.");
+    } else {
+        puts("Success opening socket.");
+    };
+
+    let opt: i32 = 1;
+    set_socket_option(server_fd, sol_socket, so_reuse_addr, &opt, 4);
+
+    const addr = .sockaddr_in {
+        sin_family: af_inet,
+        sin_addr: .in_addr {
+            addr: inaddr_any
+        },
+        sin_port: 8080 // NOTE: NEED TO SWAP BYTE ORDER
+    };
+
+    if bind(server_fd, @cast(*socket_address, &addr), @size(addr)) < 0 {
+        perror("bind");
+        exit(1);
+    };
+
+    if listen(server_fd, 1) < 0 {
+        perror("listen");
+        exit(1);
+    };
+
+    printf("Listening on http://localhost:8080\n");
+
+    while 1 {
+        const client = accept(server_fd, 0, 0);
+        if client < 0 {
+            perror("accept");
+        } else {
+            const response = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 13\r\n\r\nHello, world!";
+            write(client, response, strlen(response));
+            close(client);
+        };
+
+    };
+
+    return;
+};
