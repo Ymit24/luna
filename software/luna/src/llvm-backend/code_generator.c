@@ -638,10 +638,12 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
           LLVMBuildGEP2(code_generator->builder, entry->llvm_structure_type,
                         local_struct, indicies, 2, "");
 
+      LLVMValueRef coereced = cg_coerce(
+          code_generator, cg_visit_expr(code_generator, field_init->expression),
+          cg_get_type(code_generator, field_def->type));
+
       puts("Building store..");
-      LLVMBuildStore(code_generator->builder,
-                     cg_visit_expr(code_generator, field_init->expression),
-                     field_ptr);
+      LLVMBuildStore(code_generator->builder, coereced, field_ptr);
 
       puts("Advancing pointers..");
       field_def = field_def->next;
@@ -887,7 +889,6 @@ void cg_visit_while(struct CodeGenerator *code_generator,
   LLVMValueRef conditional =
       cg_visit_expr(code_generator, while_stmt->condition);
   conditional = cg_coerce(code_generator, conditional, LLVMInt1Type());
-
 
   LLVMBuildCondBr(code_generator->builder, conditional, body_block, end_block);
   LLVMPositionBuilderAtEnd(code_generator->builder, body_block);
