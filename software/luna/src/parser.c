@@ -522,7 +522,6 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
   }
   case T_LBRACK:
     puts("Found array initializer.");
-    assert(0);
     parser->position++;
 
     struct ArrayInitializerExpressionNode *initializers =
@@ -531,12 +530,11 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
     assert(parser_peek(parser).type == T_RBRACK);
     parser->position++;
 
-    ast_promote_expression_node(parser->allocator,
-                                (struct ExpressionNode){
-                                    .type = EXPR_ARRAY_INITIALIZER,
-                                    .node.array_initializers = initializers,
-                                });
-    break;
+    return ast_promote_expression_node(
+        parser->allocator, (struct ExpressionNode){
+                               .type = EXPR_ARRAY_INITIALIZER,
+                               .node.array_initializers = initializers,
+                           });
   default:
     printf("Found type: %d\n", token.type);
     assert(false);
@@ -803,6 +801,9 @@ struct DataType *parse_data_type(struct Parser *parser) {
 
     assert(parser_peek(parser).type == T_SEMICOLON);
     parser->position++;
+
+    printf("About to parse integer for array length, next token is type: %d\n",
+           parser_peek(parser).type);
 
     uint64_t length = parse_integer_literal(parser)->value;
 

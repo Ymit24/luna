@@ -337,7 +337,14 @@ struct DataType *infer_type(struct Annotator *annotator,
     puts("Infering on binary..");
     struct DataType *left = infer_type(annotator, expr->node.binary->left);
     struct DataType *right = infer_type(annotator, expr->node.binary->right);
-    assert(data_types_equal(left, right));
+    printf("Left is: ");
+    print_data_type(left);
+    printf("\nRight is: ");
+    print_data_type(right);
+    puts("");
+    if (!data_types_equal(left, right)) {
+      assert(data_types_equal(right, left));
+    }
     // TODO: return the "greater" of the two types. e.g. between i32 & *i32 ->
     // *i32, or i8 & i64 -> i64
     return left;

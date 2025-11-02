@@ -437,13 +437,41 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
   switch (expr->type) {
   case EXPR_BINARY:
     printf("[cg_visit_expr] in binary of type %d\n", expr->node.binary->type);
+    struct DataType *left_type =
+        cg_infer_type(code_generator, expr->node.binary->left);
+    struct DataType *right_type =
+        cg_infer_type(code_generator, expr->node.binary->right);
+    LLVMTypeRef common_type = cg_get_type(code_generator, left_type);
     LLVMValueRef left = cg_visit_expr(code_generator, expr->node.binary->left);
     LLVMValueRef right =
         cg_visit_expr(code_generator, expr->node.binary->right);
     switch (expr->node.binary->type) {
     case BIN_EXPR_ADD:
       puts("got add");
-      return LLVMBuildAdd(code_generator->builder, left, right, "");
+      LLVMValueRef pointer = NULL;
+      LLVMValueRef non_pointer = NULL;
+      LLVMTypeRef pointer_type = NULL;
+      if (left_type->kind == DTK_POINTER) {
+        pointer = left;
+        pointer_type =
+            cg_get_type(code_generator, left_type->value.pointer_inner);
+        non_pointer = right;
+      } else if (right_type->kind == DTK_POINTER) {
+        pointer = right;
+        pointer_type =
+            cg_get_type(code_generator, right_type->value.pointer_inner);
+        non_pointer = left;
+      }
+
+      if (pointer == NULL) {
+        return LLVMBuildAdd(code_generator->builder,
+                            cg_coerce(code_generator, left, common_type),
+                            cg_coerce(code_generator, right, common_type), "");
+      } else {
+        LLVMValueRef indices[] = {non_pointer};
+        return LLVMBuildGEP2(code_generator->builder, pointer_type, pointer,
+                             indices, 1, "");
+      }
     case BIN_EXPR_SUB:
       puts("got sub");
       return LLVMBuildSub(code_generator->builder, left, right, "");
