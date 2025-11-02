@@ -423,6 +423,14 @@ LLVMValueRef cg_visit_field_access_expr(
   return field_ptr;
 }
 
+size_t cg_count_array_initializer_length(
+    struct ArrayInitializerExpressionNode *initiailzier) {
+  if (initiailzier == NULL) {
+    return 0;
+  }
+  return 1 + cg_count_array_initializer_length(initiailzier->next);
+}
+
 LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
                            struct ExpressionNode *expr) {
   printf("[cg_visit_expr] %d\n", expr->type);
@@ -663,6 +671,35 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
   case EXPR_CAST:
     puts("cg expr cast");
     return cg_visit_expr(code_generator, expr->node.cast->expr);
+  case EXPR_ARRAY_INITIALIZER:
+    puts("cg array initializer.");
+    LLVMTypeRef element_type =
+        cg_get_type(code_generator,
+                    cg_infer_type(code_generator,
+                                  expr->node.array_initializers->initializer));
+    LLVMValueRef array =
+        LLVMBuildArrayAlloca(code_generator->builder, element_type,
+                             LLVMConstInt(LLVMInt32Type(),
+                                          cg_count_array_initializer_length(
+                                              expr->node.array_initializers),
+                                          0),
+                             "");
+    struct ArrayInitializerExpressionNode *initializer =
+        expr->node.array_initializers;
+    size_t index = 0;
+    while (initializer != NULL) {
+      // %p = getelementptr i32, i32* %a, i32 5
+      LLVMValueRef indices[] = {LLVMConstInt(LLVMInt32Type(), index, 0)};
+      LLVMValueRef gep = LLVMBuildGEP2(code_generator->builder, element_type,
+                                       array, indices, 1, "");
+      LLVMValueRef result =
+          cg_visit_expr(code_generator, initializer->initializer);
+      LLVMValueRef coerced = cg_coerce(code_generator, result, element_type);
+      LLVMBuildStore(code_generator->builder, coerced, gep);
+      initializer = initializer->next;
+      index++;
+    }
+    return array;
   }
   assert(0);
   return NULL;

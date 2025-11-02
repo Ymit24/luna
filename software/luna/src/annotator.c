@@ -628,6 +628,26 @@ void annotator_visit_expr(struct Annotator *annotator,
     annotator->current_symbol_table = old_symbol_table;
     break;
   }
+  case EXPR_ARRAY_INITIALIZER:
+    puts("array initializer");
+
+    struct ArrayInitializerExpressionNode *initializer =
+        expr->node.array_initializers;
+    if (initializer == NULL) {
+      puts("Illegal empty array initializer.");
+      assert(0);
+      break;
+    }
+    struct DataType *first_element_type =
+        infer_type(annotator, initializer->initializer);
+    while (initializer != NULL) {
+      assert(data_types_equal(infer_type(annotator, initializer->initializer),
+                              first_element_type));
+      initializer = initializer->next;
+    }
+
+    assert(0);
+    break;
   case EXPR_STRUCT_INIT:
     puts("[visit expr for struct initializer] not sure if anything should "
          "happen here..");
