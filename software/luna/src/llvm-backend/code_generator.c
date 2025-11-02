@@ -439,9 +439,11 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
         cg_infer_type(code_generator, expr->node.binary->left);
     struct DataType *right_type =
         cg_infer_type(code_generator, expr->node.binary->right);
-    LLVMTypeRef common_type =
-        cg_get_type(code_generator, get_common_type(code_generator->allocator,
-                                                    left_type, right_type));
+    struct DataType *common_type =
+        get_common_type(code_generator->allocator, left_type, right_type);
+    LLVMTypeRef common =
+
+        cg_get_type(code_generator, common_type);
     LLVMValueRef left = cg_visit_expr(code_generator, expr->node.binary->left);
     LLVMValueRef right =
         cg_visit_expr(code_generator, expr->node.binary->right);
@@ -479,12 +481,26 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
 
       if (pointer == NULL) {
         return LLVMBuildAdd(code_generator->builder,
-                            cg_coerce(code_generator, left, common_type),
-                            cg_coerce(code_generator, right, common_type), "");
+                            cg_coerce(code_generator, left, common),
+                            cg_coerce(code_generator, right, common), "");
       } else {
-        LLVMValueRef indices[] = {non_pointer};
-        return LLVMBuildGEP2(code_generator->builder, pointer_type, pointer,
-                             indices, 1, "");
+        // LLVMValueRef indices[] = {non_pointer};
+        // uint64_t size =
+        //     LLVMABISizeOfType(code_generator->target_data, pointer_type);
+        // LLVMValueRef new_non_pointer =
+        //     LLVMBuildMul(code_generator->builder, non_pointer,
+        //                  LLVMConstInt(LLVMInt32Type(), size, 0), "");
+        //
+        // return LLVMBuildAdd(code_generator->builder, pointer,
+        //                     LLVMBuildIntToPtr(code_generator->builder,
+        //                                       new_non_pointer, common_type,
+        //                                       ""),
+        //                     "");
+        assert(common_type->kind == DTK_POINTER);
+        return LLVMBuildGEP2(
+            code_generator->builder,
+            cg_get_type(code_generator, common_type->value.pointer_inner),
+            pointer, &non_pointer, 1, "");
       }
     case BIN_EXPR_SUB:
       puts("got sub");
