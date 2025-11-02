@@ -147,4 +147,9 @@ make_integer_primitive_data_type(struct ArenaAllocator *allocator,
 struct DataType *make_array_data_type(struct ArenaAllocator *allocator,
                                       struct DataType *element_type,
                                       uint64_t length);
+struct DataType *make_pointer_data_type(struct ArenaAllocator *allocator,
+                                        struct DataType *inner);
+
+struct DataType *get_common_type(struct ArenaAllocator *allocator,
+                                 struct DataType *left, struct DataType *right);
 #endif

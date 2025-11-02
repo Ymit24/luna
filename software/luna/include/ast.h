@@ -207,4 +207,7 @@ ast_promote_expression_node(struct ArenaAllocator *allocator,
 
 void *ast_promote(struct ArenaAllocator *allocator, void *src, uint8_t size);
 
+size_t count_array_initializer_length(
+    struct ArrayInitializerExpressionNode *initiailzier);
+
 #endif

@@ -192,6 +192,12 @@ LLVMTypeRef cg_get_type(struct CodeGenerator *code_generator,
 
     return entry->llvm_structure_type;
   }
+  case DTK_ARRAY:
+    puts("Found array in type inference.");
+    printf("Length is: %llu\n", data_type->value.array.length);
+    return LLVMArrayType2(
+        cg_get_type(code_generator, data_type->value.array.element_type),
+        data_type->value.array.length);
   default:
     puts("Unknown data type kind.");
     assert(0);
@@ -423,14 +429,6 @@ LLVMValueRef cg_visit_field_access_expr(
   return field_ptr;
 }
 
-size_t cg_count_array_initializer_length(
-    struct ArrayInitializerExpressionNode *initiailzier) {
-  if (initiailzier == NULL) {
-    return 0;
-  }
-  return 1 + cg_count_array_initializer_length(initiailzier->next);
-}
-
 LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
                            struct ExpressionNode *expr) {
   printf("[cg_visit_expr] %d\n", expr->type);
@@ -441,7 +439,9 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
         cg_infer_type(code_generator, expr->node.binary->left);
     struct DataType *right_type =
         cg_infer_type(code_generator, expr->node.binary->right);
-    LLVMTypeRef common_type = cg_get_type(code_generator, left_type);
+    LLVMTypeRef common_type =
+        cg_get_type(code_generator, get_common_type(code_generator->allocator,
+                                                    left_type, right_type));
     LLVMValueRef left = cg_visit_expr(code_generator, expr->node.binary->left);
     LLVMValueRef right =
         cg_visit_expr(code_generator, expr->node.binary->right);
@@ -451,11 +451,25 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
       LLVMValueRef pointer = NULL;
       LLVMValueRef non_pointer = NULL;
       LLVMTypeRef pointer_type = NULL;
-      if (left_type->kind == DTK_POINTER) {
+      if (left_type->kind == DTK_ARRAY) {
+        struct DataType *pointer_data_type = make_pointer_data_type(
+            code_generator->allocator, left_type->value.array.element_type);
+        pointer_type = cg_get_type(code_generator, pointer_data_type);
+        pointer =
+            LLVMBuildBitCast(code_generator->builder, left, pointer_type, "");
+        non_pointer = right;
+      } else if (left_type->kind == DTK_POINTER) {
         pointer = left;
         pointer_type =
             cg_get_type(code_generator, left_type->value.pointer_inner);
         non_pointer = right;
+      } else if (right_type->kind == DTK_ARRAY) {
+        struct DataType *pointer_data_type = make_pointer_data_type(
+            code_generator->allocator, right_type->value.array.element_type);
+        pointer_type = cg_get_type(code_generator, pointer_data_type);
+        pointer =
+            LLVMBuildBitCast(code_generator->builder, right, pointer_type, "");
+        non_pointer = left;
       } else if (right_type->kind == DTK_POINTER) {
         pointer = right;
         pointer_type =
@@ -501,6 +515,10 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
     assert(symbol != NULL);
     assert(symbol->llvm_value != NULL);
 
+    if (symbol->type->kind == DTK_ARRAY) {
+      return symbol->llvm_value;
+    }
+
     LLVMTypeRef type = cg_get_type(code_generator, symbol->type);
 
     switch (symbol->symbol_location) {
@@ -511,7 +529,7 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
       return LLVMBuildLoad2(code_generator->builder, type, symbol->llvm_value,
                             "");
     };
-
+    assert(0);
     return symbol->llvm_value;
   }
   case EXPR_STRING_LITERAL: {
@@ -705,13 +723,11 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
         cg_get_type(code_generator,
                     cg_infer_type(code_generator,
                                   expr->node.array_initializers->initializer));
-    LLVMValueRef array =
-        LLVMBuildArrayAlloca(code_generator->builder, element_type,
-                             LLVMConstInt(LLVMInt32Type(),
-                                          cg_count_array_initializer_length(
-                                              expr->node.array_initializers),
-                                          0),
-                             "");
+    size_t element_count =
+        count_array_initializer_length(expr->node.array_initializers);
+    LLVMValueRef array = LLVMBuildArrayAlloca(
+        code_generator->builder, element_type,
+        LLVMConstInt(LLVMInt32Type(), element_count, 0), "");
     struct ArrayInitializerExpressionNode *initializer =
         expr->node.array_initializers;
     size_t index = 0;
@@ -727,7 +743,11 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
       initializer = initializer->next;
       index++;
     }
-    return array;
+    // return array;
+
+    return LLVMBuildLoad2(code_generator->builder,
+                          LLVMArrayType2(element_type, element_count), array,
+                          "");
   }
   assert(0);
   return NULL;

@@ -12,10 +12,10 @@ const sum_nums = fn(arr: *i32, len: i32): i32 {
     return sum;
 };
 
-// const foo = struct {
-//     a: i32,
-//     b: [i32; 5],
-// };
+const foo = struct {
+    a: i32,
+    b: [i32; 5],
+};
 //
 // const main = fn() {
 //     puts("start");
@@ -41,5 +41,12 @@ const sum_nums = fn(arr: *i32, len: i32): i32 {
 
 const main = fn() {
     puts("hello world!");
+
+    const nums: [i8; 3] = [1,2,3];
+
+    printf("1. nums[0]=%d\n", nums[0]);
+
+    puts("again!");
+
     return;
 };
