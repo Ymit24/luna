@@ -1,0 +1,13 @@
+const cstd = mod {
+    const puts = fn@extern["puts"](str: *i8): i32;
+    const printf = fn@extern["printf"]@variadic(fmt: *i8): i32;
+
+    const fancy_puts = fn(str: *i8): i32 {
+        printf("[FANCY] ");
+        return puts(str);
+    };
+};
+
+const main = fn() {
+  cstd::puts("Hello world!");
+};

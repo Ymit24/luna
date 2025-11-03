@@ -15,7 +15,9 @@ enum DataTypeKind {
   DTK_POINTER,
   DTK_ARRAY,
   DTK_STRUCTURE,
-  DTK_STRUCTURE_DEF
+  DTK_STRUCTURE_DEF,
+  DTK_MODULE_DEF,
+  DTK_MODULE,
 };
 
 enum PrimitiveKind { P_INT, P_FLOAT };
@@ -38,8 +40,17 @@ struct StructDefinitionType {
 };
 
 struct StructType {
-  struct LunaString name;
+  struct ScopedSymbolLiteralNode *name;
   struct StructDefinitionExpressionNode *definition;
+};
+
+struct ModuleDefinitionType {
+  struct ModuleNode *module_definition;
+};
+
+struct ModuleType {
+  struct ScopedSymbolLiteralNode *name;
+  struct ModuleDefinitionType *module_definition;
 };
 
 struct ArrayType {
@@ -56,6 +67,8 @@ struct DataType {
     struct StructType structure;
     struct ArrayType array;
     struct StructDefinitionType structure_definition;
+    struct ModuleDefinitionType *module_definition;
+    struct ModuleType *module;
   } value;
   struct DataType *next;
 };
