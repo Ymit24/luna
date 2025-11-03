@@ -171,6 +171,11 @@ void print_symbol_table(struct LunaString name,
       printf("\t%s: ", symbol_table_entry->symbol.data);
       print_data_type(symbol_table_entry->type);
       printf("\n");
+      if (symbol_table_entry->type->kind == DTK_MODULE_DEF) {
+        print_symbol_table(symbol_table_entry->symbol,
+                           &symbol_table_entry->type->value.module_definition
+                                ->module_definition->symbol_table);
+      }
     } else {
       printf("\t%s: unknown\n", symbol_table_entry->symbol.data);
     }
