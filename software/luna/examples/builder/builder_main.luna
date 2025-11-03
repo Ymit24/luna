@@ -1,0 +1,12 @@
+const main = fn(argc: i8, argv: **i8) {
+    cstd::puts("Hello from builder.");
+    cstd::printf("Builder got called with %d arguments.\n", argc);
+
+    let index = 0;
+    while index < argc {
+        cstd::printf("\t'%s'\n", argv[index]);
+        index = index + 1;
+    };
+
+    return;
+};

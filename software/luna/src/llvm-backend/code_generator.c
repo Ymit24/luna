@@ -1335,9 +1335,12 @@ LLVMValueRef cg_visit_module_statements(struct CodeGenerator *code_generator,
 
 void cg_make_entrypoint(struct CodeGenerator *code_generator,
                         LLVMValueRef global_module_initializer) {
+  LLVMTypeRef param_types[] = {LLVMInt32Type(), // int argc
+                               LLVMPointerType( // char **argv
+                                   LLVMPointerType(LLVMInt8Type(), 0), 0)};
   LLVMValueRef entrypoint_function =
       LLVMAddFunction(code_generator->module, "main",
-                      LLVMFunctionType(LLVMInt32Type(), NULL, 0, 0));
+                      LLVMFunctionType(LLVMInt32Type(), param_types, 2, 0));
 
   LLVMBasicBlockRef block = LLVMAppendBasicBlock(entrypoint_function, "entry");
   LLVMPositionBuilderAtEnd(code_generator->builder, block);
@@ -1375,15 +1378,25 @@ void cg_make_entrypoint(struct CodeGenerator *code_generator,
   LLVMValueRef fn_pointer = LLVMBuildLoad2(code_generator->builder, ptr_type,
                                            main_symbol->llvm_value, "");
 
+  LLVMValueRef main_ret;
+  if (main_symbol->type->value.function.arguments == NULL) {
+    // main has no arguments
+    puts("Main takes no arguments");
+    main_ret = LLVMBuildCall2(code_generator->builder, main_func_type,
+                              fn_pointer, 0, 0, "");
+
+  } else {
+    // main must take arguments
+    LLVMValueRef args[] = {LLVMGetParam(entrypoint_function, 0),
+                           LLVMGetParam(entrypoint_function, 1)};
+    puts("Main takes arguments, assuming they're correct");
+    main_ret = LLVMBuildCall2(code_generator->builder, main_func_type,
+                              fn_pointer, args, 2, "");
+  }
+
   if (main_symbol->type->value.function.return_type->kind == DTK_VOID) {
-    puts("\n\n------\nVOID\n");
-    LLVMBuildCall2(code_generator->builder, main_func_type, fn_pointer, 0, 0,
-                   "");
     LLVMBuildRet(code_generator->builder, LLVMConstInt(LLVMInt32Type(), 0, 0));
   } else {
-    puts("\n\n------\nNON VOID\n");
-    LLVMValueRef main_ret = LLVMBuildCall2(
-        code_generator->builder, main_func_type, fn_pointer, 0, 0, "");
     LLVMBuildRet(code_generator->builder, main_ret);
   }
 }
