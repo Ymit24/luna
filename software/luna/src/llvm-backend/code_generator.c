@@ -1346,8 +1346,22 @@ void cg_make_entrypoint(struct CodeGenerator *code_generator,
                  LLVMFunctionType(LLVMVoidType(), 0, 0, 0),
                  global_module_initializer, 0, 0, "");
 
-  struct SymbolTableEntry *main_symbol = lookup_symbol_in(
-      string_make("main"), &code_generator->annotator->root_symbol_table);
+  struct SymbolTableEntry *main_symbol = NULL;
+  struct LunaString main_symbol_name = string_make("main");
+  struct SymbolTableEntry *entry =
+      code_generator->annotator->root_symbol_table.head;
+  while (entry != NULL) {
+    if (entry->type->kind == DTK_MODULE_DEF) {
+      struct SymbolTableEntry *subentry = lookup_symbol_in(
+          main_symbol_name, &entry->type->value.module_definition
+                                 ->module_definition->symbol_table);
+      if (subentry != NULL) {
+        main_symbol = subentry;
+        break;
+      }
+    }
+    entry = entry->next;
+  }
 
   assert(main_symbol != NULL);
   assert(main_symbol->type != NULL);

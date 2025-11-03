@@ -1,0 +1,4 @@
+const main = fn() {
+    a::puts("Hello world!!!");
+    return;
+};

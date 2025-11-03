@@ -130,20 +130,23 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  printf("parsing file (%d)->(%s)\n", 1, argv[1]);
-  struct ModuleStatementNode *new_root =
-      wrap_module(&allocator, parse_source_file(&allocator, argv[1]),
-                  get_module_name_from_file(&allocator, argv[1]));
-  struct ModuleStatementNode *current = new_root;
-
-  for (int i = 2; i < (int)argc; i++) {
+  struct ModuleStatementNode *new_root = NULL;
+  struct ModuleStatementNode *current = NULL;
+  for (int i = 1; i < (int)argc; i++) {
     printf("parsing file (%d)->(%s)\n", i, argv[i]);
     struct ModuleStatementNode *source_root =
         parse_source_file(&allocator, argv[i]);
 
-    current->next = wrap_module(&allocator, source_root,
-                                get_module_name_from_file(&allocator, argv[i]));
-    current = current->next;
+    if (current != NULL) {
+      current->next =
+          wrap_module(&allocator, source_root,
+                      get_module_name_from_file(&allocator, argv[i]));
+      current = current->next;
+    } else {
+      new_root = wrap_module(&allocator, source_root,
+                             get_module_name_from_file(&allocator, argv[i]));
+      current = new_root;
+    }
   }
   struct Annotator annotator = annotator_make(&allocator);
   annotator.current_symbol_table = &annotator.root_symbol_table;
@@ -156,10 +159,9 @@ int main(int argc, char **argv) {
   struct CodeGenerator code_generator = cg_make(&allocator, &annotator);
 
   puts("Start code gen");
-  // LLVMValueRef global_module_initializer =
-  cg_visit_module_statements(&code_generator, new_root, true,
-                             string_make("supercore"));
-  // cg_make_entrypoint(&code_generator, global_module_initializer);
+  LLVMValueRef global_module_initializer = cg_visit_module_statements(
+      &code_generator, new_root, true, string_make("core"));
+  cg_make_entrypoint(&code_generator, global_module_initializer);
   puts("Done code gen");
 
   LLVMDumpModule(code_generator.module);

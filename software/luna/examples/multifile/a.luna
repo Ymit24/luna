@@ -1,0 +1,2 @@
+const puts = fn@extern["puts"](fmt: *i8):i32;
+const printf = fn@extern["printf"]@variadic(fmt: *i8): i32;
