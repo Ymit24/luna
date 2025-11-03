@@ -8,6 +8,9 @@ const cstd = mod {
     };
 };
 
+const foo = cstd;
+
 const main = fn() {
   cstd::puts("Hello world!");
+  return;
 };

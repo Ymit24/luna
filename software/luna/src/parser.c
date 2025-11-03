@@ -15,6 +15,9 @@ struct DataType *parse_data_type(struct Parser *parser);
 struct FunctionStatementNode *parse_function_statements(struct Parser *parser);
 struct FunctionStatementNode *parse_function_statement(struct Parser *parser);
 
+struct ScopedSymbolLiteralNode *
+parse_scoped_symbol_literal(struct Parser *parser);
+
 struct Parser parser_make(struct ArenaAllocator *allocator,
                           struct Token *tokens, uint16_t token_count) {
   return (struct Parser){
@@ -33,7 +36,7 @@ struct Token parser_peek(struct Parser *parser) {
 
 struct FunctionCallExpressionNode *
 parse_function_call_expression(struct Parser *parser,
-                               struct SymbolLiteralNode *symbol) {
+                               struct ScopedSymbolLiteralNode *symbol) {
 
   assert(parser_peek(parser).type == T_LPAREN);
   parser->position++;
@@ -72,10 +75,9 @@ parse_function_call_expression(struct Parser *parser,
   assert(parser_peek(parser).type == T_RPAREN);
   parser->position++;
 
-  printf("val: %s\n", symbol->value.data);
   return ast_promote(parser->allocator,
                      &(struct FunctionCallExpressionNode){
-                         .name = symbol->value, .arguments = root_argument},
+                         .name = symbol, .arguments = root_argument},
                      sizeof(struct FunctionCallExpressionNode));
 }
 
@@ -206,7 +208,7 @@ parse_struct_field_initializer(struct Parser *parser) {
                      sizeof(struct StructFieldInitializerExpressionNode));
 }
 
-struct StructFieldAccessExpressionNode *
+struct StructFieldAccessInnerExpressionNode *
 parse_struct_field_access(struct Parser *parser) {
   if (parser_peek(parser).type != T_PERIOD) {
     return NULL;
@@ -219,7 +221,7 @@ parse_struct_field_access(struct Parser *parser) {
 
   return ast_promote(
       parser->allocator,
-      &(struct StructFieldAccessExpressionNode){
+      &(struct StructFieldAccessInnerExpressionNode){
           .symbol = symbol, .next = parse_struct_field_access(parser)},
       sizeof(struct StructFieldAccessExpressionNode));
 }
@@ -248,14 +250,15 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
         (struct ExpressionNode){.type = EXPR_INTEGER_LITERAL,
                                 .node.integer = parse_integer_literal(parser)});
   case T_SYMBOL: {
-    struct SymbolLiteralNode *symbol = parse_symbol_literal(parser);
+    struct ScopedSymbolLiteralNode *scoped_symbol =
+        parse_scoped_symbol_literal(parser);
 
     switch (parser_peek(parser).type) {
     case T_LPAREN: {
       puts("found lparen, is function call");
 
       struct FunctionCallExpressionNode *fn_call =
-          parse_function_call_expression(parser, symbol);
+          parse_function_call_expression(parser, scoped_symbol);
       assert(fn_call != NULL);
 
       return ast_promote(parser->allocator,
@@ -272,7 +275,7 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
               .node.struct_field_access =
                   ast_promote(parser->allocator,
                               &(struct StructFieldAccessExpressionNode){
-                                  .symbol = symbol->value,
+                                  .root_symbol = scoped_symbol,
                                   .next = parse_struct_field_access(parser)},
                               sizeof(struct StructFieldAccessExpressionNode))});
       ;
@@ -287,29 +290,30 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
       assert(parser_peek(parser).type == T_RBRACK);
       parser->position++;
 
-      return ast_promote(parser->allocator,
-                         &(struct ExpressionNode){
-                             .type = EXPR_DEREF,
-                             .node.deref = ast_promote_expression_node(
-                                 parser->allocator,
-                                 (struct ExpressionNode){
-                                     .type = EXPR_BINARY,
-                                     .node.binary = ast_make_binary_expression(
-                                         parser->allocator, BIN_EXPR_ADD,
-                                         ast_promote_expression_node(
-                                             parser->allocator,
-                                             (struct ExpressionNode){
-                                                 .type = EXPR_SYMBOL_LITERAL,
-                                                 .node.symbol = symbol}),
-                                         indexing_expr)})},
-                         sizeof(struct ExpressionNode));
+      return ast_promote(
+          parser->allocator,
+          &(struct ExpressionNode){
+              .type = EXPR_DEREF,
+              .node.deref = ast_promote_expression_node(
+                  parser->allocator,
+                  (struct ExpressionNode){
+                      .type = EXPR_BINARY,
+                      .node.binary = ast_make_binary_expression(
+                          parser->allocator, BIN_EXPR_ADD,
+                          ast_promote_expression_node(
+                              parser->allocator,
+                              (struct ExpressionNode){
+                                  .type = EXPR_SYMBOL_LITERAL,
+                                  .node.scoped_symbol = scoped_symbol}),
+                          indexing_expr)})},
+          sizeof(struct ExpressionNode));
     default:
       printf("did not find lparen after symbol, found: %d\n",
              parser_peek(parser).type);
       return ast_promote_expression_node(
           parser->allocator,
           (struct ExpressionNode){.type = EXPR_SYMBOL_LITERAL,
-                                  .node.symbol = symbol});
+                                  .node.scoped_symbol = scoped_symbol});
     };
   }
   case T_STAR: {
@@ -327,7 +331,8 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
     parser->position++;
 
     assert(parser_peek(parser).type == T_SYMBOL);
-    struct SymbolLiteralNode *symbol = parse_symbol_literal(parser);
+    struct ScopedSymbolLiteralNode *symbol =
+        parse_scoped_symbol_literal(parser);
 
     puts("Looking for field access expr for ref");
 
@@ -337,7 +342,7 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
                            .node.ref_symbol = ast_promote(
                                parser->allocator,
                                &(struct StructFieldAccessExpressionNode){
-                                   .symbol = symbol->value,
+                                   .root_symbol = symbol,
                                    .next = parse_struct_field_access(parser)},
                                sizeof(struct StructFieldAccessExpressionNode))},
                        sizeof(struct ExpressionNode));
@@ -471,9 +476,8 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
     parser->position++;
     puts("found struct initialization");
 
-    assert(parser_peek(parser).type == T_SYMBOL);
-    struct LunaString symbol = parser_peek(parser).value.symbol;
-    parser->position++;
+    struct ScopedSymbolLiteralNode *scoped_symbol =
+        parse_scoped_symbol_literal(parser);
 
     assert(parser_peek(parser).type == T_LBRACE);
     parser->position++;
@@ -491,7 +495,7 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
             .node.struct_init = ast_promote(
                 parser->allocator,
                 &(struct StructInitializationExpressionNode){
-                    .name = symbol,
+                    .name = scoped_symbol,
                     .fields = fields,
 
                 },
@@ -519,6 +523,35 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
                                sizeof(struct StructDefinitionExpressionNode)),
                        },
                        sizeof(struct ExpressionNode));
+  }
+  case T_MOD: {
+    puts("Found module definition");
+    parser->position++;
+
+    assert(parser_peek(parser).type == T_LBRACE);
+    parser->position++;
+
+    struct ModuleStatementNode *module_statements =
+        parse_module_statements(parser);
+
+    assert(parser_peek(parser).type == T_RBRACE);
+    parser->position++;
+
+    assert(0);
+
+    return ast_promote(parser->allocator,
+                       &(struct ExpressionNode){
+                           .type = EXPR_MOD_DEF,
+                           .node.module_definition =
+                               ast_promote(parser->allocator,
+                                           &(struct ModuleNode){
+                                               .statements = module_statements,
+                                           },
+                                           sizeof(struct ModuleNode)),
+                       },
+                       sizeof(struct ExpressionNode));
+
+    break;
   }
   case T_LBRACK:
     puts("Found array initializer.");
@@ -640,6 +673,36 @@ struct SymbolLiteralNode *parse_symbol_literal(struct Parser *parser) {
                      sizeof(struct SymbolLiteralNode));
 }
 
+struct ScopedSymbolLiteralNode *
+parse_scoped_symbol_literal(struct Parser *parser) {
+  assert(parser_peek(parser).type == T_SYMBOL);
+
+  struct SymbolLiteralNode *symbol = parse_symbol_literal(parser);
+
+  if (parser_peek(parser).type == T_COLON) {
+    parser->position++;
+    assert(parser_peek(parser).type == T_COLON);
+    parser->position++;
+
+    struct ScopedSymbolLiteralNode *next = parse_scoped_symbol_literal(parser);
+    return ast_promote(parser->allocator,
+                       &(struct ScopedSymbolLiteralNode){
+                           .symbol = symbol,
+                           .next = next,
+                           .remaining = 1 + next->remaining,
+                       },
+                       sizeof(struct ScopedSymbolLiteralNode));
+  }
+
+  return ast_promote(parser->allocator,
+                     &(struct ScopedSymbolLiteralNode){
+                         .symbol = symbol,
+                         .next = NULL,
+                         .remaining = 1,
+                     },
+                     sizeof(struct ScopedSymbolLiteralNode));
+}
+
 struct ModuleStatementNode *parse_module_statements(struct Parser *parser) {
   assert(parser_peek(parser).type != T_EOF);
 
@@ -738,11 +801,12 @@ struct DataType *parse_data_type(struct Parser *parser) {
     } else {
       printf("assuming unknown symbol is structure: %s\n",
              token.value.symbol.data);
-      parser->position++;
+      struct ScopedSymbolLiteralNode *scoped_symbol =
+          parse_scoped_symbol_literal(parser);
 
       return make_structure_data_type(
           parser->allocator,
-          (struct StructType){.name = token.value.symbol, .definition = NULL});
+          (struct StructType){.name = scoped_symbol, .definition = NULL});
     }
     break;
   }
@@ -1138,6 +1202,7 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
     case EXPR_STRUCT_INIT:
     case EXPR_REF:
     case EXPR_CAST:
+    case EXPR_MOD_DEF:
       puts("illegal expression type as function statement.");
       assert(0);
       return NULL;
