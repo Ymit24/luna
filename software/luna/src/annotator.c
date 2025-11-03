@@ -1575,5 +1575,9 @@ bool scoped_symbols_equal(struct ScopedSymbolLiteralNode *left,
     return false;
   }
 
+  if (left->next == NULL) {
+    return true;
+  }
+
   return scoped_symbols_equal(left->next, right->next);
 }
