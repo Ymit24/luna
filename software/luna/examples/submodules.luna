@@ -6,11 +6,14 @@ const cstd = mod {
         printf("[FANCY] ");
         return puts(str);
     };
-};
 
-const foo = cstd;
+    const deep = mod {
+        const stuff: i32 = 100;
+    };
+};
 
 const main = fn() {
   cstd::puts("Hello world!");
+  cstd::printf("stuff: %d\n", cstd::deep::stuff);
   return;
 };

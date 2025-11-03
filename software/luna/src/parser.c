@@ -537,8 +537,6 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
     assert(parser_peek(parser).type == T_RBRACE);
     parser->position++;
 
-    assert(0);
-
     return ast_promote(parser->allocator,
                        &(struct ExpressionNode){
                            .type = EXPR_MOD_DEF,

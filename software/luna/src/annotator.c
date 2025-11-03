@@ -232,7 +232,6 @@ lookup_scoped_symbol_in(struct ScopedSymbolLiteralNode *scoped_symbol,
   struct SymbolTable *new_symbol_table =
       &module_definition->module_definition->symbol_table;
 
-  assert(0);
   return lookup_scoped_symbol_in(scoped_symbol->next, new_symbol_table);
 }
 
@@ -461,12 +460,15 @@ struct DataType *infer_type(struct Annotator *annotator,
                NULL);
     return expr->node.fn_def->function_type;
   case EXPR_FN_CALL: {
+    puts("About to find symbol..");
     struct SymbolTableEntry *entry = lookup_scoped_symbol_in(
-        expr->node.scoped_symbol, annotator->current_symbol_table);
+        expr->node.fn_call->name, annotator->current_symbol_table);
+    puts("Found entry.");
     assert(entry != NULL);
     assert(entry->type->kind == DTK_FUNCTION);
 
     printf("type infer on function call: '%s'\n", entry->symbol.data);
+    puts("");
     return entry->type->value.function.return_type;
   }
   case EXPR_REF: {
@@ -574,6 +576,21 @@ struct DataType *infer_type(struct Annotator *annotator,
     print_data_type(dt);
     puts("");
     return dt;
+  case EXPR_MOD_DEF:
+    assert(expr->node.module_definition != NULL);
+    return ast_promote(
+        annotator->allocator,
+        &(struct DataType){
+            .kind = DTK_MODULE_DEF,
+            .next = NULL,
+            .value.module_definition = ast_promote(
+                annotator->allocator,
+                &(struct ModuleDefinitionType){
+                    .module_definition = expr->node.module_definition},
+                sizeof(struct ModuleDefinitionType)),
+
+        },
+        sizeof(struct DataType));
   default:
     puts("fell through default");
     printf("kind: %d\n", expr->type);
@@ -814,10 +831,21 @@ void annotator_visit_expr(struct Annotator *annotator,
   case EXPR_MOD_DEF:
     puts("[visit submodule]");
 
+    expr->node.module_definition->symbol_table = (struct SymbolTable){
+        .head = NULL,
+        .type = STT_MOD,
+        .parent = find_parent_table(annotator->current_symbol_table, STT_MOD),
+    };
+
+    struct SymbolTable *old_symbol_table = annotator->current_symbol_table;
+
+    annotator->current_symbol_table =
+        &expr->node.module_definition->symbol_table;
+
     annotator_visit_module_statements(annotator,
                                       expr->node.module_definition->statements);
 
-    assert(0);
+    annotator->current_symbol_table = old_symbol_table;
     break;
   }
 }
@@ -918,7 +946,7 @@ void annotator_visit_function_statements(
   puts("Starting function annotation..");
 
   while (curr != NULL) {
-    puts("Annotating new line..");
+    puts("Annotating new function line..");
     annotator_visit_function_statement(annotator, curr);
     print_symbols(annotator);
     print_data_types(annotator);
@@ -975,6 +1003,9 @@ void annotator_visit_if_statement(struct Annotator *annotator,
 
 void annotator_visit_function_statement(
     struct Annotator *annotator, struct FunctionStatementNode *statement) {
+  printf("Statement type: ");
+  printf("%d\n", statement->type);
+
   switch (statement->type) {
   case FN_STMT_LET:
   case FN_STMT_CONST:
@@ -994,13 +1025,21 @@ void annotator_visit_function_statement(
     break;
   }
   case FN_STMT_RETURN: {
+    printf("Found return.\n");
+    puts("");
+    assert(statement->node.ret != NULL);
+    assert(annotator->current_function != NULL);
+    assert(annotator->current_function->return_type != NULL);
     if (statement->node.ret->expression == NULL) {
       assert(annotator->current_function->return_type->kind == DTK_VOID);
       break;
     }
-    assert(can_store_data_type_in(
-        infer_type(annotator, statement->node.ret->expression),
-        annotator->current_function->return_type));
+    assert(statement->node.ret->expression != NULL);
+    struct DataType *value_type =
+        infer_type(annotator, statement->node.ret->expression);
+    assert(value_type != NULL);
+    assert(can_store_data_type_in(value_type,
+                                  annotator->current_function->return_type));
     break;
   }
   case FN_STMT_FN_CALL: {
@@ -1071,7 +1110,7 @@ void annotator_visit_module_statements(struct Annotator *annotator,
 
   puts("Starting module annotation..");
   while (curr != NULL) {
-    puts("Annotating new line..");
+    puts("Annotating new module line..");
     annotator_visit_module_statement(annotator, curr);
     print_symbols(annotator);
     print_data_types(annotator);

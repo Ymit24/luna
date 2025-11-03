@@ -211,6 +211,11 @@ LLVMTypeRef cg_get_type(struct CodeGenerator *code_generator,
     return LLVMArrayType2(
         cg_get_type(code_generator, data_type->value.array.element_type),
         data_type->value.array.length);
+  case DTK_MODULE_DEF:
+  case DTK_MODULE:
+    puts("Illegal use of module (/def) type.");
+    assert(0);
+    return NULL;
   default:
     puts("Unknown data type kind.");
     assert(0);
@@ -353,9 +358,10 @@ find_field_definition(struct StructFieldDefinitionNode *root,
   };
 }
 
-void cg_visit_field_inner_access_expr(struct StructFieldAccessInnerExpressionNode *field_access_expr,
-         LLVMValueRef **field_indicies, size_t *index,
-         struct StructFieldDefinitionNode *field_defs) {
+void cg_visit_field_inner_access_expr(
+    struct StructFieldAccessInnerExpressionNode *field_access_expr,
+    LLVMValueRef **field_indicies, size_t *index,
+    struct StructFieldDefinitionNode *field_defs) {
   field_access_expr = field_access_expr->next;
   while (field_access_expr != NULL) {
     printf("looking for field %s (%zu)..\n", field_access_expr->symbol.data,
@@ -445,7 +451,8 @@ LLVMValueRef cg_visit_field_access_expr(
 
   ////////////////
 
-  cg_visit_field_inner_access_expr(field_access_expr->next, &field_indicies, &index, definition->fields);
+  cg_visit_field_inner_access_expr(field_access_expr->next, &field_indicies,
+                                   &index, definition->fields);
 
   LLVMValueRef field_ptr = LLVMBuildGEP2(code_generator->builder, source_type,
                                          source, field_indicies, index, "");
@@ -911,6 +918,20 @@ void cg_visit_module_decl(struct CodeGenerator *code_generator,
     char *msg = LLVMPrintTypeToString(type);
     printf("llvm struct def type: %s\n", msg);
     LLVMDisposeMessage(msg);
+
+    return;
+  } else if (decl->data_type->kind == DTK_MODULE_DEF) {
+    puts("Found module def, not code genning module decl normally.");
+
+    struct SymbolTable *old_symbol_table = code_generator->current_symbol_table;
+    code_generator->current_symbol_table =
+        &decl->expression->node.module_definition->symbol_table;
+
+    cg_visit_module_statements(
+        code_generator, decl->expression->node.module_definition->statements,
+        false);
+
+    code_generator->current_symbol_table = old_symbol_table;
 
     return;
   }
