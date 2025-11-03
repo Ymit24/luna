@@ -168,4 +168,7 @@ struct DataType *get_common_type(struct ArenaAllocator *allocator,
 
 bool scoped_symbols_equal(struct ScopedSymbolLiteralNode *left,
                           struct ScopedSymbolLiteralNode *right);
+struct SymbolTableEntry *
+lookup_scoped_symbol_in(struct ScopedSymbolLiteralNode *scoped_symbol,
+                        struct SymbolTable *symbol_table);
 #endif

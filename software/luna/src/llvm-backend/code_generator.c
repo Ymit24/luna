@@ -42,6 +42,19 @@ size_t count_function_arguments(struct FunctionArgumentNode *argument) {
   return count;
 }
 
+size_t cg_count_field_inner_access_depth(
+    struct StructFieldAccessInnerExpressionNode *field) {
+  if (field == NULL) {
+    return 0;
+  }
+
+  if (field->next) {
+    return 1 + cg_count_field_inner_access_depth(field->next);
+  }
+
+  return 1;
+}
+
 size_t
 cg_count_field_access_depth(struct StructFieldAccessExpressionNode *field) {
   if (field == NULL) {
@@ -49,7 +62,7 @@ cg_count_field_access_depth(struct StructFieldAccessExpressionNode *field) {
   }
 
   if (field->next) {
-    return 1 + cg_count_field_access_depth(field->next);
+    return 1 + cg_count_field_inner_access_depth(field->next);
   }
 
   return 1;
@@ -185,7 +198,7 @@ LLVMTypeRef cg_get_type(struct CodeGenerator *code_generator,
     assert(0);
     break;
   case DTK_STRUCTURE: {
-    struct SymbolTableEntry *entry = lookup_symbol_in(
+    struct SymbolTableEntry *entry = lookup_scoped_symbol_in(
         data_type->value.structure.name, code_generator->current_symbol_table);
     assert(entry != NULL);
     assert(entry->llvm_structure_type != NULL);
@@ -209,7 +222,7 @@ LLVMValueRef cg_visit_function_call(struct CodeGenerator *code_generator,
                                     struct FunctionCallExpressionNode *expr) {
   puts("\n\t\t\t\t\t\tCode genning function call.");
   struct SymbolTableEntry *symbol =
-      lookup_symbol_in(expr->name, code_generator->current_symbol_table);
+      lookup_scoped_symbol_in(expr->name, code_generator->current_symbol_table);
   assert(symbol != NULL);
 
   assert(symbol->type != NULL);
@@ -308,14 +321,15 @@ LLVMValueRef cg_visit_struct_field_access_expr(
     struct StructFieldAccessExpressionNode *field_access_expr) {
   assert(field_access_expr != NULL);
 
-  struct SymbolTableEntry *entry =
-      lookup_symbol_in(field_access_expr->symbol, cg->current_symbol_table);
+  struct SymbolTableEntry *entry = lookup_scoped_symbol_in(
+      field_access_expr->root_symbol, cg->current_symbol_table);
   assert(entry != NULL);
 
   if (field_access_expr->next == NULL) {
     return entry->llvm_value;
   }
 
+  assert(0);
   return NULL;
 }
 
@@ -339,12 +353,50 @@ find_field_definition(struct StructFieldDefinitionNode *root,
   };
 }
 
+void cg_visit_field_inner_access_expr(struct StructFieldAccessInnerExpressionNode *field_access_expr,
+         LLVMValueRef **field_indicies, size_t *index,
+         struct StructFieldDefinitionNode *field_defs) {
+  field_access_expr = field_access_expr->next;
+  while (field_access_expr != NULL) {
+    printf("looking for field %s (%zu)..\n", field_access_expr->symbol.data,
+           *index);
+    struct StructFieldDefinitionNode *field_def = field_defs;
+
+    struct FindFieldDefinitionResult result =
+        find_field_definition(field_def, field_access_expr->symbol);
+    assert(result.field_definition != NULL);
+
+    puts("Found field.");
+    printf("\tindex: %zu\n", result.index);
+
+    *field_indicies[*index] = LLVMConstInt(LLVMInt32Type(), result.index, 0);
+    *index += 1;
+
+    if (field_access_expr->next != NULL) {
+      field_def = result.field_definition;
+      assert(field_def->type->kind == DTK_STRUCTURE);
+      assert(field_def->type->value.structure.definition != NULL);
+      field_defs = field_def->type->value.structure.definition->fields;
+
+      // NOTE: If field is pointer, add extra deref for the pointer. We dont
+      // do this for last field though.
+      if (result.field_definition->type->kind == DTK_POINTER) {
+        puts("symbol is pointer, adding extra deref.");
+        *field_indicies[*index] = LLVMConstInt(LLVMInt32Type(), 0, 0);
+        *index += 1;
+      }
+    }
+
+    field_access_expr = field_access_expr->next;
+  }
+}
+
 LLVMValueRef cg_visit_field_access_expr(
     struct CodeGenerator *code_generator,
     struct StructFieldAccessExpressionNode *field_access_expr) {
 
-  struct SymbolTableEntry *entry = lookup_symbol_in(
-      field_access_expr->symbol, code_generator->current_symbol_table);
+  struct SymbolTableEntry *entry = lookup_scoped_symbol_in(
+      field_access_expr->root_symbol, code_generator->current_symbol_table);
 
   assert(entry != NULL);
   puts("Found symbol.");
@@ -358,13 +410,13 @@ LLVMValueRef cg_visit_field_access_expr(
     return entry->llvm_value;
   }
 
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
   struct StructDefinitionExpressionNode *definition =
       get_or_resolve_struct_definition_from_type(
           entry->type, code_generator->current_symbol_table);
 
   assert(definition != NULL);
-
-  struct StructFieldDefinitionNode *field_defs = definition->fields;
 
   size_t field_depth = cg_count_field_access_depth(field_access_expr);
 
@@ -391,37 +443,9 @@ LLVMValueRef cg_visit_field_access_expr(
     source_type = cg_get_type(code_generator, entry->type->value.pointer_inner);
   }
 
-  field_access_expr = field_access_expr->next;
-  while (field_access_expr != NULL) {
-    printf("looking for field %s (%zu)..\n", field_access_expr->symbol.data,
-           index);
-    struct StructFieldDefinitionNode *field_def = field_defs;
+  ////////////////
 
-    struct FindFieldDefinitionResult result =
-        find_field_definition(field_def, field_access_expr->symbol);
-    assert(result.field_definition != NULL);
-
-    puts("Found field.");
-    printf("\tindex: %zu\n", result.index);
-
-    field_indicies[index++] = LLVMConstInt(LLVMInt32Type(), result.index, 0);
-
-    if (field_access_expr->next != NULL) {
-      field_def = result.field_definition;
-      assert(field_def->type->kind == DTK_STRUCTURE);
-      assert(field_def->type->value.structure.definition != NULL);
-      field_defs = field_def->type->value.structure.definition->fields;
-
-      // NOTE: If field is pointer, add extra deref for the pointer. We dont
-      // do this for last field though.
-      if (result.field_definition->type->kind == DTK_POINTER) {
-        puts("symbol is pointer, adding extra deref.");
-        field_indicies[index++] = LLVMConstInt(LLVMInt32Type(), 0, 0);
-      }
-    }
-
-    field_access_expr = field_access_expr->next;
-  }
+  cg_visit_field_inner_access_expr(field_access_expr->next, &field_indicies, &index, definition->fields);
 
   LLVMValueRef field_ptr = LLVMBuildGEP2(code_generator->builder, source_type,
                                          source, field_indicies, index, "");
@@ -526,8 +550,8 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
     return LLVMConstInt(LLVMInt32Type(), expr->node.integer->value, false);
   case EXPR_SYMBOL_LITERAL: {
     puts("getting variable");
-    struct SymbolTableEntry *symbol = lookup_symbol_in(
-        expr->node.symbol->value, code_generator->current_symbol_table);
+    struct SymbolTableEntry *symbol = lookup_scoped_symbol_in(
+        expr->node.scoped_symbol, code_generator->current_symbol_table);
     assert(symbol != NULL);
     assert(symbol->llvm_value != NULL);
 
@@ -673,7 +697,7 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
     assert(0);
     break;
   case EXPR_STRUCT_INIT: {
-    struct SymbolTableEntry *entry = lookup_symbol_in(
+    struct SymbolTableEntry *entry = lookup_scoped_symbol_in(
         expr->node.struct_init->name, code_generator->current_symbol_table);
 
     assert(entry != NULL);
@@ -764,6 +788,10 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
     return LLVMBuildLoad2(code_generator->builder,
                           LLVMArrayType2(element_type, element_count), array,
                           "");
+  case EXPR_MOD_DEF:
+    puts("Visit mod def.");
+    assert(0);
+    break;
   }
   assert(0);
   return NULL;
@@ -1095,8 +1123,8 @@ void cg_visit_function_statement(struct CodeGenerator *code_generator,
 
     if (node->source_expression->type == EXPR_SYMBOL_LITERAL) {
       struct SymbolTableEntry *symbol =
-          lookup_symbol_in(node->source_expression->node.symbol->value,
-                           code_generator->current_symbol_table);
+          lookup_scoped_symbol_in(node->source_expression->node.scoped_symbol,
+                                  code_generator->current_symbol_table);
 
       LLVMTypeRef type = cg_get_type(code_generator, symbol->type);
 
