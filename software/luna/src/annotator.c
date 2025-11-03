@@ -21,6 +21,10 @@ void annotator_visit_function_statements(
 void annotator_visit_function_statement(
     struct Annotator *annotator, struct FunctionStatementNode *statement);
 
+struct ModuleDefinitionType *
+get_or_resolve_mod_definition_from_type(struct DataType *type,
+                                        struct SymbolTable *symbol_table);
+
 void print_struct_def_data_type(
     struct StructDefinitionExpressionNode *definition);
 
@@ -188,8 +192,50 @@ void print_data_types(struct Annotator *annotator) {
   }
 }
 
-// TODO: this fails for when say "a" exists and you're looking for "ab", it will
-// sometimes find "a" still.
+void print_scoped_symbol(struct ScopedSymbolLiteralNode *scoped_symbol) {
+  struct ScopedSymbolLiteralNode *symbol = scoped_symbol;
+  while (symbol != NULL) {
+    printf("%s", symbol->symbol->value.data);
+    if (symbol->next != NULL) {
+      printf("::");
+    }
+    symbol = symbol->next;
+  }
+}
+
+struct SymbolTableEntry *
+lookup_scoped_symbol_in(struct ScopedSymbolLiteralNode *scoped_symbol,
+                        struct SymbolTable *symbol_table) {
+  printf("About to check symbol: '");
+  print_scoped_symbol(scoped_symbol);
+  printf("'\n");
+  printf("here is the current symbol table:\n");
+
+  print_symbol_table(string_make("anon"), symbol_table);
+  printf("\n\n");
+
+  struct SymbolTableEntry *entry =
+      lookup_symbol_in(scoped_symbol->symbol->value, symbol_table);
+
+  assert(entry != NULL);
+
+  if (scoped_symbol->next == NULL) {
+    return entry;
+  }
+
+  assert(entry->type != NULL);
+
+  // TODO/NOTE: This may be the wrong symbol table
+  struct ModuleDefinitionType *module_definition =
+      get_or_resolve_mod_definition_from_type(entry->type, symbol_table);
+
+  struct SymbolTable *new_symbol_table =
+      &module_definition->module_definition->symbol_table;
+
+  assert(0);
+  return lookup_scoped_symbol_in(scoped_symbol->next, new_symbol_table);
+}
+
 struct SymbolTableEntry *lookup_symbol_in(struct LunaString symbol,
                                           struct SymbolTable *symbol_table) {
   printf("About to check symbol: '%s'\n", symbol.data);
@@ -242,6 +288,33 @@ struct SymbolTableEntry *lookup_symbol(struct Annotator *annotator,
   return lookup_symbol_in(symbol, annotator->current_symbol_table);
 }
 
+struct ModuleDefinitionType *
+get_or_resolve_mod_definition_from_type(struct DataType *type,
+                                        struct SymbolTable *symbol_table) {
+  assert(type != NULL);
+
+  assert(type->kind == DTK_MODULE || type->kind == DTK_MODULE_DEF);
+
+  if (type->kind == DTK_MODULE_DEF) {
+    return type->value.module_definition;
+  }
+
+  if (type->kind == DTK_MODULE) {
+    if (type->value.module->module_definition != NULL) {
+      return type->value.module->module_definition;
+    }
+
+    struct SymbolTableEntry *entry =
+        lookup_scoped_symbol_in(type->value.module->name, symbol_table);
+
+    assert(entry != NULL);
+    return get_or_resolve_mod_definition_from_type(entry->type, symbol_table);
+  }
+
+  assert(0);
+  return NULL;
+}
+
 struct StructDefinitionExpressionNode *
 get_or_resolve_struct_definition_from_type(struct DataType *type,
                                            struct SymbolTable *symbol_table) {
@@ -263,7 +336,7 @@ get_or_resolve_struct_definition_from_type(struct DataType *type,
   }
 
   struct SymbolTableEntry *entry =
-      lookup_symbol_in(struct_type->name, symbol_table);
+      lookup_scoped_symbol_in(struct_type->name, symbol_table);
   assert(entry != NULL);
 
   assert(entry->type != NULL);
@@ -275,8 +348,8 @@ get_or_resolve_struct_definition_from_type(struct DataType *type,
   return struct_type->definition;
 }
 
-struct DataType *infer_type_of_field_access(
-    struct StructFieldAccessExpressionNode *field_accessor,
+struct DataType *infer_type_of_inner_field_access(
+    struct StructFieldAccessInnerExpressionNode *field_accessor,
     struct SymbolTable *symbol_table) {
   assert(field_accessor != NULL);
 
@@ -294,8 +367,33 @@ struct DataType *infer_type_of_field_access(
 
   assert(definition != NULL);
 
-  struct DataType *next = infer_type_of_field_access(field_accessor->next,
-                                                     &definition->symbol_table);
+  struct DataType *next = infer_type_of_inner_field_access(
+      field_accessor->next, &definition->symbol_table);
+
+  return next;
+}
+
+struct DataType *infer_type_of_field_access(
+    struct StructFieldAccessExpressionNode *field_accessor,
+    struct SymbolTable *symbol_table) {
+  assert(field_accessor != NULL);
+
+  struct SymbolTableEntry *entry =
+      lookup_scoped_symbol_in(field_accessor->root_symbol, symbol_table);
+
+  assert(entry != NULL);
+  assert(entry->type != NULL);
+  if (field_accessor->next == NULL) {
+    return entry->type;
+  }
+
+  struct StructDefinitionExpressionNode *definition =
+      get_or_resolve_struct_definition_from_type(entry->type, symbol_table);
+
+  assert(definition != NULL);
+
+  struct DataType *next = infer_type_of_inner_field_access(
+      field_accessor->next, &definition->symbol_table);
 
   return next;
 }
@@ -326,10 +424,12 @@ struct DataType *infer_type(struct Annotator *annotator,
                                             expr->node.integer->value < 0);
   case EXPR_SYMBOL_LITERAL: {
     puts("inferring on symb lit.");
-    assert(expr->node.symbol != NULL);
-    printf("symbol is: %s\n", expr->node.symbol->value.data);
-    struct SymbolTableEntry *entry =
-        lookup_symbol(annotator, expr->node.symbol->value);
+    assert(expr->node.scoped_symbol != NULL);
+    printf("symbol is: ");
+    print_scoped_symbol(expr->node.scoped_symbol);
+    puts("");
+    struct SymbolTableEntry *entry = lookup_scoped_symbol_in(
+        expr->node.scoped_symbol, annotator->current_symbol_table);
     assert(entry != NULL);
     return entry->type;
   }
@@ -361,8 +461,8 @@ struct DataType *infer_type(struct Annotator *annotator,
                NULL);
     return expr->node.fn_def->function_type;
   case EXPR_FN_CALL: {
-    struct SymbolTableEntry *entry =
-        lookup_symbol(annotator, expr->node.symbol->value);
+    struct SymbolTableEntry *entry = lookup_scoped_symbol_in(
+        expr->node.scoped_symbol, annotator->current_symbol_table);
     assert(entry != NULL);
     assert(entry->type->kind == DTK_FUNCTION);
 
@@ -395,8 +495,8 @@ struct DataType *infer_type(struct Annotator *annotator,
       if (field->type->kind == DTK_STRUCTURE &&
           field->type->value.structure.definition == NULL) {
         puts("structure type hasnt been resolved yet, resolving.");
-        struct SymbolTableEntry *struct_def_symbol =
-            lookup_symbol(annotator, field->type->value.structure.name);
+        struct SymbolTableEntry *struct_def_symbol = lookup_scoped_symbol_in(
+            field->type->value.structure.name, annotator->current_symbol_table);
         assert(struct_def_symbol != NULL);
         assert(struct_def_symbol->type != NULL);
         assert(struct_def_symbol->type->kind == DTK_STRUCTURE_DEF);
@@ -426,7 +526,7 @@ struct DataType *infer_type(struct Annotator *annotator,
     puts("expr struct init.");
 
     puts("looking for structure definition..");
-    struct SymbolTableEntry *entry = lookup_symbol_in(
+    struct SymbolTableEntry *entry = lookup_scoped_symbol_in(
         expr->node.struct_init->name, annotator->current_symbol_table);
 
     printf("did find? %d\n", entry != NULL);
@@ -596,8 +696,8 @@ void annotator_visit_expr(struct Annotator *annotator,
     break;
   case EXPR_REF: {
     puts("deleteme: (fn_ref) Got to this spot and not sure if needed.");
-    struct SymbolTableEntry *entry =
-        lookup_symbol(annotator, expr->node.ref_symbol->symbol);
+    struct SymbolTableEntry *entry = lookup_scoped_symbol_in(
+        expr->node.ref_symbol->root_symbol, annotator->current_symbol_table);
 
     assert(entry != NULL);
     assert(entry->type != NULL);
@@ -673,8 +773,8 @@ void annotator_visit_expr(struct Annotator *annotator,
     puts("[visit expr for struct initializer] not sure if anything should "
          "happen here..");
 
-    struct SymbolTableEntry *struct_def_symbol =
-        lookup_symbol(annotator, expr->node.struct_init->name);
+    struct SymbolTableEntry *struct_def_symbol = lookup_scoped_symbol_in(
+        expr->node.struct_init->name, annotator->current_symbol_table);
     assert(struct_def_symbol != NULL);
     assert(struct_def_symbol->type != NULL);
     assert(struct_def_symbol->type->kind == DTK_STRUCTURE_DEF);
@@ -711,6 +811,14 @@ void annotator_visit_expr(struct Annotator *annotator,
     puts("[visit cast]");
     annotator_visit_expr(annotator, expr->node.cast->expr);
     break;
+  case EXPR_MOD_DEF:
+    puts("[visit submodule]");
+
+    annotator_visit_module_statements(annotator,
+                                      expr->node.module_definition->statements);
+
+    assert(0);
+    break;
   }
 }
 
@@ -730,7 +838,8 @@ void annotator_visit_decl(struct Annotator *annotator,
     if (decl->data_type->value.structure.definition == NULL) {
       puts("structure type hasnt been resolved yet, resolving.");
       struct SymbolTableEntry *struct_def_symbol =
-          lookup_symbol(annotator, decl->data_type->value.structure.name);
+          lookup_scoped_symbol_in(decl->data_type->value.structure.name,
+                                  annotator->current_symbol_table);
       assert(struct_def_symbol != NULL);
       assert(struct_def_symbol->type != NULL);
       assert(struct_def_symbol->type->kind == DTK_STRUCTURE_DEF);
@@ -899,9 +1008,12 @@ void annotator_visit_function_statement(
     struct FunctionCallExpressionNode *fn_call = statement->node.fn_call;
     assert(fn_call != NULL);
 
-    printf("\n\tname is: %s\n\n", fn_call->name.data);
+    printf("\n\tname is:");
+    print_scoped_symbol(fn_call->name);
+    printf("\n\n");
 
-    struct SymbolTableEntry *entry = lookup_symbol(annotator, fn_call->name);
+    struct SymbolTableEntry *entry =
+        lookup_scoped_symbol_in(fn_call->name, annotator->current_symbol_table);
     assert(entry != NULL);
     assert(entry->type->kind == DTK_FUNCTION);
     struct FunctionType *fn_def = &entry->type->value.function;
@@ -1042,8 +1154,8 @@ bool can_store_data_type_in(struct DataType *value_type,
     assert(0);
     return true;
   case DTK_STRUCTURE:
-    if (!strings_equal(value_type->value.structure.name,
-                       storage_type->value.structure.name)) {
+    if (!scoped_symbols_equal(value_type->value.structure.name,
+                              storage_type->value.structure.name)) {
       return false;
     }
 
@@ -1067,6 +1179,10 @@ bool can_store_data_type_in(struct DataType *value_type,
     }
     return can_store_data_type_in(value_type->value.array.element_type,
                                   storage_type->value.array.element_type);
+  case DTK_MODULE_DEF:
+    return true;
+  case DTK_MODULE:
+    return false;
   };
   return false;
 }
@@ -1111,6 +1227,8 @@ struct DataType *get_common_type(struct ArenaAllocator *allocator,
       return make_pointer_data_type(allocator, right->value.array.element_type);
     case DTK_STRUCTURE:
     case DTK_STRUCTURE_DEF:
+    case DTK_MODULE_DEF:
+    case DTK_MODULE:
       break;
     }
   case DTK_POINTER:
@@ -1121,6 +1239,8 @@ struct DataType *get_common_type(struct ArenaAllocator *allocator,
   case DTK_VOID:
   case DTK_FUNCTION:
   case DTK_STRUCTURE_DEF:
+  case DTK_MODULE_DEF:
+  case DTK_MODULE:
     assert(0);
     break;
   }
@@ -1159,6 +1279,8 @@ bool can_operate_data_types(struct DataType *left, struct DataType *right,
     case DTK_VOID:
     case DTK_STRUCTURE:
     case DTK_STRUCTURE_DEF:
+    case DTK_MODULE_DEF:
+    case DTK_MODULE:
       assert(0);
       return false;
     }
@@ -1176,6 +1298,8 @@ bool can_operate_data_types(struct DataType *left, struct DataType *right,
   case DTK_FUNCTION:
   case DTK_STRUCTURE_DEF:
   case DTK_VOID:
+  case DTK_MODULE_DEF:
+  case DTK_MODULE:
     assert(0);
     return false;
   }
@@ -1375,7 +1499,9 @@ void print_data_type(struct DataType *data_type) {
     break;
   }
   case DTK_STRUCTURE:
-    printf("(%s)", data_type->value.structure.name.data);
+    printf("(");
+    print_scoped_symbol(data_type->value.structure.name);
+    printf(")");
     print_struct_def_data_type(data_type->value.structure.definition);
     break;
   case DTK_STRUCTURE_DEF: {
@@ -1388,5 +1514,27 @@ void print_data_type(struct DataType *data_type) {
     print_data_type(data_type->value.array.element_type);
     printf(";%llu]", data_type->value.array.length);
     break;
+  case DTK_MODULE_DEF:
+    printf("mod");
+    break;
+  case DTK_MODULE:
+    printf("mod_ref");
+    break;
   }
+}
+
+bool scoped_symbols_equal(struct ScopedSymbolLiteralNode *left,
+                          struct ScopedSymbolLiteralNode *right) {
+  assert(left != NULL);
+  assert(right != NULL);
+
+  if (left->remaining != right->remaining) {
+    return false;
+  }
+
+  if (!strings_equal(left->symbol->value, right->symbol->value)) {
+    return false;
+  }
+
+  return scoped_symbols_equal(left->next, right->next);
 }

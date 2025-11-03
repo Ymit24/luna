@@ -165,4 +165,7 @@ struct DataType *make_pointer_data_type(struct ArenaAllocator *allocator,
 
 struct DataType *get_common_type(struct ArenaAllocator *allocator,
                                  struct DataType *left, struct DataType *right);
+
+bool scoped_symbols_equal(struct ScopedSymbolLiteralNode *left,
+                          struct ScopedSymbolLiteralNode *right);
 #endif
