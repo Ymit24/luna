@@ -36,3 +36,12 @@ void *ast_promote(struct ArenaAllocator *allocator, void *src, uint8_t size) {
   memcpy(dest, src, size);
   return dest;
 }
+
+
+size_t count_array_initializer_length(
+    struct ArrayInitializerExpressionNode *initiailzier) {
+  if (initiailzier == NULL) {
+    return 0;
+  }
+  return 1 + count_array_initializer_length(initiailzier->next);
+}

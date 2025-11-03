@@ -4,11 +4,16 @@
 #include "luna_string.h"
 #include <alloca.h>
 #include <assert.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-bool data_types_equal(struct DataType *left, struct DataType *right);
+// bool data_types_equal(struct DataType *left, struct DataType *right);
+bool can_operate_data_types(struct DataType *left, struct DataType *right,
+                            enum BinaryExpressionType operation);
+bool can_store_data_type_in(struct DataType *value_type,
+                            struct DataType *storage_type);
 void insert_symbol_entry(struct Annotator *annotator,
                          struct SymbolTableEntry entry);
 void annotator_visit_function_statements(
@@ -72,10 +77,10 @@ make_integer_primitive_data_type(struct ArenaAllocator *allocator,
       sizeof(struct DataType));
 }
 
-struct DataType *make_pointer_data_type(struct Annotator *annotator,
+struct DataType *make_pointer_data_type(struct ArenaAllocator *allocator,
                                         struct DataType *inner) {
   return ast_promote(
-      annotator->allocator,
+      allocator,
       &(struct DataType){.kind = DTK_POINTER, .value.pointer_inner = inner},
       sizeof(struct DataType));
 }
@@ -92,6 +97,19 @@ struct DataType *make_function_data_type(struct ArenaAllocator *allocator,
                          .value.function.extern_name = extern_name,
                          .value.function.arguments = arguments,
                          .value.function.is_variadic = is_variadic,
+                         .next = NULL,
+                     },
+                     sizeof(struct DataType));
+}
+
+struct DataType *make_array_data_type(struct ArenaAllocator *allocator,
+                                      struct DataType *element_type,
+                                      uint64_t length) {
+  return ast_promote(allocator,
+                     &(struct DataType){
+                         .kind = DTK_ARRAY,
+                         .value.array.element_type = element_type,
+                         .value.array.length = length,
                          .next = NULL,
                      },
                      sizeof(struct DataType));
@@ -317,17 +335,24 @@ struct DataType *infer_type(struct Annotator *annotator,
   }
   case EXPR_STRING_LITERAL: {
     puts("infered string");
-    return make_pointer_data_type(annotator, make_integer_primitive_data_type(
-                                                 annotator->allocator, 8, 0));
+    return make_pointer_data_type(
+        annotator->allocator,
+        make_integer_primitive_data_type(annotator->allocator, 8, 0));
   }
   case EXPR_BINARY: {
     puts("Infering on binary..");
     struct DataType *left = infer_type(annotator, expr->node.binary->left);
     struct DataType *right = infer_type(annotator, expr->node.binary->right);
-    assert(data_types_equal(left, right));
+    printf("Left is: ");
+    print_data_type(left);
+    printf("\nRight is: ");
+    print_data_type(right);
+    puts("");
+    assert(can_operate_data_types(left, right, expr->node.binary->type));
     // TODO: return the "greater" of the two types. e.g. between i32 & *i32 ->
     // *i32, or i8 & i64 -> i64
-    return left;
+
+    return get_common_type(annotator->allocator, left, right);
   }
   case EXPR_FN_DEF:
     printf("get expr fn def. is null: %d. ret is null: %d\n",
@@ -346,8 +371,9 @@ struct DataType *infer_type(struct Annotator *annotator,
   }
   case EXPR_REF: {
     return make_pointer_data_type(
-        annotator, infer_type_of_field_access(expr->node.struct_field_access,
-                                              annotator->current_symbol_table));
+        annotator->allocator,
+        infer_type_of_field_access(expr->node.struct_field_access,
+                                   annotator->current_symbol_table));
   }
   case EXPR_DEREF: {
     puts("doing deref");
@@ -438,6 +464,16 @@ struct DataType *infer_type(struct Annotator *annotator,
   case EXPR_CAST:
     assert(expr->node.cast != NULL);
     return expr->node.cast->type;
+  case EXPR_ARRAY_INITIALIZER:
+    puts("Found array initializer");
+    struct DataType *dt = make_array_data_type(
+        annotator->allocator,
+        infer_type(annotator, expr->node.array_initializers->initializer),
+        count_array_initializer_length(expr->node.array_initializers));
+    printf("Array type infered: ");
+    print_data_type(dt);
+    puts("");
+    return dt;
   default:
     puts("fell through default");
     printf("kind: %d\n", expr->type);
@@ -615,6 +651,24 @@ void annotator_visit_expr(struct Annotator *annotator,
     annotator->current_symbol_table = old_symbol_table;
     break;
   }
+  case EXPR_ARRAY_INITIALIZER:
+    puts("array initializer");
+
+    struct ArrayInitializerExpressionNode *initializer =
+        expr->node.array_initializers;
+    if (initializer == NULL) {
+      puts("Illegal empty array initializer.");
+      assert(0);
+      break;
+    }
+    struct DataType *first_element_type =
+        infer_type(annotator, initializer->initializer);
+    while (initializer != NULL) {
+      assert(can_store_data_type_in(
+          infer_type(annotator, initializer->initializer), first_element_type));
+      initializer = initializer->next;
+    }
+    break;
   case EXPR_STRUCT_INIT:
     puts("[visit expr for struct initializer] not sure if anything should "
          "happen here..");
@@ -641,8 +695,8 @@ void annotator_visit_expr(struct Annotator *annotator,
         assert(field_init != NULL);
         assert(strings_equal(field_def->name, field_init->name));
 
-        assert(data_types_equal(infer_type(annotator, field_init->expression),
-                                field_def->type));
+        assert(can_store_data_type_in(
+            infer_type(annotator, field_init->expression), field_def->type));
 
         field_def = field_def->next;
         field_init = field_init->next;
@@ -712,7 +766,7 @@ void annotator_visit_decl(struct Annotator *annotator,
     assert(type != NULL);
 
     printf("1. type: %p :: %d\n", (void *)type, type == NULL);
-    assert(data_types_equal(type, decl->data_type));
+    assert(can_store_data_type_in(type, decl->data_type));
     puts("types matched.");
     printf("type: %d\n", type->kind);
   } else {
@@ -823,7 +877,7 @@ void annotator_visit_function_statement(
     struct DataType *dest_type =
         infer_type(annotator, statement->node.assign->result_expression);
 
-    assert(data_types_equal(dest_type, source_type));
+    assert(can_store_data_type_in(dest_type, source_type));
 
     // NOTE: check inner expressions for validity
     annotator_visit_expr(annotator, statement->node.assign->source_expression);
@@ -835,9 +889,9 @@ void annotator_visit_function_statement(
       assert(annotator->current_function->return_type->kind == DTK_VOID);
       break;
     }
-    assert(
-        data_types_equal(infer_type(annotator, statement->node.ret->expression),
-                         annotator->current_function->return_type));
+    assert(can_store_data_type_in(
+        infer_type(annotator, statement->node.ret->expression),
+        annotator->current_function->return_type));
     break;
   }
   case FN_STMT_FN_CALL: {
@@ -872,7 +926,7 @@ void annotator_visit_function_statement(
     while (call_arg != NULL && def_arg != NULL) {
       struct DataType *type = infer_type(annotator, call_arg->argument);
 
-      assert(data_types_equal(type, def_arg->data_type));
+      assert(can_store_data_type_in(type, def_arg->data_type));
 
       call_arg = call_arg->next;
       def_arg = def_arg->next;
@@ -914,66 +968,82 @@ void annotator_visit_module_statements(struct Annotator *annotator,
   puts("Finished module annotation.");
 }
 
-// NOTE: This really means, can i store left into right.
-// e.g. i8 -> i32 is safe but i32 -> i8 is not safe
-// TODO: rewrite this
-bool data_types_equal(struct DataType *left, struct DataType *right) {
-  assert(left != NULL);
-  assert(right != NULL);
+bool can_store_data_type_in(struct DataType *value_type,
+                            struct DataType *storage_type) {
+  assert(value_type != NULL);
+  assert(storage_type != NULL);
 
-  if (left->kind == DTK_PRIMITIVE && left->value.primitive.kind == P_INT &&
-      right->kind == DTK_POINTER) {
+  printf("[can_store_data_type_in]: Value Type: <");
+  print_data_type(value_type);
+  printf(">, Storage Type: <");
+  print_data_type(storage_type);
+  puts(">");
+
+  if (value_type->kind == DTK_PRIMITIVE &&
+      value_type->value.primitive.kind == P_INT &&
+      storage_type->kind == DTK_POINTER) {
     // TODO: Handle proper pointer math stuff
-    return true;
-  }
-
-  if (left->kind != right->kind) {
+    puts("Storing int directly into pointer is no longer legal, you must cast "
+         "manually.");
+    assert(0);
     return false;
   }
 
-  switch (left->kind) {
+  if (value_type->kind == DTK_ARRAY && storage_type->kind == DTK_POINTER) {
+    puts("Found array -> pointer, checking if array element is of coereceable "
+         "type as pointer inner.");
+    return can_store_data_type_in(value_type->value.array.element_type,
+                                  storage_type->value.pointer_inner);
+  }
+
+  if (value_type->kind != storage_type->kind) {
+    return false;
+  }
+
+  switch (value_type->kind) {
   case DTK_PRIMITIVE:
-    if (left->value.primitive.kind == P_INT &&
-        right->value.primitive.kind == P_INT) {
+    if (value_type->value.primitive.kind == P_INT &&
+        storage_type->value.primitive.kind == P_INT) {
       puts("Allowing any int to go into any other int.");
       return true;
-    } else if (left->value.primitive.kind == P_FLOAT &&
-               right->value.primitive.kind == P_INT) {
+    } else if (value_type->value.primitive.kind == P_FLOAT &&
+               storage_type->value.primitive.kind == P_INT) {
       puts("Illegal to store float directly into int, must convert manually.");
       return false;
     }
     puts("Other prim prim is valid.");
     return true;
   case DTK_POINTER:
-    return data_types_equal(left->value.pointer_inner,
-                            right->value.pointer_inner);
+    return can_store_data_type_in(value_type->value.pointer_inner,
+                                  storage_type->value.pointer_inner);
   case DTK_FUNCTION:
     puts("recurse case");
-    printf("left: %d, %d\n", left->value.function.return_type == NULL,
-           right->value.function.return_type == NULL);
-    if (left->value.function.extern_name != NULL ||
-        right->value.function.extern_name != NULL) {
-      if (left->value.function.extern_name == NULL ||
-          right->value.function.extern_name == NULL) {
+    printf("left: %d, %d\n", value_type->value.function.return_type == NULL,
+           storage_type->value.function.return_type == NULL);
+    if (value_type->value.function.extern_name != NULL ||
+        storage_type->value.function.extern_name != NULL) {
+      if (value_type->value.function.extern_name == NULL ||
+          storage_type->value.function.extern_name == NULL) {
         return false;
       } else {
-        if (left->value.function.extern_name->length !=
-            right->value.function.extern_name->length) {
+        if (value_type->value.function.extern_name->length !=
+            storage_type->value.function.extern_name->length) {
           return false;
         }
-        return strncmp(left->value.function.extern_name->data,
-                       right->value.function.extern_name->data,
-                       left->value.function.extern_name->length) == 0;
+        return strncmp(value_type->value.function.extern_name->data,
+                       storage_type->value.function.extern_name->data,
+                       value_type->value.function.extern_name->length) == 0;
       }
     }
-    return data_types_equal(left->value.function.return_type,
-                            right->value.function.return_type);
+    return can_store_data_type_in(value_type->value.function.return_type,
+                                  storage_type->value.function.return_type);
   case DTK_VOID:
+    puts("This seems illegal..");
+    assert(0);
     return true;
   case DTK_STRUCTURE:
-    puts("unimplemented behavior for structs.");
-    if (!strings_equal(left->value.structure.name,
-                       right->value.structure.name)) {
+    if (!strings_equal(value_type->value.structure.name,
+                       storage_type->value.structure.name)) {
       return false;
     }
 
@@ -989,9 +1059,241 @@ bool data_types_equal(struct DataType *left, struct DataType *right) {
     puts("unimplemented behavior for struct defs.");
     assert(0);
     break;
+  case DTK_ARRAY:
+    puts("Found case of array -> array");
+    if (value_type->value.array.length > storage_type->value.array.length) {
+      puts("Value array had more elements than storage.");
+      return false;
+    }
+    return can_store_data_type_in(value_type->value.array.element_type,
+                                  storage_type->value.array.element_type);
   };
   return false;
 }
+
+// Given two types find the common type to do intermediary results in, e.g.
+// i8 + i16 -> i16
+// i32 + *i16 -> *i16
+// *i64 - i8 -> *i64
+// f32 + i64 -> f32
+struct DataType *get_common_type(struct ArenaAllocator *allocator,
+                                 struct DataType *left,
+                                 struct DataType *right) {
+  assert(left != NULL);
+  assert(right != NULL);
+
+  printf("[get_common_type]: Left Type: <");
+  print_data_type(left);
+  printf(">, Right Type: <");
+  print_data_type(right);
+  puts(">");
+
+  switch (left->kind) {
+  case DTK_PRIMITIVE:
+    switch (right->kind) {
+    case DTK_PRIMITIVE:
+      assert(left->value.primitive.kind == right->value.primitive.kind);
+      bool is_signed = false;
+      if (left->value.primitive.is_signed || right->value.primitive.is_signed) {
+        is_signed = true;
+      }
+      uint8_t bitwidth = left->value.primitive.bitwidth;
+
+      if (right->value.primitive.bitwidth > left->value.primitive.bitwidth) {
+        bitwidth = right->value.primitive.bitwidth;
+      }
+      return make_integer_primitive_data_type(allocator, bitwidth, is_signed);
+    case DTK_FUNCTION:
+    case DTK_VOID:
+    case DTK_POINTER:
+      return right;
+    case DTK_ARRAY:
+      return make_pointer_data_type(allocator, right->value.array.element_type);
+    case DTK_STRUCTURE:
+    case DTK_STRUCTURE_DEF:
+      break;
+    }
+  case DTK_POINTER:
+    return left;
+  case DTK_ARRAY:
+    return make_pointer_data_type(allocator, left->value.array.element_type);
+  case DTK_STRUCTURE:
+  case DTK_VOID:
+  case DTK_FUNCTION:
+  case DTK_STRUCTURE_DEF:
+    assert(0);
+    break;
+  }
+
+  assert(0);
+  return left;
+}
+
+bool can_operate_data_types(struct DataType *left, struct DataType *right,
+                            enum BinaryExpressionType operation) {
+  assert(left != NULL);
+  assert(right != NULL);
+
+  printf("[can_add_data_types]: Left Type: <");
+  print_data_type(left);
+  printf(">, Right Type: <");
+  print_data_type(right);
+  puts(">");
+
+  bool operation_is_add_sub =
+      operation == BIN_EXPR_ADD || operation == BIN_EXPR_SUB;
+
+  bool operation_is_logical =
+      operation == BIN_EXPR_GT || operation == BIN_EXPR_LT;
+
+  switch (left->kind) {
+  case DTK_PRIMITIVE:
+    switch (right->kind) {
+    case DTK_PRIMITIVE:
+      return left->value.primitive.kind == right->value.primitive.kind;
+    case DTK_POINTER:
+      return left->value.primitive.kind == P_INT && operation_is_add_sub;
+    case DTK_ARRAY:
+      return left->value.primitive.kind == P_INT && operation_is_add_sub;
+    case DTK_FUNCTION:
+    case DTK_VOID:
+    case DTK_STRUCTURE:
+    case DTK_STRUCTURE_DEF:
+      assert(0);
+      return false;
+    }
+    break;
+  case DTK_POINTER:
+    if (operation_is_logical) {
+      return right->kind == DTK_POINTER;
+    }
+    return right->kind == DTK_PRIMITIVE &&
+           right->value.primitive.kind == P_INT && operation_is_add_sub;
+  case DTK_ARRAY:
+    return right->kind == DTK_PRIMITIVE &&
+           right->value.primitive.kind == P_INT && operation_is_add_sub;
+  case DTK_STRUCTURE:
+  case DTK_FUNCTION:
+  case DTK_STRUCTURE_DEF:
+  case DTK_VOID:
+    assert(0);
+    return false;
+  }
+
+  return false;
+}
+
+// NOTE: This really means, can i store left into right.
+// e.g. i8 -> i32 is safe but i32 -> i8 is not safe
+// TODO: rewrite this
+// bool data_types_equal(struct DataType *value_type,
+//                       struct DataType *storage_type) {
+//   assert(value_type != NULL);
+//   assert(storage_type != NULL);
+//
+//   printf("Value Type: <");
+//   print_data_type(value_type);
+//   printf(">, Storage Type: <");
+//   print_data_type(storage_type);
+//   puts(">");
+//
+//   if (value_type->kind == DTK_PRIMITIVE &&
+//       value_type->value.primitive.kind == P_INT &&
+//       storage_type->kind == DTK_POINTER) {
+//     // TODO: Handle proper pointer math stuff
+//     return true;
+//   }
+//
+//   if (value_type->kind == DTK_ARRAY && storage_type->kind == DTK_POINTER) {
+//     puts("Found array -> pointer, checking if array element is of coereceable
+//     "
+//          "type as pointer inner.");
+//     return data_types_equal(value_type->value.array.element_type,
+//                             storage_type->value.pointer_inner);
+//   }
+//
+//   if (value_type->kind == DTK_ARRAY && storage_type->kind != DTK_ARRAY) {
+//     struct DataType new_value_type = (struct DataType){
+//         .kind = DTK_POINTER,
+//         .value.pointer_inner = value_type->value.array.element_type};
+//     puts("Value type is array, decaying into pointer.");
+//     return data_types_equal(&new_value_type, storage_type);
+//   }
+//
+//   if (value_type->kind != storage_type->kind) {
+//     return false;
+//   }
+//
+//   switch (value_type->kind) {
+//   case DTK_PRIMITIVE:
+//     if (value_type->value.primitive.kind == P_INT &&
+//         storage_type->value.primitive.kind == P_INT) {
+//       puts("Allowing any int to go into any other int.");
+//       return true;
+//     } else if (value_type->value.primitive.kind == P_FLOAT &&
+//                storage_type->value.primitive.kind == P_INT) {
+//       puts("Illegal to store float directly into int, must convert
+//       manually."); return false;
+//     }
+//     puts("Other prim prim is valid.");
+//     return true;
+//   case DTK_POINTER:
+//     return data_types_equal(value_type->value.pointer_inner,
+//                             storage_type->value.pointer_inner);
+//   case DTK_FUNCTION:
+//     puts("recurse case");
+//     printf("left: %d, %d\n", value_type->value.function.return_type == NULL,
+//            storage_type->value.function.return_type == NULL);
+//     if (value_type->value.function.extern_name != NULL ||
+//         storage_type->value.function.extern_name != NULL) {
+//       if (value_type->value.function.extern_name == NULL ||
+//           storage_type->value.function.extern_name == NULL) {
+//         return false;
+//       } else {
+//         if (value_type->value.function.extern_name->length !=
+//             storage_type->value.function.extern_name->length) {
+//           return false;
+//         }
+//         return strncmp(value_type->value.function.extern_name->data,
+//                        storage_type->value.function.extern_name->data,
+//                        value_type->value.function.extern_name->length) == 0;
+//       }
+//     }
+//     return data_types_equal(value_type->value.function.return_type,
+//                             storage_type->value.function.return_type);
+//   case DTK_VOID:
+//     return true;
+//   case DTK_STRUCTURE:
+//     puts("unimplemented behavior for structs.");
+//     if (!strings_equal(value_type->value.structure.name,
+//                        storage_type->value.structure.name)) {
+//       return false;
+//     }
+//
+//     puts("[NOTE] we should check for more than just symbol equality, but for
+//     "
+//          "now lets just do this.");
+//
+//     // TODO: implement structural equality check.
+//
+//     return true;
+//     assert(0);
+//     break;
+//   case DTK_STRUCTURE_DEF:
+//     puts("unimplemented behavior for struct defs.");
+//     assert(0);
+//     break;
+//   case DTK_ARRAY:
+//     puts("Found case of array -> array");
+//     if (value_type->value.array.length > storage_type->value.array.length) {
+//       puts("Value array had more elements than storage.");
+//       return false;
+//     }
+//     return data_types_equal(value_type->value.array.element_type,
+//                             storage_type->value.array.element_type);
+//   };
+//   return false;
+// }
 
 // NOTE: hi it`s me grace your wife`
 
@@ -1081,5 +1383,10 @@ void print_data_type(struct DataType *data_type) {
         data_type->value.structure_definition.definition);
     break;
   }
+  case DTK_ARRAY:
+    printf("[");
+    print_data_type(data_type->value.array.element_type);
+    printf(";%llu]", data_type->value.array.length);
+    break;
   }
 }

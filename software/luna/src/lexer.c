@@ -37,10 +37,10 @@ uint16_t lexer_read_integer(struct Lexer *lexer) {
 }
 
 struct LunaString lexer_read_string(struct Lexer *lexer) {
-  char *buf = arena_alloc(lexer->allocator, 64 * sizeof(char));
+  char *buf = arena_alloc(lexer->allocator, 128 * sizeof(char));
   uint8_t index = 0;
 
-  while (lexer_peek(lexer) != '"' && index < 64) {
+  while (lexer_peek(lexer) != '"' && index < 128) {
     char c = lexer_peek(lexer);
     if (c == '\\') {
       lexer->position++;

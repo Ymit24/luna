@@ -93,11 +93,17 @@ enum ExpressionType {
   EXPR_STRUCT_INIT,
   EXPR_FIELD_ACCESS,
   EXPR_CAST,
+  EXPR_ARRAY_INITIALIZER,
 };
 
 struct CastExpressionNode {
   struct ExpressionNode *expr;
   struct DataType *type;
+};
+
+struct ArrayInitializerExpressionNode {
+  struct ExpressionNode *initializer;
+  struct ArrayInitializerExpressionNode *next;
 };
 
 struct ExpressionNode {
@@ -115,6 +121,7 @@ struct ExpressionNode {
     struct StructInitializationExpressionNode *struct_init;
     struct StructFieldAccessExpressionNode *struct_field_access;
     struct CastExpressionNode *cast;
+    struct ArrayInitializerExpressionNode *array_initializers;
   } node;
 };
 
@@ -199,5 +206,8 @@ ast_promote_expression_node(struct ArenaAllocator *allocator,
                             struct ExpressionNode expr);
 
 void *ast_promote(struct ArenaAllocator *allocator, void *src, uint8_t size);
+
+size_t count_array_initializer_length(
+    struct ArrayInitializerExpressionNode *initiailzier);
 
 #endif

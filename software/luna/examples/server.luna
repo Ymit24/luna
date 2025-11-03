@@ -39,7 +39,7 @@ const close = fn@extern["close"](fd: i32): i32;
 
 const perror = fn@extern["perror"](s: *i8);
 const exit = fn@extern["exit"](status: i32);
-const strlen: fn@extern["strlen"](s: *i8): i32;
+const strlen = fn@extern["strlen"](s: *i8): i32;
 
 const main = fn() {
     const server_fd = socket(af_inet, sock_stream, 0);
@@ -53,14 +53,17 @@ const main = fn() {
     set_socket_option(server_fd, sol_socket, so_reuse_addr, &opt, 4);
 
     const addr = .sockaddr_in {
+        sin_len: 0,
         sin_family: af_inet,
+        sin_port: 36895 // NOTE: NEED TO SWAP BYTE ORDER
         sin_addr: .in_addr {
             addr: inaddr_any
         },
-        sin_port: 8080 // NOTE: NEED TO SWAP BYTE ORDER
+        sin_zero: [0,0,0,0,0,0,0,0]
     };
 
-    if bind(server_fd, @cast(*socket_address, &addr), @size(addr)) < 0 {
+    if bind(server_fd, @cast(*socket_address, &addr), 16) < 0 { // NOTE: 16 may actually need to
+                                                                // have some padding
         perror("bind");
         exit(1);
     };
@@ -72,16 +75,16 @@ const main = fn() {
 
     printf("Listening on http://localhost:8080\n");
 
-    while 1 {
+    while 1 > 0 {
         const client = accept(server_fd, 0, 0);
         if client < 0 {
             perror("accept");
         } else {
             const response = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 13\r\n\r\nHello, world!";
+            puts("Got request, sending response.");
             write(client, response, strlen(response));
             close(client);
         };
-
     };
 
     return;

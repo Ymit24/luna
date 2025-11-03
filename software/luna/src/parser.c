@@ -224,6 +224,22 @@ parse_struct_field_access(struct Parser *parser) {
       sizeof(struct StructFieldAccessExpressionNode));
 }
 
+struct ArrayInitializerExpressionNode *
+parse_array_initializer(struct Parser *parser) {
+  struct ExpressionNode *initializer = parse_expression(parser, 0);
+  struct ArrayInitializerExpressionNode *next = NULL;
+  if (parser_peek(parser).type == T_COMMA) {
+    parser->position++;
+    next = parse_array_initializer(parser);
+  }
+  return ast_promote(parser->allocator,
+                     &(struct ArrayInitializerExpressionNode){
+                         .initializer = initializer,
+                         .next = next,
+                     },
+                     sizeof(struct ArrayInitializerExpressionNode));
+}
+
 struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
   switch (token.type) {
   case T_INTEGER:
@@ -262,6 +278,31 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
       ;
       break;
     }
+    case T_LBRACK:
+      puts("Found index operation");
+      parser->position++;
+
+      struct ExpressionNode *indexing_expr = parse_expression(parser, 0);
+
+      assert(parser_peek(parser).type == T_RBRACK);
+      parser->position++;
+
+      return ast_promote(parser->allocator,
+                         &(struct ExpressionNode){
+                             .type = EXPR_DEREF,
+                             .node.deref = ast_promote_expression_node(
+                                 parser->allocator,
+                                 (struct ExpressionNode){
+                                     .type = EXPR_BINARY,
+                                     .node.binary = ast_make_binary_expression(
+                                         parser->allocator, BIN_EXPR_ADD,
+                                         ast_promote_expression_node(
+                                             parser->allocator,
+                                             (struct ExpressionNode){
+                                                 .type = EXPR_SYMBOL_LITERAL,
+                                                 .node.symbol = symbol}),
+                                         indexing_expr)})},
+                         sizeof(struct ExpressionNode));
     default:
       printf("did not find lparen after symbol, found: %d\n",
              parser_peek(parser).type);
@@ -479,6 +520,21 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
                        },
                        sizeof(struct ExpressionNode));
   }
+  case T_LBRACK:
+    puts("Found array initializer.");
+    parser->position++;
+
+    struct ArrayInitializerExpressionNode *initializers =
+        parse_array_initializer(parser);
+
+    assert(parser_peek(parser).type == T_RBRACK);
+    parser->position++;
+
+    return ast_promote_expression_node(
+        parser->allocator, (struct ExpressionNode){
+                               .type = EXPR_ARRAY_INITIALIZER,
+                               .node.array_initializers = initializers,
+                           });
   default:
     printf("Found type: %d\n", token.type);
     assert(false);
@@ -737,6 +793,24 @@ struct DataType *parse_data_type(struct Parser *parser) {
     printf("return type: is null: %d\n", type == NULL);
     return type;
   }
+  case T_LBRACK:
+    puts("Found array type.");
+    parser->position++;
+
+    struct DataType *element_type = parse_data_type(parser);
+
+    assert(parser_peek(parser).type == T_SEMICOLON);
+    parser->position++;
+
+    printf("About to parse integer for array length, next token is type: %d\n",
+           parser_peek(parser).type);
+
+    uint64_t length = parse_integer_literal(parser)->value;
+
+    assert(parser_peek(parser).type == T_RBRACK);
+    parser->position++;
+
+    return make_array_data_type(parser->allocator, element_type, length);
   default:
     assert(0);
   }
@@ -1034,6 +1108,28 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
                          },
                          sizeof(struct FunctionStatementNode));
     }
+    case EXPR_ARRAY_INITIALIZER:
+      puts("Found array initializer fn stmt");
+      assert(0);
+
+      return ast_promote(
+          parser->allocator,
+          &(struct FunctionStatementNode){
+              .type = FN_STMT_ASSIGN,
+              .node.assign = ast_promote(
+                  parser->allocator,
+                  &(struct AssignStatementNode){
+                      .source_expression = ast_promote(
+                          parser->allocator,
+                          &(struct ExpressionNode){.type = EXPR_DEREF,
+                                                   .node.deref = expr},
+                          sizeof(struct ExpressionNode)),
+                      .result_expression = result_expression},
+                  sizeof(struct AssignStatementNode)),
+              .next = NULL,
+          },
+          sizeof(struct FunctionStatementNode));
+      break;
     case EXPR_BINARY:
     case EXPR_INTEGER_LITERAL:
     case EXPR_STRING_LITERAL:
