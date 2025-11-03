@@ -1,4 +1,4 @@
-const main = fn(argc: i8, argv: **i8) {
+const main = fn(argc: i8, argv: **i8): i32 {
     cstd::puts("Hello from builder.");
     cstd::printf("Builder got called with %d arguments.\n", argc);
 
@@ -7,6 +7,22 @@ const main = fn(argc: i8, argv: **i8) {
         cstd::printf("\t'%s'\n", argv[index]);
         index = index + 1;
     };
+    const pid = cstd::fork();
+    if pid < 0 {
+        cstd::perror("Fork");
+        return 1;
+    } else if pid < 1 {
+        cstd::puts("CHILD");
+        cstd::exit(1);
+    } else {
+        let status: i32 = 0;
+        cstd::puts("HOST");
+        if cstd::waitpid(pid, &status, 0) < 0 {
+            cstd::perror("waitpid");
+            return 1;
+        };
+        cstd::puts("host: done waiting.");
+    };
 
-    return;
+    return 0;
 };

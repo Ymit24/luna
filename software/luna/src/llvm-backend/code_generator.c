@@ -1002,34 +1002,29 @@ void cg_gen_assignment(struct CodeGenerator *code_generator,
 
 void cg_visit_else(struct CodeGenerator *code_generator,
                    struct IfStatementNode *if_stmt,
+                   LLVMBasicBlockRef else_block,
                    LLVMBasicBlockRef prev_merge_block) {
-  {
+  assert(else_block != NULL);
+  assert(prev_merge_block != NULL);
 
-    LLVMValueRef fn = LLVMGetBasicBlockParent(code_generator->current_block);
-    LLVMBasicBlockRef then_block = LLVMAppendBasicBlock(fn, "if.then");
-    LLVMBasicBlockRef merge_block = prev_merge_block != NULL
-                                        ? prev_merge_block
-                                        : LLVMAppendBasicBlock(fn, "if.end");
-    LLVMBuildBr(code_generator->builder, then_block);
+  LLVMBasicBlockRef body_block = else_block;
+  LLVMBasicBlockRef merge_block = prev_merge_block;
 
-    LLVMPositionBuilderAtEnd(code_generator->builder, then_block);
-    struct SymbolTable *old_current = code_generator->current_symbol_table;
-    code_generator->current_symbol_table = &if_stmt->symbol_table;
+  LLVMPositionBuilderAtEnd(code_generator->builder, body_block);
+  struct SymbolTable *old_current = code_generator->current_symbol_table;
+  code_generator->current_symbol_table = &if_stmt->symbol_table;
 
-    LLVMBasicBlockRef old_block = code_generator->current_block;
-    code_generator->current_block = then_block;
+  code_generator->current_block = body_block;
 
-    cg_visit_function_statements(code_generator, if_stmt->body);
+  cg_visit_function_statements(code_generator, if_stmt->body);
 
-    code_generator->current_symbol_table = old_current;
-    code_generator->current_block = old_block;
+  code_generator->current_symbol_table = old_current;
 
-    if (LLVMGetBasicBlockTerminator(then_block) == NULL) {
-      LLVMBuildBr(code_generator->builder, merge_block);
-    }
-
-    LLVMPositionBuilderAtEnd(code_generator->builder, merge_block);
+  if (LLVMGetBasicBlockTerminator(code_generator->current_block) == NULL) {
+    LLVMBuildBr(code_generator->builder, merge_block);
   }
+
+  LLVMPositionBuilderAtEnd(code_generator->builder, merge_block);
 }
 
 void cg_visit_while(struct CodeGenerator *code_generator,
@@ -1075,18 +1070,22 @@ void cg_visit_if(struct CodeGenerator *code_generator,
   LLVMValueRef fn = LLVMGetBasicBlockParent(code_generator->current_block);
   LLVMBasicBlockRef then_block = LLVMAppendBasicBlock(fn, "if.then");
   LLVMBasicBlockRef else_block = LLVMAppendBasicBlock(fn, "if.else");
-  LLVMBasicBlockRef merge_block = prev_merge_block != NULL
-                                      ? prev_merge_block
-                                      : LLVMAppendBasicBlock(fn, "if.end");
+  LLVMBasicBlockRef merge_block = NULL;
+
+  if (prev_merge_block == NULL) {
+    merge_block = LLVMAppendBasicBlock(fn, "if.end");
+  } else {
+    merge_block = prev_merge_block;
+  }
+  assert(merge_block != NULL);
 
   LLVMBuildCondBr(code_generator->builder, conditional, then_block, else_block);
 
   LLVMPositionBuilderAtEnd(code_generator->builder, then_block);
-  // TODO: visit if body
+
   struct SymbolTable *old_current = code_generator->current_symbol_table;
   code_generator->current_symbol_table = &if_stmt->symbol_table;
 
-  LLVMBasicBlockRef old_block = code_generator->current_block;
   code_generator->current_block = then_block;
 
   cg_visit_function_statements(code_generator, if_stmt->body);
@@ -1096,23 +1095,18 @@ void cg_visit_if(struct CodeGenerator *code_generator,
   }
 
   code_generator->current_symbol_table = old_current;
-  code_generator->current_block = old_block;
-
-  if (LLVMGetBasicBlockTerminator(then_block) == NULL) {
-    LLVMBuildBr(code_generator->builder, merge_block);
-  }
+  code_generator->current_block = else_block;
 
   if (if_stmt->next != NULL) {
     LLVMPositionBuilderAtEnd(code_generator->builder, else_block);
-    code_generator->current_block = else_block;
-
     LLVMBasicBlockRef old_block = code_generator->current_block;
+
     code_generator->current_block = else_block;
 
     if (if_stmt->next->condition == NULL) {
-      cg_visit_else(code_generator, if_stmt->next, merge_block);
+      cg_visit_else(code_generator, if_stmt->next, else_block, merge_block);
     } else {
-
+      assert(merge_block != NULL);
       cg_visit_if(code_generator, if_stmt->next, merge_block);
     }
 
@@ -1122,9 +1116,10 @@ void cg_visit_if(struct CodeGenerator *code_generator,
       LLVMBuildBr(code_generator->builder, merge_block);
     }
   } else {
-    LLVMPositionBuilderAtEnd(code_generator->builder, else_block);
-    code_generator->current_block = else_block;
-    LLVMBuildBr(code_generator->builder, merge_block);
+    if (LLVMGetBasicBlockTerminator(else_block) == NULL) {
+      LLVMPositionBuilderAtEnd(code_generator->builder, else_block);
+      LLVMBuildBr(code_generator->builder, merge_block);
+    }
   }
 
   LLVMPositionBuilderAtEnd(code_generator->builder, merge_block);
@@ -1249,11 +1244,7 @@ void cg_visit_function_statement(struct CodeGenerator *code_generator,
     cg_visit_while(code_generator, stmt->node.while_stmt);
     break;
   case FN_STMT_IF:
-    puts("generating if..");
-
     cg_visit_if(code_generator, stmt->node.if_stmt, NULL);
-
-    // assert(0);
     break;
   }
 }
