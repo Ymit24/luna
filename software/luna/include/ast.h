@@ -42,6 +42,11 @@ struct AssignStatementNode {
   struct ExpressionNode *result_expression;
 };
 
+struct ModuleNode {
+  struct ModuleStatementNode *statements;
+  struct SymbolTable symbol_table;
+};
+
 struct ModuleStatementNode {
   enum ModuleStatementType type;
   union {
@@ -94,6 +99,7 @@ enum ExpressionType {
   EXPR_FIELD_ACCESS,
   EXPR_CAST,
   EXPR_ARRAY_INITIALIZER,
+  EXPR_MOD_DEF,
 };
 
 struct CastExpressionNode {
@@ -110,7 +116,7 @@ struct ExpressionNode {
   enum ExpressionType type;
   union {
     struct IntegerLiteralNode *integer;
-    struct SymbolLiteralNode *symbol;
+    struct ScopedSymbolLiteralNode *scoped_symbol;
     struct StringLiteralNode *string;
     struct BinaryExpressionNode *binary;
     struct FunctionDefinitionExpressionNode *fn_def;
@@ -122,6 +128,7 @@ struct ExpressionNode {
     struct StructFieldAccessExpressionNode *struct_field_access;
     struct CastExpressionNode *cast;
     struct ArrayInitializerExpressionNode *array_initializers;
+    struct ModuleNode *module_definition;
   } node;
 };
 
@@ -131,6 +138,12 @@ struct IntegerLiteralNode {
 
 struct SymbolLiteralNode {
   struct LunaString value;
+};
+
+struct ScopedSymbolLiteralNode {
+  struct SymbolLiteralNode *symbol;
+  struct ScopedSymbolLiteralNode *next;
+  uint8_t remaining;
 };
 
 struct StringLiteralNode {
@@ -148,9 +161,14 @@ struct StructDefinitionExpressionNode {
   struct SymbolTable symbol_table;
 };
 
-struct StructFieldAccessExpressionNode {
+struct StructFieldAccessInnerExpressionNode {
   struct LunaString symbol;
-  struct StructFieldAccessExpressionNode *next;
+  struct StructFieldAccessInnerExpressionNode *next;
+};
+
+struct StructFieldAccessExpressionNode {
+  struct ScopedSymbolLiteralNode *root_symbol;
+  struct StructFieldAccessInnerExpressionNode *next;
 };
 
 struct StructFieldInitializerExpressionNode {
@@ -160,7 +178,7 @@ struct StructFieldInitializerExpressionNode {
 };
 
 struct StructInitializationExpressionNode {
-  struct LunaString name;
+  struct ScopedSymbolLiteralNode *name;
   struct StructFieldInitializerExpressionNode *fields;
 };
 
@@ -176,7 +194,7 @@ struct FunctionCallArgumentExpressionsNode {
 };
 
 struct FunctionCallExpressionNode {
-  struct LunaString name;
+  struct ScopedSymbolLiteralNode *name;
   struct FunctionCallArgumentExpressionsNode *arguments;
 };
 

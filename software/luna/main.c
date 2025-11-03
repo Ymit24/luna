@@ -76,7 +76,9 @@ int main(int argc, char **argv) {
   struct CodeGenerator code_generator = cg_make(&allocator, &annotator);
 
   puts("Start code gen");
-  cg_visit_module_statements(&code_generator, stmt, true);
+  LLVMValueRef global_module_initializer = cg_visit_module_statements(
+      &code_generator, stmt, true, string_make("core"));
+  cg_make_entrypoint(&code_generator, global_module_initializer);
   puts("Done code gen");
 
   LLVMDumpModule(code_generator.module);

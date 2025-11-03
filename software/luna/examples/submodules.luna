@@ -1,0 +1,27 @@
+const themod = mod {
+    const asdf: i16 = 109;
+};
+
+const cstd = mod {
+    const puts = fn@extern["puts"](str: *i8): i32;
+    const printf = fn@extern["printf"]@variadic(fmt: *i8): i32;
+
+    const fancy_puts = fn(str: *i8): i32 {
+        printf("[FANCY] ");
+        return puts(str);
+    };
+
+    const deep = mod {
+        const stuff: i32 = 100;
+    };
+};
+
+const abc = 123;
+
+const main = fn() {
+  cstd::puts("Hello world!");
+  cstd::printf("stuff: %d\n", cstd::deep::stuff);
+  cstd::fancy_puts("abc + deep stuff =");
+  cstd::printf("%d\n",abc + cstd::deep::stuff);
+  return;
+};
