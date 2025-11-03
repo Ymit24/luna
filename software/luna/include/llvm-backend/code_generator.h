@@ -3,6 +3,7 @@
 
 #include "annotator.h"
 #include "arena_allocator.h"
+#include "luna_string.h"
 #include "llvm-c/Types.h"
 #include <llvm-c/Target.h>
 #include <llvm-c/TargetMachine.h>
@@ -27,6 +28,9 @@ struct CodeGenerator cg_make(struct ArenaAllocator *allocator,
 
 LLVMValueRef cg_visit_module_statements(struct CodeGenerator *code_generator,
                                         struct ModuleStatementNode *stmt,
-                                        bool is_root);
+                                        bool is_root,
+                                        struct LunaString module_name);
 
+void cg_make_entrypoint(struct CodeGenerator *code_generator,
+                        LLVMValueRef global_module_initializer);
 #endif

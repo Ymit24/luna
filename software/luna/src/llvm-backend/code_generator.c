@@ -122,6 +122,7 @@ struct CodeGenerator cg_make(struct ArenaAllocator *allocator,
       .module = module,
       .builder = builder,
       .target_data = target_data,
+      .current_block = NULL,
   };
 }
 
@@ -927,9 +928,13 @@ void cg_visit_module_decl(struct CodeGenerator *code_generator,
     code_generator->current_symbol_table =
         &decl->expression->node.module_definition->symbol_table;
 
-    cg_visit_module_statements(
+    LLVMValueRef inner_module_initializer = cg_visit_module_statements(
         code_generator, decl->expression->node.module_definition->statements,
-        false);
+        false, decl->symbol);
+
+    LLVMBuildCall2(code_generator->builder,
+                   LLVMFunctionType(LLVMVoidType(), 0, 0, 0),
+                   inner_module_initializer, NULL, 0, "");
 
     code_generator->current_symbol_table = old_symbol_table;
 
@@ -1266,19 +1271,14 @@ void cg_visit_function_statements(struct CodeGenerator *code_generator,
 // "main" to end of our own initiailzier
 LLVMValueRef cg_visit_module_statements(struct CodeGenerator *code_generator,
                                         struct ModuleStatementNode *stmt,
-                                        bool is_root) {
+                                        bool is_root,
+                                        struct LunaString module_name) {
+  printf("isroot: %d\n", is_root);
   LLVMBasicBlockRef previous_block = code_generator->current_block;
 
-  LLVMValueRef module_initialization_function = NULL;
-  if (is_root) {
-    module_initialization_function =
-        LLVMAddFunction(code_generator->module, "main",
-                        LLVMFunctionType(LLVMInt32Type(), NULL, 0, 0));
-  } else {
-    module_initialization_function =
-        LLVMAddFunction(code_generator->module, "",
-                        LLVMFunctionType(LLVMVoidType(), NULL, 0, 0));
-  }
+  LLVMValueRef module_initialization_function =
+      LLVMAddFunction(code_generator->module, module_name.data,
+                      LLVMFunctionType(LLVMVoidType(), NULL, 0, 0));
   LLVMBasicBlockRef block =
       LLVMAppendBasicBlock(module_initialization_function, "entry");
   LLVMPositionBuilderAtEnd(code_generator->builder, block);
@@ -1291,41 +1291,85 @@ LLVMValueRef cg_visit_module_statements(struct CodeGenerator *code_generator,
     curr = curr->next;
   }
 
+  LLVMBuildRetVoid(code_generator->builder);
+
   if (previous_block != NULL) {
+    code_generator->current_block = previous_block;
     LLVMPositionBuilderAtEnd(code_generator->builder, previous_block);
   }
+  // if (is_root) {
+  // struct SymbolTableEntry *main_symbol = lookup_symbol_in(
+  //     string_make("main"), code_generator->current_symbol_table);
+  //
+  // assert(main_symbol != NULL);
+  // assert(main_symbol->type != NULL);
+  // assert(main_symbol->type->kind == DTK_FUNCTION);
+  // assert(main_symbol->llvm_value != NULL);
 
-  if (is_root) {
-    struct SymbolTableEntry *main_symbol = lookup_symbol_in(
-        string_make("main"), code_generator->current_symbol_table);
+  // LLVMTypeRef func_type = LLVMFunctionType(LLVMInt32Type(), NULL, 0, 0);
 
-    assert(main_symbol != NULL);
-    assert(main_symbol->type != NULL);
-    assert(main_symbol->type->kind == DTK_FUNCTION);
-    assert(main_symbol->llvm_value != NULL);
+  // LLVMTypeRef func_type = cg_get_func_type(code_generator,
+  // main_symbol->type); LLVMTypeRef ptr_type = LLVMPointerType(func_type, 0);
 
-    // LLVMTypeRef func_type = LLVMFunctionType(LLVMInt32Type(), NULL, 0, 0);
+  // LLVMValueRef fn_pointer = LLVMBuildLoad2(code_generator->builder, ptr_type,
+  //                                          main_symbol->llvm_value, "");
+  //
+  // if (main_symbol->type->value.function.return_type->kind == DTK_VOID) {
+  //   puts("\n\n------\nVOID\n");
+  //   LLVMBuildCall2(code_generator->builder, func_type, fn_pointer, 0, 0, "");
+  //   LLVMBuildRet(code_generator->builder,
+  //                LLVMConstInt(LLVMInt32Type(), 0, 0));
+  // } else {
+  //   puts("\n\n------\nNON VOID\n");
+  //   LLVMValueRef main_ret = LLVMBuildCall2(code_generator->builder,
+  //   func_type,
+  //                                          fn_pointer, 0, 0, "");
+  //   LLVMBuildRet(code_generator->builder, main_ret);
+  // }
+  // }
 
-    LLVMTypeRef func_type = cg_get_func_type(code_generator, main_symbol->type);
-    LLVMTypeRef ptr_type = LLVMPointerType(func_type, 0);
-
-    LLVMValueRef fn_pointer = LLVMBuildLoad2(code_generator->builder, ptr_type,
-                                             main_symbol->llvm_value, "");
-
-    if (main_symbol->type->value.function.return_type->kind == DTK_VOID) {
-      puts("\n\n------\nVOID\n");
-      LLVMBuildCall2(code_generator->builder, func_type, fn_pointer, 0, 0, "");
-      LLVMBuildRet(code_generator->builder,
-                   LLVMConstInt(LLVMInt32Type(), 0, 0));
-    } else {
-      puts("\n\n------\nNON VOID\n");
-      LLVMValueRef main_ret = LLVMBuildCall2(code_generator->builder, func_type,
-                                             fn_pointer, 0, 0, "");
-      LLVMBuildRet(code_generator->builder, main_ret);
-    }
-  } else {
-    LLVMBuildRetVoid(code_generator->builder);
-  }
+  // LLVMBuildRetVoid(code_generator->builder);
 
   return module_initialization_function;
+}
+
+void cg_make_entrypoint(struct CodeGenerator *code_generator,
+                        LLVMValueRef global_module_initializer) {
+  LLVMValueRef entrypoint_function =
+      LLVMAddFunction(code_generator->module, "main",
+                      LLVMFunctionType(LLVMInt32Type(), NULL, 0, 0));
+
+  LLVMBasicBlockRef block = LLVMAppendBasicBlock(entrypoint_function, "entry");
+  LLVMPositionBuilderAtEnd(code_generator->builder, block);
+
+  LLVMBuildCall2(code_generator->builder,
+                 LLVMFunctionType(LLVMVoidType(), 0, 0, 0),
+                 global_module_initializer, 0, 0, "");
+
+  struct SymbolTableEntry *main_symbol = lookup_symbol_in(
+      string_make("main"), &code_generator->annotator->root_symbol_table);
+
+  assert(main_symbol != NULL);
+  assert(main_symbol->type != NULL);
+  assert(main_symbol->type->kind == DTK_FUNCTION);
+  assert(main_symbol->llvm_value != NULL);
+
+  LLVMTypeRef main_func_type =
+      cg_get_func_type(code_generator, main_symbol->type);
+  LLVMTypeRef ptr_type = LLVMPointerType(main_func_type, 0);
+
+  LLVMValueRef fn_pointer = LLVMBuildLoad2(code_generator->builder, ptr_type,
+                                           main_symbol->llvm_value, "");
+
+  if (main_symbol->type->value.function.return_type->kind == DTK_VOID) {
+    puts("\n\n------\nVOID\n");
+    LLVMBuildCall2(code_generator->builder, main_func_type, fn_pointer, 0, 0,
+                   "");
+    LLVMBuildRet(code_generator->builder, LLVMConstInt(LLVMInt32Type(), 0, 0));
+  } else {
+    puts("\n\n------\nNON VOID\n");
+    LLVMValueRef main_ret = LLVMBuildCall2(
+        code_generator->builder, main_func_type, fn_pointer, 0, 0, "");
+    LLVMBuildRet(code_generator->builder, main_ret);
+  }
 }
