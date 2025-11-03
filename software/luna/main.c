@@ -65,20 +65,45 @@ int main(int argc, char **argv) {
 
   struct ModuleStatementNode *stmt = parse_module_statements(&parser);
 
+  struct ModuleNode file_module = (struct ModuleNode){
+      .statements = stmt,
+  };
+
+  struct ExpressionNode file_module_definition = (struct ExpressionNode){
+      .type = EXPR_MOD_DEF, .node.module_definition = &file_module
+
+  };
+
+  struct DeclarationStatementNode root_decl = (struct DeclarationStatementNode){
+      .symbol = string_make("ROOT"),
+      .data_type = NULL,
+      .has_type = false,
+      .is_const = true,
+      .expression = &file_module_definition,
+  };
+
+  struct ModuleStatementNode new_root = (struct ModuleStatementNode){
+      .type = MOD_STMT_CONST,
+      .node.decl = &root_decl,
+      .next = NULL,
+  };
+
   puts("done parsing");
 
   struct Annotator annotator = annotator_make(&allocator);
   annotator.current_symbol_table = &annotator.root_symbol_table;
 
   annotator_initialize_primitives(&annotator);
-  annotator_visit_module_statements(&annotator, stmt);
+  annotator_visit_module_statements(&annotator, &new_root);
+
+  print_symbol_table(string_make("Root"), &annotator.root_symbol_table);
 
   struct CodeGenerator code_generator = cg_make(&allocator, &annotator);
 
   puts("Start code gen");
-  LLVMValueRef global_module_initializer = cg_visit_module_statements(
-      &code_generator, stmt, true, string_make("core"));
-  cg_make_entrypoint(&code_generator, global_module_initializer);
+  // LLVMValueRef global_module_initializer =
+  cg_visit_module_statements(&code_generator, &new_root, true, string_make("core"));
+  // cg_make_entrypoint(&code_generator, global_module_initializer);
   puts("Done code gen");
 
   LLVMDumpModule(code_generator.module);
