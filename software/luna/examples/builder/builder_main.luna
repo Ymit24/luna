@@ -1,12 +1,9 @@
-const one = @cast(*cstd::DIR, 1);
-const zero = @cast(*cstd::dirent, 0);
-
 const list_files = fn(path: *i8) {
     cstd::printf("Files in %s:\n", path);
 
     cstd::puts("Opening dir..");
     const dir = cstd::opendir(path);
-    if dir < one {
+    if dir == 0{
         cstd::perror("opendir");
         return;
     };
@@ -15,7 +12,7 @@ const list_files = fn(path: *i8) {
     let ent = @cast(*cstd::dirent, 0);
 
     ent = cstd::readdir(dir);
-    while ent > zero {
+    while ent != 0 {
         cstd::printf("\tread something.\n");
         cstd::printf("\t\t%s\n", &ent.d_name);
         cstd::printf("\t\t\ttype: %d\n", ent.d_type);
