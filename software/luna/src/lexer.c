@@ -230,6 +230,18 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
       out_token->type = T_CAST;
       lexer->position += 4;
       return true;
+    } else if (lexer->source.length - lexer->position >= 9 &&
+               strncmp("valuesize", &lexer->source.data[lexer->position], 9) ==
+                   0) {
+      out_token->type = T_VALUESIZE;
+      lexer->position += 9;
+      return true;
+    } else if (lexer->source.length - lexer->position >= 8 &&
+               strncmp("typesize", &lexer->source.data[lexer->position], 8) ==
+                   0) {
+      out_token->type = T_TYPESIZE;
+      lexer->position += 8;
+      return true;
     }
     break;
   default: {

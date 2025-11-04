@@ -372,6 +372,32 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
         sizeof(struct ExpressionNode));
     break;
   }
+  case T_VALUESIZE:
+    parser->position++;
+    assert(parser_peek(parser).type == T_LPAREN);
+    parser->position++;
+
+    struct ExpressionNode *expr = parse_expression(parser, 0);
+
+    assert(parser_peek(parser).type == T_RPAREN);
+    parser->position++;
+
+    return ast_promote_expression_node(
+        parser->allocator, (struct ExpressionNode){.type = EXPR_VALUESIZE,
+                                                   .node.valuesize = expr});
+  case T_TYPESIZE:
+    parser->position++;
+    assert(parser_peek(parser).type == T_LPAREN);
+    parser->position++;
+
+    struct DataType *dt = parse_data_type(parser);
+
+    assert(parser_peek(parser).type == T_RPAREN);
+    parser->position++;
+
+    return ast_promote_expression_node(
+        parser->allocator,
+        (struct ExpressionNode){.type = EXPR_TYPESIZE, .node.typesize = dt});
   case T_CAST: {
     parser->position++;
 
@@ -1246,6 +1272,8 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
     case EXPR_REF:
     case EXPR_CAST:
     case EXPR_MOD_DEF:
+    case EXPR_VALUESIZE:
+    case EXPR_TYPESIZE:
       puts("illegal expression type as function statement.");
       assert(0);
       return NULL;

@@ -100,6 +100,8 @@ enum ExpressionType {
   EXPR_CAST,
   EXPR_ARRAY_INITIALIZER,
   EXPR_MOD_DEF,
+  EXPR_VALUESIZE,
+  EXPR_TYPESIZE
 };
 
 struct CastExpressionNode {
@@ -127,6 +129,8 @@ struct ExpressionNode {
     struct StructInitializationExpressionNode *struct_init;
     struct StructFieldAccessExpressionNode *struct_field_access;
     struct CastExpressionNode *cast;
+    struct ExpressionNode *valuesize;
+    struct DataType *typesize;
     struct ArrayInitializerExpressionNode *array_initializers;
     struct ModuleNode *module_definition;
   } node;

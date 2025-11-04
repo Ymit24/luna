@@ -39,6 +39,8 @@ enum TokenType {
   T_CAST,
   T_EXTERN,
   T_VARIADIC,
+  T_VALUESIZE,
+  T_TYPESIZE,
   T_STRING,
   T_IF,
   T_ELSE,

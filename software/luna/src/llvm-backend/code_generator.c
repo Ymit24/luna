@@ -821,6 +821,19 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
     return LLVMBuildLoad2(code_generator->builder,
                           LLVMArrayType2(element_type, element_count), array,
                           "");
+  case EXPR_VALUESIZE: {
+    uint64_t size = LLVMABISizeOfType(
+        code_generator->target_data,
+        cg_get_type(code_generator,
+                    cg_infer_type(code_generator, expr->node.valuesize)));
+    return LLVMConstInt(LLVMInt32Type(), size, 0);
+  }
+  case EXPR_TYPESIZE: {
+    uint64_t size =
+        LLVMABISizeOfType(code_generator->target_data,
+                          cg_get_type(code_generator, expr->node.typesize));
+    return LLVMConstInt(LLVMInt32Type(), size, 0);
+  }
   case EXPR_MOD_DEF:
     puts("Visit mod def.");
     assert(0);

@@ -600,6 +600,30 @@ struct DataType *infer_type(struct Annotator *annotator,
 
         },
         sizeof(struct DataType));
+  case EXPR_VALUESIZE:
+    return ast_promote(annotator->allocator,
+                       &(struct DataType){.kind = DTK_PRIMITIVE,
+                                          .next = NULL,
+                                          .value.primitive =
+                                              (struct PrimitiveType){
+                                                  .kind = P_INT,
+                                                  .bitwidth = 32,
+                                                  .is_signed = 0,
+                                              }},
+                       sizeof(struct DataType));
+
+    break;
+  case EXPR_TYPESIZE:
+    return ast_promote(annotator->allocator,
+                       &(struct DataType){.kind = DTK_PRIMITIVE,
+                                          .next = NULL,
+                                          .value.primitive =
+                                              (struct PrimitiveType){
+                                                  .kind = P_INT,
+                                                  .bitwidth = 32,
+                                                  .is_signed = 0,
+                                              }},
+                       sizeof(struct DataType));
   default:
     puts("fell through default");
     printf("kind: %d\n", expr->type);
@@ -855,6 +879,13 @@ void annotator_visit_expr(struct Annotator *annotator,
                                       expr->node.module_definition->statements);
 
     annotator->current_symbol_table = old_symbol_table;
+    break;
+  case EXPR_VALUESIZE:
+    puts("[visit @valuesize]");
+    annotator_visit_expr(annotator, expr->node.valuesize);
+    break;
+  case EXPR_TYPESIZE:
+    puts("[visit @typesize]");
     break;
   }
 }
