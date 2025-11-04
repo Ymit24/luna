@@ -363,7 +363,7 @@ void cg_visit_field_inner_access_expr(
     struct StructFieldAccessInnerExpressionNode *field_access_expr,
     LLVMValueRef **field_indicies, size_t *index,
     struct StructFieldDefinitionNode *field_defs) {
-  field_access_expr = field_access_expr->next;
+  // field_access_expr = field_access_expr->next;
   while (field_access_expr != NULL) {
     printf("looking for field %s (%zu)..\n", field_access_expr->symbol.data,
            *index);
@@ -376,10 +376,13 @@ void cg_visit_field_inner_access_expr(
     puts("Found field.");
     printf("\tindex: %zu\n", result.index);
 
-    *field_indicies[*index] = LLVMConstInt(LLVMInt32Type(), result.index, 0);
+    (*field_indicies)[*index] = LLVMConstInt(LLVMInt32Type(), result.index, 0);
     *index += 1;
 
+    puts("did weird stuff.");
+
     if (field_access_expr->next != NULL) {
+      puts("still have further stuff.");
       field_def = result.field_definition;
       assert(field_def->type->kind == DTK_STRUCTURE);
       assert(field_def->type->value.structure.definition != NULL);
@@ -392,6 +395,8 @@ void cg_visit_field_inner_access_expr(
         *field_indicies[*index] = LLVMConstInt(LLVMInt32Type(), 0, 0);
         *index += 1;
       }
+    } else {
+      puts("has no next.");
     }
 
     field_access_expr = field_access_expr->next;
@@ -473,9 +478,7 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
         cg_infer_type(code_generator, expr->node.binary->right);
     struct DataType *common_type =
         get_common_type(code_generator->allocator, left_type, right_type);
-    LLVMTypeRef common =
-
-        cg_get_type(code_generator, common_type);
+    LLVMTypeRef common = cg_get_type(code_generator, common_type);
     LLVMValueRef left = cg_visit_expr(code_generator, expr->node.binary->left);
     LLVMValueRef right =
         cg_visit_expr(code_generator, expr->node.binary->right);
@@ -546,12 +549,14 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
       return LLVMBuildSDiv(code_generator->builder, left, right, "");
     case BIN_EXPR_LT:
       puts("got lt");
-      return LLVMBuildICmp(code_generator->builder, LLVMIntSLT, left, right,
-                           "");
+      return LLVMBuildICmp(code_generator->builder, LLVMIntSLT,
+                           cg_coerce(code_generator, left, common),
+                           cg_coerce(code_generator, right, common), "");
     case BIN_EXPR_GT:
       puts("got gt");
-      return LLVMBuildICmp(code_generator->builder, LLVMIntSGT, left, right,
-                           "");
+      return LLVMBuildICmp(code_generator->builder, LLVMIntSGT,
+                           cg_coerce(code_generator, left, common),
+                           cg_coerce(code_generator, right, common), "");
     }
     break;
   case EXPR_INTEGER_LITERAL:
