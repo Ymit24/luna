@@ -160,12 +160,30 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
   case ']':
     out_token->type = T_RBRACK;
     break;
+  case '!':
+    out_token->type = T_EXCLAMATION;
+    lexer->position++;
+    if (lexer_peek(lexer) == '=') {
+      out_token->type = T_NTEQ;
+      lexer->position++;
+    }
+    return true;
   case '<':
     out_token->type = T_LANGLE;
-    break;
+    lexer->position++;
+    if (lexer_peek(lexer) == '=') {
+      out_token->type = T_LEQ;
+      lexer->position++;
+    }
+    return true;
   case '>':
     out_token->type = T_RANGLE;
-    break;
+    lexer->position++;
+    if (lexer_peek(lexer) == '=') {
+      out_token->type = T_GEQ;
+      lexer->position++;
+    }
+    return true;
   case ';':
     out_token->type = T_SEMICOLON;
     break;
@@ -180,7 +198,12 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
     break;
   case '=':
     out_token->type = T_EQUALS;
-    break;
+    lexer->position++;
+    if (lexer_peek(lexer) == '=') {
+      out_token->type = T_EQEQ;
+      lexer->position++;
+    }
+    return true;
   case '"':
     out_token->type = T_STRING;
     lexer->position++;

@@ -19,15 +19,11 @@ const list_files = fn(path: *i8) {
         cstd::printf("\tread something.\n");
         cstd::printf("\t\t%s\n", &ent.d_name);
         cstd::printf("\t\t\ttype: %d\n", ent.d_type);
-        if ent.d_type > 7 {
-            if ent.d_type < 9 {
-                cstd::puts("\t\t\tFILE");
-            };
+        if ent.d_type == 8 {
+            cstd::puts("\t\t\tFILE");
         };
-        if ent.d_type > 3 {
-            if ent.d_type < 5 {
-                cstd::puts("\t\t\tFOLDER");
-            };
+        if ent.d_type == 4 {
+            cstd::puts("\t\t\tFOLDER");
         };
         ent = cstd::readdir(dir);
     };

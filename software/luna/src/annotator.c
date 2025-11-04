@@ -1312,7 +1312,9 @@ bool can_operate_data_types(struct DataType *left, struct DataType *right,
       operation == BIN_EXPR_ADD || operation == BIN_EXPR_SUB;
 
   bool operation_is_logical =
-      operation == BIN_EXPR_GT || operation == BIN_EXPR_LT;
+      operation == BIN_EXPR_GT || operation == BIN_EXPR_LT ||
+      operation == BIN_EXPR_EQ || operation == BIN_EXPR_NEQ ||
+      operation == BIN_EXPR_LEQ || operation == BIN_EXPR_GEQ;
 
   switch (left->kind) {
   case DTK_PRIMITIVE:

@@ -95,6 +95,14 @@ uint8_t precedence_for_token(enum TokenType type) {
     return 3;
   case T_RANGLE:
     return 3;
+  case T_EQEQ:
+    return 3;
+  case T_LEQ:
+    return 3;
+  case T_GEQ:
+    return 3;
+  case T_NTEQ:
+    return 3;
   case T_RPAREN:
     return 0;
   case T_RBRACE:
@@ -643,6 +651,42 @@ struct ExpressionNode *parse_expression(struct Parser *parser,
               .node.binary = ast_make_binary_expression(
                   parser->allocator, BIN_EXPR_GT, left,
                   parse_expression(parser, precedence_for_token(T_RANGLE)))});
+      break;
+    case T_EQEQ:
+      left = ast_promote_expression_node(
+          parser->allocator,
+          (struct ExpressionNode){
+              .type = EXPR_BINARY,
+              .node.binary = ast_make_binary_expression(
+                  parser->allocator, BIN_EXPR_EQ, left,
+                  parse_expression(parser, precedence_for_token(T_EQEQ)))});
+      break;
+    case T_NTEQ:
+      left = ast_promote_expression_node(
+          parser->allocator,
+          (struct ExpressionNode){
+              .type = EXPR_BINARY,
+              .node.binary = ast_make_binary_expression(
+                  parser->allocator, BIN_EXPR_NEQ, left,
+                  parse_expression(parser, precedence_for_token(T_NTEQ)))});
+      break;
+    case T_LEQ:
+      left = ast_promote_expression_node(
+          parser->allocator,
+          (struct ExpressionNode){
+              .type = EXPR_BINARY,
+              .node.binary = ast_make_binary_expression(
+                  parser->allocator, BIN_EXPR_LEQ, left,
+                  parse_expression(parser, precedence_for_token(T_LEQ)))});
+      break;
+    case T_GEQ:
+      left = ast_promote_expression_node(
+          parser->allocator,
+          (struct ExpressionNode){
+              .type = EXPR_BINARY,
+              .node.binary = ast_make_binary_expression(
+                  parser->allocator, BIN_EXPR_GEQ, left,
+                  parse_expression(parser, precedence_for_token(T_GEQ)))});
       break;
     default:
       printf("Found unexpected token of type %d\n", token.type);

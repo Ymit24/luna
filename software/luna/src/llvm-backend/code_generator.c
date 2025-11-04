@@ -557,6 +557,26 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
       return LLVMBuildICmp(code_generator->builder, LLVMIntSGT,
                            cg_coerce(code_generator, left, common),
                            cg_coerce(code_generator, right, common), "");
+    case BIN_EXPR_LEQ:
+      puts("got le");
+      return LLVMBuildICmp(code_generator->builder, LLVMIntSLE,
+                           cg_coerce(code_generator, left, common),
+                           cg_coerce(code_generator, right, common), "");
+    case BIN_EXPR_GEQ:
+      puts("got ge");
+      return LLVMBuildICmp(code_generator->builder, LLVMIntSGE,
+                           cg_coerce(code_generator, left, common),
+                           cg_coerce(code_generator, right, common), "");
+    case BIN_EXPR_EQ:
+      puts("got eq");
+      return LLVMBuildICmp(code_generator->builder, LLVMIntEQ,
+                           cg_coerce(code_generator, left, common),
+                           cg_coerce(code_generator, right, common), "");
+    case BIN_EXPR_NEQ:
+      puts("got neq");
+      return LLVMBuildICmp(code_generator->builder, LLVMIntNE,
+                           cg_coerce(code_generator, left, common),
+                           cg_coerce(code_generator, right, common), "");
     }
     break;
   case EXPR_INTEGER_LITERAL:
