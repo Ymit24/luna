@@ -324,6 +324,10 @@ get_or_resolve_struct_definition_from_type(struct DataType *type,
                                            struct SymbolTable *symbol_table) {
   assert(type != NULL);
 
+  puts("TYPE IS:\n\t");
+  print_data_type(type);
+  puts("");
+
   assert(type->kind == DTK_STRUCTURE ||
          (type->kind == DTK_POINTER && type->value.pointer_inner != NULL &&
           type->value.pointer_inner->kind == DTK_STRUCTURE));

@@ -217,13 +217,14 @@ parse_struct_field_access(struct Parser *parser) {
 
   assert(parser_peek(parser).type == T_SYMBOL);
   struct LunaString symbol = parser_peek(parser).value.symbol;
+  printf("Got symbol: '%s'\n", symbol.data);
   parser->position++;
 
   return ast_promote(
       parser->allocator,
       &(struct StructFieldAccessInnerExpressionNode){
           .symbol = symbol, .next = parse_struct_field_access(parser)},
-      sizeof(struct StructFieldAccessExpressionNode));
+      sizeof(struct StructFieldAccessInnerExpressionNode));
 }
 
 struct ArrayInitializerExpressionNode *
@@ -268,6 +269,10 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
     }
     case T_PERIOD: {
       puts("found period, so this is field accessor");
+      printf("scoped symbol: ");
+      print_scoped_symbol(scoped_symbol);
+      puts("");
+
       return ast_promote_expression_node(
           parser->allocator,
           (struct ExpressionNode){
@@ -278,8 +283,6 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
                                   .root_symbol = scoped_symbol,
                                   .next = parse_struct_field_access(parser)},
                               sizeof(struct StructFieldAccessExpressionNode))});
-      ;
-      break;
     }
     case T_LBRACK:
       puts("Found index operation");
@@ -1060,8 +1063,6 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
         break;
       }
     }
-    printf("\n\n\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-           "---\n\n");
 
     assert(parser_peek(parser).type == T_SEMICOLON);
     parser->position++;

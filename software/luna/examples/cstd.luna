@@ -6,3 +6,24 @@ const fork = fn@extern["fork"](): i32;
 const waitpid = fn@extern["waitpid"](pid: i32, status: *i32, options: i32): i32;
 const exit = fn@extern["exit"](status: i32);
 const perror = fn@extern["perror"](s: *i8);
+const system = fn@extern["system"](s: *i8):i32;
+
+
+// NOTE: This is macos version of dirent
+const dirent = struct {
+    d_fileno: i64,
+    d_seekoff: u64,
+    d_reclen: u16,
+    d_namlen: u16,
+    d_type: u8,
+    d_name: [i8; 1024],
+};
+
+const DIR = struct {
+    mystery: i8,
+    // NOTE: Dont actually access this besides as pointer.
+};
+
+const opendir = fn@extern["opendir"](path: *i8): *cstd::DIR;
+const readdir = fn@extern["readdir"](dirp: *cstd::DIR): *cstd::dirent;
+const closedir = fn@extern["closedir"](dirp: *cstd::DIR): i32;

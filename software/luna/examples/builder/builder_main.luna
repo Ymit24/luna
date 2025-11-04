@@ -1,3 +1,49 @@
+const one = @cast(*cstd::DIR, 1);
+const zero = @cast(*cstd::dirent, 0);
+
+const list_files = fn(path: *i8) {
+    cstd::printf("Files in %s:\n", path);
+
+    cstd::puts("Opening dir..");
+    const dir = cstd::opendir(path);
+    if dir < one {
+        cstd::perror("opendir");
+        return;
+    };
+    cstd::puts("Opened dir.");
+
+    let ent = @cast(*cstd::dirent, 0);
+
+    ent = cstd::readdir(dir);
+    while ent > zero {
+        cstd::printf("\tread something.\n");
+        const foo = ent.d_name;
+        // const entry_name: *i8 = @cast(*i8, ent.d_name);
+        // cstd::printf("\t\t%s\n", entry_name);
+        ent = cstd::readdir(dir);
+    };
+
+    cstd::puts("Closing dir..");
+    cstd::closedir(dir);
+    cstd::puts("Closed dir.");
+    return;
+};
+
+const compile = fn() {
+    const status = cstd::system("lunac ../cstd.luna src/thing.luna");
+
+    cstd::printf("Result: %d\n", status);
+
+    cstd::system("llc out/compiled.ll");
+    cstd::system("as out/compiled.s -o out/compiled.o");
+    cstd::system("clang out/compiled.o -o out/compiled");
+
+    cstd::puts("Fully built.");
+
+    cstd::system("./out/compiled");
+    return;
+};
+
 const main = fn(argc: i8, argv: **i8): i32 {
     cstd::puts("Hello from builder.");
     cstd::printf("Builder got called with %d arguments.\n", argc);
@@ -7,22 +53,9 @@ const main = fn(argc: i8, argv: **i8): i32 {
         cstd::printf("\t'%s'\n", argv[index]);
         index = index + 1;
     };
-    const pid = cstd::fork();
-    if pid < 0 {
-        cstd::perror("Fork");
-        return 1;
-    } else if pid < 1 {
-        cstd::puts("CHILD");
-        cstd::exit(1);
-    } else {
-        let status: i32 = 0;
-        cstd::puts("HOST");
-        if cstd::waitpid(pid, &status, 0) < 0 {
-            cstd::perror("waitpid");
-            return 1;
-        };
-        cstd::puts("host: done waiting.");
-    };
+
+    cstd::puts("about to list files..");
+    list_files("src");
 
     return 0;
 };
