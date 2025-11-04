@@ -11,7 +11,17 @@ const list_files = fn(path: *i8) {
 
     let ent = @cast(*cstd::dirent, 0);
 
-    // let list_of_files = lists::make(4);
+    let list_of_files = lists::make(@typesize(strings::string));
+
+    cstd::printf("Size of string: %d - %d\n", list_of_files.size, @typesize(strings::string));
+
+    const str = strings::make("foo");
+
+    const raw = "hello";
+    const str2 = strings::make_from(raw);
+
+    cstd::printf("Len of '%s' is %d\n", str.data, str.len);
+    cstd::printf("Len of '%s' is %d\n", str2.data, str2.len);
 
     ent = cstd::readdir(dir);
     while ent != 0 {
@@ -20,6 +30,10 @@ const list_files = fn(path: *i8) {
         cstd::printf("\t\t\ttype: %d\n", ent.d_type);
         if ent.d_type == 8 {
             cstd::puts("\t\t\tFILE");
+
+            const file_str = strings::make_from(&ent.d_name);
+            cstd::printf("str len of file str is '%s' is %d\n", file_str.data, file_str.len);
+            lists::push(&list_of_files, @cast(*i8, &file_str));
         };
         if ent.d_type == 4 {
             cstd::puts("\t\t\tFOLDER");
@@ -30,11 +44,20 @@ const list_files = fn(path: *i8) {
     cstd::puts("Closing dir..");
     cstd::closedir(dir);
     cstd::puts("Closed dir.");
+
+    cstd::puts("File names:");
+
+    lists::each(&list_of_files, fn(index: i32, data: *i8){
+        const str = @cast(*strings::string, data);
+        cstd::printf("\tFile: %s\n", str.data);
+        return;
+    });
+
     return;
 };
 
 const compile = fn() {
-    const status = cstd::system("lunac ../cstd.luna lists.luna builder_main.luna");
+    const status = cstd::system("lunac ../cstd.luna lists.luna strings.luna builder_main.luna");
 
     cstd::printf("Result: %d\n", status);
 
@@ -58,10 +81,10 @@ const main = fn(argc: i8, argv: **i8): i32 {
         index = index + 1;
     };
 
+    compile();
+
     cstd::puts("about to list files..");
     list_files("src");
-
-    compile();
 
     const mylist: lists::list = lists::make(4);
 

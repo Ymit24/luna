@@ -1,0 +1,17 @@
+const string = struct {
+    data: *i8,
+    len: i32,
+};
+
+const make = fn(raw: *i8): strings::string {
+    return .strings::string {
+        data: raw,
+        len: cstd::strlen(raw),
+    };
+};
+
+const make_from = fn(src: *i8): strings::string {
+    const dst = cstd::malloc(@typesize(*i8));
+    cstd::memcpy(dst, src, cstd::strlen(src));
+    return strings::make(dst);
+};

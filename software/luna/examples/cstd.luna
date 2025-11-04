@@ -3,6 +3,8 @@ const printf = fn@extern["printf"]@variadic(fmt: *i8): i32;
 
 const malloc = fn@extern["malloc"](size: i32): *i8;
 
+const memcpy = fn@extern["memcpy"](dst: *i8, src: *i8, size: i32);
+
 const execvp = fn@extern["execvp"](file: *i8, argv: **i8): i32;
 const fork = fn@extern["fork"](): i32;
 const waitpid = fn@extern["waitpid"](pid: i32, status: *i32, options: i32): i32;
@@ -29,3 +31,4 @@ const DIR = struct {
 const opendir = fn@extern["opendir"](path: *i8): *cstd::DIR;
 const readdir = fn@extern["readdir"](dirp: *cstd::DIR): *cstd::dirent;
 const closedir = fn@extern["closedir"](dirp: *cstd::DIR): i32;
+const strlen = fn@extern["strlen"](s: *i8): i32;
