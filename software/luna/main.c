@@ -40,7 +40,7 @@ struct ModuleStatementNode *parse_source_file(struct ArenaAllocator *allocator,
   struct LunaString src = read_file(source_file, allocator);
   struct Lexer lexer = lexer_make(allocator, src);
 
-  struct Token toks[1024];
+  struct Token toks[4096];
   uint16_t tok_index = 0;
 
   puts("tokens:");

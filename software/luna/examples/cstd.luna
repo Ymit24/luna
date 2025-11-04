@@ -5,6 +5,7 @@ const malloc = fn@extern["malloc"](size: i32): *i8;
 const free = fn@extern["free"](ptr: *i8);
 
 const memcpy = fn@extern["memcpy"](dst: *i8, src: *i8, size: i32);
+const memmove = fn@extern["memmove"](dst: *i8, src: *i8, size: i32);
 
 const abort = fn@extern["abort"]();
 
@@ -30,6 +31,10 @@ const DIR = struct {
     mystery: i8,
     // NOTE: Dont actually access this besides as pointer.
 };
+
+const open = fn@extern["open"](pathname: *i8, flags: i32): i32;
+const close = fn@extern["close"](fd: i32);
+const dup2 = fn@extern["dup2"](oldfd: i32, newfd: i32): i32;
 
 const opendir = fn@extern["opendir"](path: *i8): *cstd::DIR;
 const readdir = fn@extern["readdir"](dirp: *cstd::DIR): *cstd::dirent;
