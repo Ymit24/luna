@@ -1,6 +1,8 @@
 const puts = fn@extern["puts"](fmt: *i8):i32;
 const printf = fn@extern["printf"]@variadic(fmt: *i8): i32;
 
+const malloc = fn@extern["malloc"](size: i32): *i8;
+
 const execvp = fn@extern["execvp"](file: *i8, argv: **i8): i32;
 const fork = fn@extern["fork"](): i32;
 const waitpid = fn@extern["waitpid"](pid: i32, status: *i32, options: i32): i32;

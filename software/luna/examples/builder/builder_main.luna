@@ -3,13 +3,15 @@ const list_files = fn(path: *i8) {
 
     cstd::puts("Opening dir..");
     const dir = cstd::opendir(path);
-    if dir == 0{
+    if dir == 0 {
         cstd::perror("opendir");
         return;
     };
     cstd::puts("Opened dir.");
 
     let ent = @cast(*cstd::dirent, 0);
+
+    // let list_of_files = lists::make(4);
 
     ent = cstd::readdir(dir);
     while ent != 0 {
@@ -32,17 +34,17 @@ const list_files = fn(path: *i8) {
 };
 
 const compile = fn() {
-    const status = cstd::system("lunac ../cstd.luna src/thing.luna");
+    const status = cstd::system("lunac ../cstd.luna lists.luna builder_main.luna");
 
     cstd::printf("Result: %d\n", status);
 
     cstd::system("llc out/compiled.ll");
     cstd::system("as out/compiled.s -o out/compiled.o");
-    cstd::system("clang out/compiled.o -o out/compiled");
+    cstd::system("clang out/compiled.o -o out/compiler");
 
     cstd::puts("Fully built.");
 
-    cstd::system("./out/compiled");
+    // cstd::system("./out/compiled");
     return;
 };
 
@@ -58,6 +60,26 @@ const main = fn(argc: i8, argv: **i8): i32 {
 
     cstd::puts("about to list files..");
     list_files("src");
+
+    compile();
+
+    const mylist: lists::list = lists::make(4);
+
+    lists::print(&mylist);
+
+    const a = 8;
+    const b = 3;
+    const c = 9;
+
+    lists::push(&mylist, &a);
+    lists::push(&mylist, &b);
+    lists::push(&mylist, &c);
+
+    lists::print(&mylist);
+    lists::each(&mylist, fn(idx:i32, v: *i8) {
+        cstd::printf("EACH: %d -> %d\n", idx+3, *v);
+        return;
+    });
 
     return 0;
 };

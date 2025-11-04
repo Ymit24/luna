@@ -1198,8 +1198,6 @@ bool can_store_data_type_in(struct DataType *value_type,
     return can_store_data_type_in(value_type->value.function.return_type,
                                   storage_type->value.function.return_type);
   case DTK_VOID:
-    puts("This seems illegal..");
-    assert(0);
     return true;
   case DTK_STRUCTURE:
     if (!scoped_symbols_equal(value_type->value.structure.name,
