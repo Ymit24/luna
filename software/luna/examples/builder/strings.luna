@@ -11,7 +11,10 @@ const make = fn(raw: *i8): strings::string {
 };
 
 const make_from = fn(src: *i8): strings::string {
-    const dst = cstd::malloc(@typesize(*i8));
-    cstd::memcpy(dst, src, cstd::strlen(src));
+    const size = cstd::strlen(src) + 1; 
+    cstd::printf("SIZE: %d\n", size);
+    const dst = cstd::malloc(@typesize(i8) * size);
+    cstd::memcpy(dst, src, size);
+    cstd::printf("Copied string: '%s'\n", dst);
     return strings::make(dst);
 };

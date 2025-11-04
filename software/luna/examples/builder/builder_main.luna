@@ -1,11 +1,19 @@
-const list_files = fn(path: *i8) {
+const assert = fn(condition: i1) {
+    if condition != 1 {
+        cstd::printf("Assertion failed.");
+        cstd::abort();
+    };
+    return;
+};
+
+const list_files = fn(path: *i8): lists::list {
     cstd::printf("Files in %s:\n", path);
 
     cstd::puts("Opening dir..");
     const dir = cstd::opendir(path);
     if dir == 0 {
         cstd::perror("opendir");
-        return;
+        assert(0);
     };
     cstd::puts("Opened dir.");
 
@@ -31,9 +39,20 @@ const list_files = fn(path: *i8) {
         if ent.d_type == 8 {
             cstd::puts("\t\t\tFILE");
 
+            const promote = fn(obj: *i8, size: u16): *i8 {
+                const ptr = cstd::malloc(size);
+                cstd::memcpy(ptr, obj, size);
+                return ptr;
+            };
+
             const file_str = strings::make_from(&ent.d_name);
+
+            const file_str_ptr = @cast(*strings::string, promote(&file_str, @valuesize(file_str)));
+
+            cstd::printf("filestrptr:%s: %d\n", file_str_ptr.data, file_str_ptr.len);
+
             cstd::printf("str len of file str is '%s' is %d\n", file_str.data, file_str.len);
-            lists::push(&list_of_files, @cast(*i8, &file_str));
+            lists::push(&list_of_files, @cast(*i8, file_str_ptr));
         };
         if ent.d_type == 4 {
             cstd::puts("\t\t\tFOLDER");
@@ -53,7 +72,7 @@ const list_files = fn(path: *i8) {
         return;
     });
 
-    return;
+    return list_of_files;
 };
 
 const compile = fn() {
@@ -84,7 +103,15 @@ const main = fn(argc: i8, argv: **i8): i32 {
     compile();
 
     cstd::puts("about to list files..");
-    list_files("src");
+    const files = list_files(".");
+
+    cstd::puts("Listing files returned.");
+    cstd::printf("Got %d files.\n", files.len);
+    lists::each(&files, fn(index: i32, data: *i8){
+        const str = @cast(*strings::string, data);
+        cstd::printf("\tFile: '%s'\n", str.data);
+        return;
+    });
 
     const mylist: lists::list = lists::make(4);
 
@@ -104,5 +131,10 @@ const main = fn(argc: i8, argv: **i8): i32 {
         return;
     });
 
+    lists::each(&files, fn(index: i32, data: *i8){
+        const str = @cast(*strings::string, data);
+        cstd::free(str.data);
+        return;
+    });
     return 0;
 };
