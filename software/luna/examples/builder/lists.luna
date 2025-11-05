@@ -34,9 +34,9 @@ const make = fn(element_size: i32): lists::list {
 
 const push = fn(l: *lists::list, data: *i8) {
   if l.len == l.cap {
-      cstd::puts("Must grow list.");
+      // cstd::puts("Must grow list.");
   } else {
-      cstd::puts("No need to grow list.");
+      // cstd::puts("No need to grow list.");
       const ptr = l.data;
       ptr[l.len] = data;
       l.len = l.len + 1;

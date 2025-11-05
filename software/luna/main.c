@@ -164,7 +164,7 @@ int main(int argc, char **argv) {
   cg_make_entrypoint(&code_generator, global_module_initializer);
   puts("Done code gen");
 
-  LLVMDumpModule(code_generator.module);
+  // LLVMDumpModule(code_generator.module);
 
   char *error = NULL;
   if (LLVMPrintModuleToFile(code_generator.module, "out/compiled.ll", &error) !=

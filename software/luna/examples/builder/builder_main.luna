@@ -15,15 +15,14 @@ const promote = fn(obj: *i8, size: u16): *i8 {
 
 
 const list_files = fn(path: *i8): lists::list {
-    cstd::printf("Files in %s:\n", path);
 
-    cstd::puts("Opening dir..");
+    // cstd::puts("Opening dir..");
     const dir = cstd::opendir(path);
     if dir == 0 {
         cstd::perror("opendir");
         assert(0);
     };
-    cstd::puts("Opened dir.");
+    // cstd::puts("Opened dir.");
 
     let ent = @cast(*cstd::dirent, 0);
 
@@ -31,42 +30,42 @@ const list_files = fn(path: *i8): lists::list {
     const first_file_str = strings::make("../cstd.luna");
     lists::push(&list_of_files, promote(&first_file_str, @valuesize(first_file_str)));
 
-    cstd::printf("Size of string: %d - %d\n", list_of_files.size, @typesize(strings::string));
+    // cstd::printf("Size of string: %d - %d\n", list_of_files.size, @typesize(strings::string));
 
-    const str = strings::make("foo");
+    // const str = strings::make("foo");
 
-    const raw = "hello";
-    const str2 = strings::make_from(raw);
+    // const raw = "hello";
+    // const str2 = strings::make_from(raw);
 
-    cstd::printf("Len of '%s' is %d\n", str.data, str.len);
-    cstd::printf("Len of '%s' is %d\n", str2.data, str2.len);
+    // cstd::printf("Len of '%s' is %d\n", str.data, str.len);
+    // cstd::printf("Len of '%s' is %d\n", str2.data, str2.len);
 
     ent = cstd::readdir(dir);
     while ent != 0 {
-        cstd::printf("\tread something.\n");
-        cstd::printf("\t\t%s\n", &ent.d_name);
-        cstd::printf("\t\t\ttype: %d\n", ent.d_type);
+        // cstd::printf("\tread something.\n");
+        // cstd::printf("\t\t%s\n", &ent.d_name);
+        // cstd::printf("\t\t\ttype: %d\n", ent.d_type);
         if ent.d_type == 8 {
-            cstd::puts("\t\t\tFILE");
+            // cstd::puts("\t\t\tFILE");
 
             const file_str = strings::make_from(&ent.d_name);
 
             const file_str_ptr = @cast(*strings::string, promote(&file_str, @valuesize(file_str)));
 
-            cstd::printf("filestrptr:%s: %d\n", file_str_ptr.data, file_str_ptr.len);
+            // cstd::printf("filestrptr:%s: %d\n", file_str_ptr.data, file_str_ptr.len);
 
-            cstd::printf("str len of file str is '%s' is %d\n", file_str.data, file_str.len);
+            // cstd::printf("str len of file str is '%s' is %d\n", file_str.data, file_str.len);
             lists::push(&list_of_files, @cast(*i8, file_str_ptr));
         };
         if ent.d_type == 4 {
-            cstd::puts("\t\t\tFOLDER");
+            // cstd::puts("\t\t\tFOLDER");
         };
         ent = cstd::readdir(dir);
     };
 
-    cstd::puts("Closing dir..");
+    // cstd::puts("Closing dir..");
     cstd::closedir(dir);
-    cstd::puts("Closed dir.");
+    // cstd::puts("Closed dir.");
 
     cstd::puts("File names:");
 
@@ -83,7 +82,6 @@ const list_files = fn(path: *i8): lists::list {
 const compile_with_exec = fn(l: *lists::list) {
     const pid = cstd::fork();
     if pid == 0 {
-        cstd::printf("we have %d files to compile.\n", l.len);
         const args = @cast(**i8, cstd::malloc(l.len * @typesize(*i8) + 2));
         args[0] = "lunac";
         let index = 0;
@@ -96,8 +94,6 @@ const compile_with_exec = fn(l: *lists::list) {
             index = index + 1;
         };
         args[index+1] = @cast(*i8, 0);
-        // const args: [*i8; 3] = ["ls", "-l", @cast(*u8, 0)];
-        cstd::puts("child process.");
 
         const fd = cstd::open("/dev/null", 1);
         if fd < 0 {
@@ -118,10 +114,8 @@ const compile_with_exec = fn(l: *lists::list) {
         cstd::printf("result: %d\n", result);
         cstd::exit(1);
     } else if pid > 0 {
-        cstd::puts("parent process, waiting for child...");
         const status: i32 = 0;
         cstd::waitpid(pid, &status, 0);
-        cstd::printf("parent found that child stopped, status: %d\n", status);
     } else {
         cstd::perror("failed to fork.");
         assert(0);
@@ -150,51 +144,50 @@ const compile = fn() {
 };
 
 const main = fn(argc: i8, argv: **i8): i32 {
-    cstd::puts("Hello from builder.");
-    cstd::printf("Builder got called with %d arguments.\n", argc);
-
-    let index = 0;
-    while index < argc {
-        cstd::printf("\t'%s'\n", argv[index]);
-        index = index + 1;
-    };
+    // cstd::printf("Builder got called with %d arguments.\n", argc);
+    //
+    // let index = 0;
+    // while index < argc {
+    //     cstd::printf("\t'%s'\n", argv[index]);
+    //     index = index + 1;
+    // };
 
     compile();
 
-    cstd::puts("about to list files..");
-    const files = list_files(".");
+    // cstd::puts("about to list files..");
+    // const files = list_files(".");
 
 
     // cstd::puts("running compile with exec:");
     // compile_with_exec(&files);
     // cstd::puts("ran.");
 
-
-    cstd::puts("Listing files returned.");
-    cstd::printf("Got %d files.\n", files.len);
-    lists::each(&files, fn(index: i32, data: *i8){
-        const str = @cast(*strings::string, data);
-        cstd::printf("\tFile: '%s'\n", str.data);
-        return;
-    });
-
-    const mylist: lists::list = lists::make(4);
-
-    lists::print(&mylist);
-
-    const a = 8;
-    const b = 3;
-    const c = 9;
-
-    lists::push(&mylist, &a);
-    lists::push(&mylist, &b);
-    lists::push(&mylist, &c);
-
-    lists::print(&mylist);
-    lists::each(&mylist, fn(idx:i32, v: *i8) {
-        cstd::printf("EACH: %d -> %d\n", idx+3, *v);
-        return;
-    });
+    //
+    // cstd::puts("Listing files returned.");
+    // cstd::printf("Got %d files.\n", files.len);
+    // lists::each(&files, fn(index: i32, data: *i8){
+    //     const str = @cast(*strings::string, data);
+    //     cstd::printf("\tFile: '%s'\n", str.data);
+    //     return;
+    // });
+    //
+    // const mylist: lists::list = lists::make(4);
+    //
+    // lists::print(&mylist);
+    //
+    // const a = 8;
+    // const b = 3;
+    // const c = 9;
+    //
+    // lists::push(&mylist, &a);
+    // lists::push(&mylist, &b);
+    // lists::push(&mylist, &c);
+    //
+    // lists::print(&mylist);
+    // lists::each(&mylist, fn(idx:i32, v: *i8) {
+    //     cstd::printf("EACH: %d -> %d\n", idx+3, *v);
+    //     return;
+    // });
 
     // lists::each(&files, fn(index: i32, data: *i8){
     //     const str = @cast(*strings::string, data);
