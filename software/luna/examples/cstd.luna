@@ -42,3 +42,5 @@ const closedir = fn@extern["closedir"](dirp: *cstd::DIR): i32;
 const strlen = fn@extern["strlen"](s: *i8): i32;
 
 const strncmp = fn@extern["strncmp"](a: *i8, b: *i8, len: i32): i32;
+const sprintf = fn@extern["sprintf"]@variadic(str: *i8, fmt: *i8): i32;
+const snprintf = fn@extern["snprintf"]@variadic(str: *i8, size: i32, fmt: *i8): i32;
