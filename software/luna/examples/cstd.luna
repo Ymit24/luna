@@ -40,3 +40,5 @@ const opendir = fn@extern["opendir"](path: *i8): *cstd::DIR;
 const readdir = fn@extern["readdir"](dirp: *cstd::DIR): *cstd::dirent;
 const closedir = fn@extern["closedir"](dirp: *cstd::DIR): i32;
 const strlen = fn@extern["strlen"](s: *i8): i32;
+
+const strncmp = fn@extern["strncmp"](a: *i8, b: *i8, len: i32): i32;

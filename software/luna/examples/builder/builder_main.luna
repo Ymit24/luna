@@ -144,55 +144,70 @@ const compile = fn() {
 };
 
 const main = fn(argc: i8, argv: **i8): i32 {
-    // cstd::printf("Builder got called with %d arguments.\n", argc);
-    //
-    // let index = 0;
-    // while index < argc {
-    //     cstd::printf("\t'%s'\n", argv[index]);
-    //     index = index + 1;
-    // };
+    if argc < 2 {
+        cstd::puts("usage: luna <command>");
 
-    compile();
+        return 1;
+    };
 
-    // cstd::puts("about to list files..");
-    // const files = list_files(".");
+    if cstd::strncmp("build", argv[1], 5) == 0 {
+        cstd::puts("found build");
+        compile();
+    } else if cstd::strncmp("run", argv[1], 3) == 0 {
+        cstd::puts("found run");
+    } else {
+        cstd::printf("unknown command '%s'.\n", argv[1]);
+        return 1;
+    };
 
-
-    // cstd::puts("running compile with exec:");
-    // compile_with_exec(&files);
-    // cstd::puts("ran.");
-
-    //
-    // cstd::puts("Listing files returned.");
-    // cstd::printf("Got %d files.\n", files.len);
-    // lists::each(&files, fn(index: i32, data: *i8){
-    //     const str = @cast(*strings::string, data);
-    //     cstd::printf("\tFile: '%s'\n", str.data);
-    //     return;
-    // });
-    //
-    // const mylist: lists::list = lists::make(4);
-    //
-    // lists::print(&mylist);
-    //
-    // const a = 8;
-    // const b = 3;
-    // const c = 9;
-    //
-    // lists::push(&mylist, &a);
-    // lists::push(&mylist, &b);
-    // lists::push(&mylist, &c);
-    //
-    // lists::print(&mylist);
-    // lists::each(&mylist, fn(idx:i32, v: *i8) {
-    //     cstd::printf("EACH: %d -> %d\n", idx+3, *v);
-    //     return;
-    // });
-
-    // lists::each(&files, fn(index: i32, data: *i8){
-    //     const str = @cast(*strings::string, data);
-    //     cstd::free(str.data);
-    //     return;
-    // });
     return 0;
 };
+
+// cstd::printf("Builder got called with %d arguments.\n", argc);
+//
+// let index = 0;
+// while index < argc {
+//     cstd::printf("\t'%s'\n", argv[index]);
+//     index = index + 1;
+// };
+
+// cstd::puts("about to list files..");
+// const files = list_files(".");
+
+
+// cstd::puts("running compile with exec:");
+// compile_with_exec(&files);
+// cstd::puts("ran.");
+
+//
+// cstd::puts("Listing files returned.");
+// cstd::printf("Got %d files.\n", files.len);
+// lists::each(&files, fn(index: i32, data: *i8){
+//     const str = @cast(*strings::string, data);
+//     cstd::printf("\tFile: '%s'\n", str.data);
+//     return;
+// });
+//
+// const mylist: lists::list = lists::make(4);
+//
+// lists::print(&mylist);
+//
+// const a = 8;
+// const b = 3;
+// const c = 9;
+//
+// lists::push(&mylist, &a);
+// lists::push(&mylist, &b);
+// lists::push(&mylist, &c);
+//
+// lists::print(&mylist);
+// lists::each(&mylist, fn(idx:i32, v: *i8) {
+//     cstd::printf("EACH: %d -> %d\n", idx+3, *v);
+//     return;
+// });
+
+// lists::each(&files, fn(index: i32, data: *i8){
+//     const str = @cast(*strings::string, data);
+//     cstd::free(str.data);
+//     return;
+// });
