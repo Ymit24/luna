@@ -14,8 +14,6 @@ bool can_operate_data_types(struct DataType *left, struct DataType *right,
                             enum BinaryExpressionType operation);
 bool can_store_data_type_in(struct DataType *value_type,
                             struct DataType *storage_type);
-void insert_symbol_entry(struct Annotator *annotator,
-                         struct SymbolTableEntry entry);
 void annotator_visit_function_statements(
     struct Annotator *annotator, struct FunctionStatementNode *statement);
 void annotator_visit_function_statement(
@@ -240,6 +238,34 @@ lookup_scoped_symbol_in(struct ScopedSymbolLiteralNode *scoped_symbol,
   return lookup_scoped_symbol_in(scoped_symbol->next, new_symbol_table);
 }
 
+struct SymbolTableEntry *
+lookup_symbol_in_local(struct LunaString symbol,
+                       struct SymbolTable *symbol_table) {
+  printf("About to check symbol: '%s' (locally)\n", symbol.data);
+  printf("here is the current symbol table:\n");
+
+  print_symbol_table(string_make("anon"), symbol_table);
+  printf("\n\n");
+
+  struct SymbolTableEntry *entry = symbol_table->head;
+
+  while (entry != NULL) {
+    if (entry->symbol.length == symbol.length &&
+        strncmp(entry->symbol.data, symbol.data, symbol.length) == 0) {
+      break;
+    }
+    entry = entry->next;
+  }
+
+  if (entry == NULL) {
+    return NULL;
+  }
+
+  assert(entry->symbol.length == symbol.length);
+  return entry;
+}
+
+// TODO: refactor to use local method to reduce duplicated code
 struct SymbolTableEntry *lookup_symbol_in(struct LunaString symbol,
                                           struct SymbolTable *symbol_table) {
   printf("About to check symbol: '%s'\n", symbol.data);

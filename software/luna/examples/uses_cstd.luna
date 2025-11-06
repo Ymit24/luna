@@ -1,0 +1,3 @@
+const main = fn () {
+    cstd::puts("hello world!");
+};

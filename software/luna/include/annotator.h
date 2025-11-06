@@ -120,6 +120,9 @@ struct ModuleStatementNode;
 void annotator_visit_module_statements(struct Annotator *annotator,
                                        struct ModuleStatementNode *statement);
 
+struct SymbolTableEntry *
+lookup_symbol_in_local(struct LunaString symbol,
+                       struct SymbolTable *symbol_table);
 struct SymbolTableEntry *lookup_symbol_in(struct LunaString symbol,
                                           struct SymbolTable *symbol_table);
 struct SymbolTableEntry *lookup_symbol(struct Annotator *annotator,
@@ -173,4 +176,7 @@ lookup_scoped_symbol_in(struct ScopedSymbolLiteralNode *scoped_symbol,
                         struct SymbolTable *symbol_table);
 
 void print_scoped_symbol(struct ScopedSymbolLiteralNode *scoped_symbol);
+
+void insert_symbol_entry(struct Annotator *annotator,
+                         struct SymbolTableEntry entry);
 #endif

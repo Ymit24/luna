@@ -11,6 +11,7 @@
 #include "llvm-backend/code_generator.h"
 #include "luna_string.h"
 #include "parser.h"
+#include "symbol_table_builder.h"
 #include "token.h"
 #include "llvm-c/Core.h"
 
@@ -152,6 +153,17 @@ int main(int argc, char **argv) {
   annotator.current_symbol_table = &annotator.root_symbol_table;
 
   annotator_initialize_primitives(&annotator);
+
+  puts("\n\n\n\n------------------\n");
+  puts("symbol table build");
+  puts("");
+
+  sym_tbl_build(&annotator, new_root);
+  puts("++++++++++++++++++\n\n\n\n\n");
+  print_symbol_table(string_make("Root"), &annotator.root_symbol_table);
+
+  assert(0);
+
   annotator_visit_module_statements(&annotator, new_root);
 
   print_symbol_table(string_make("Root"), &annotator.root_symbol_table);

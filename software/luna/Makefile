@@ -14,7 +14,7 @@ LDFLAGS := $(LLVM_LDFLAGS) $(LLVM_LIBS)
 SRC := main.c \
        src/luna_string.c src/lexer.c src/parser.c src/ast.c \
        src/arena_allocator.c src/interpreter.c src/annotator.c \
-       src/instruction_builder.c src/llvm-backend/code_generator.c
+       src/instruction_builder.c src/llvm-backend/code_generator.c src/symbol_table_builder.c
 
 .PHONY: all clean
 
