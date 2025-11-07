@@ -1,6 +1,12 @@
 const main = fn() {
     const json_ex = "{ \"x\": 10 }";
+    const parsed = json::parse(json_ex);
+    const fields = parsed.object.fields;
+    const first_field = fields[0];
 
+    assert(strings::equal(strings::make("x"), first_field.name));
+    assert(first_field.value.type == ValueType::NUMBER);
+    assert(first_field.value.number == 10);
 };
 
 const json = mod {
@@ -151,9 +157,9 @@ const json = mod {
         };
     };
 
-    const parse = fn(str: strings::string): *Object {
+    const parse = fn(str: strings::string): *Value {
         const context = parser::make(str);
-        return parser::parse_object(context);
+        return parser::parse_value(context);
     };
 
     const to_string = fn(value: *Value): strings::string {
