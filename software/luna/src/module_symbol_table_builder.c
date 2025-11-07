@@ -57,6 +57,12 @@ void mstb_visit_module(struct Annotator *annotator,
   puts("Creating queue..");
   struct Queue *queue = queue_make(annotator->allocator);
 
+  root->node.decl->expression->node.module_definition->symbol_table =
+      (struct SymbolTable){.head = NULL,
+                           .type = STT_MOD,
+                           .current_index = 0,
+                           .parent = &annotator->root_symbol_table};
+
   queue_push(annotator->allocator, queue, root);
 
   while (queue->head != NULL) {
@@ -68,12 +74,33 @@ void mstb_visit_module(struct Annotator *annotator,
              head->node.decl->symbol.data);
       print_data_type(head->node.decl->data_type);
       printf("'\n");
+      // print_symbol_table(
+      //     head->node.decl->symbol,
+      //     &head->node.decl->expression->node.module_definition->symbol_table);
     }
 
     if (head->node.decl->expression->type == EXPR_MOD_DEF) {
       struct ModuleStatementNode *stmt =
           head->node.decl->expression->node.module_definition->statements;
       while (stmt != NULL) {
+        if (stmt->node.decl->expression->type == EXPR_MOD_DEF) {
+          stmt->node.decl->expression->node.module_definition->symbol_table =
+              (struct SymbolTable){.head = NULL,
+                                   .type = STT_MOD,
+                                   .current_index = 0,
+                                   .parent =
+                                       &head->node.decl->expression->node
+                                            .module_definition->symbol_table};
+        } else if (stmt->node.decl->expression->type == EXPR_STRUCT_DEF) {
+          stmt->node.decl->expression->node.struct_def->symbol_table =
+              (struct SymbolTable){.head = NULL,
+                                   .type = STT_STRUCT,
+                                   .current_index = 0,
+                                   .parent =
+                                       &head->node.decl->expression->node
+                                            .module_definition->symbol_table};
+        }
+
         queue_push(annotator->allocator, queue, stmt);
         stmt = stmt->next;
       }
