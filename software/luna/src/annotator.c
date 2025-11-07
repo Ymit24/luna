@@ -909,7 +909,7 @@ void annotator_visit_decl(struct Annotator *annotator,
   if (is_module) {
     assert(lookup_symbol(annotator, decl->symbol) != NULL);
   } else {
-    assert(lookup_symbol(annotator, decl->symbol) != NULL);
+    assert(lookup_symbol(annotator, decl->symbol) == NULL);
   }
   puts("precheck");
   struct DataType *type = infer_type(annotator, decl->expression);
