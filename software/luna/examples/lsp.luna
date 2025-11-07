@@ -10,17 +10,48 @@ const main = fn() {
 };
 
 const lsp = mod {
+    const MessageType = mod {
+        UNKNOWN = 0;
+        START = 1;
+    };
+
+    const Message = struct {
+        type: i32,
+    };
+
     const transport = mod {
         const decode = fn(packet: strings::string): *json::Object {
             const header = strings::make("Content-Length: ");
             assert(strings::starts_with(packet, header));
-            // ... decode the length
 
-            const body: strings::string = ...; // string which is after \r\n
-            const result = json::parse(body);
+            const content_length_slice = strings::slice(packet, header.len); // points into header after "Context-Length: "
+            const relative_index_of_ws = strings::first_where(content_length_slice, cstd::iswhitespace);
+
+            const content_length = strings::parse::integer(content_length_slice, relative_index_of_ws);
+
+            const body: strings::string = strings::slice(packet, header.len + relative_index_of_ws);
+            const result = json::parse(strings::substring(body, content_length));
             assert(result.type == json::ValueType::OBJECT);
 
             return result.object;
+        };
+
+        const decode_message = fn(packet: strings::string): Message {
+            const raw_message = decode(packet);
+            const message_type = json::object::get(raw_message, strings::make("message_type"));
+
+            assert(message_type != @cast(*json::Value, 0));
+            assert(message_type.type == json::ValueType::STRING);
+
+            if strings::equal(strings::make("textDocument/initialize"), message_type) {
+                return .Message {
+                    type: MessageType::START
+                };
+            }
+
+            return .Message {
+                type: MessageType::UNKNOWN
+            };
         };
 
         const encode = fn(body: *json::Object): strings::string {
@@ -37,6 +68,20 @@ const json = mod {
 
     const Object = struct {
         fields: *Field,
+    };
+
+    const object = mod {
+        const get = fn(obj: *Object, name: strings::string): *Value {
+            let field = obj.fields;
+            while field != @cast(*Field, 0) {
+                if strings::equal(name, field.name) {
+                    return field.value;
+                };
+                field = field.next;
+            };
+
+            return @cast(*Value, 0);
+        };
     };
 
     const ValueType = mod {
