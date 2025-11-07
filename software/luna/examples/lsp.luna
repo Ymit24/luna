@@ -1,0 +1,280 @@
+const main = fn() {
+    const json_ex = "{ \"x\": 10 }";
+    const parsed = json::parse(json_ex);
+    const fields = parsed.object.fields;
+    const first_field = fields[0];
+
+    assert(strings::equal(strings::make("x"), first_field.name));
+    assert(first_field.value.type == ValueType::NUMBER);
+    assert(first_field.value.number == 10);
+};
+
+const lsp = mod {
+    const MessageType = mod {
+        UNKNOWN = 0;
+        START = 1;
+    };
+
+    const Message = struct {
+        type: i32,
+    };
+
+    const transport = mod {
+        const decode = fn(packet: strings::string): *json::Object {
+            const header = strings::make("Content-Length: ");
+            assert(strings::starts_with(packet, header));
+
+            const content_length_slice = strings::slice(packet, header.len); // points into header after "Context-Length: "
+            const relative_index_of_ws = strings::first_where(content_length_slice, cstd::iswhitespace);
+
+            const content_length = strings::parse::integer(content_length_slice, relative_index_of_ws);
+
+            const body: strings::string = strings::slice(packet, header.len + relative_index_of_ws);
+            const result = json::parse(strings::substring(body, content_length));
+            assert(result.type == json::ValueType::OBJECT);
+
+            return result.object;
+        };
+
+        const decode_message = fn(packet: strings::string): Message {
+            const raw_message = decode(packet);
+            const message_type = json::object::get(raw_message, strings::make("message_type"));
+
+            assert(message_type != @cast(*json::Value, 0));
+            assert(message_type.type == json::ValueType::STRING);
+
+            if strings::equal(strings::make("textDocument/initialize"), message_type) {
+                return .Message {
+                    type: MessageType::START
+                };
+            }
+
+            return .Message {
+                type: MessageType::UNKNOWN
+            };
+        };
+
+        const encode = fn(body: *json::Object): strings::string {
+        };
+    };
+};
+
+const json = mod {
+    const Field = struct {
+        name: strings::string,
+        value: *Value,
+        next: *Field
+    };
+
+    const Object = struct {
+        fields: *Field,
+    };
+
+    const object = mod {
+        const get = fn(obj: *Object, name: strings::string): *Value {
+            let field = obj.fields;
+            while field != @cast(*Field, 0) {
+                if strings::equal(name, field.name) {
+                    return field.value;
+                };
+                field = field.next;
+            };
+
+            return @cast(*Value, 0);
+        };
+    };
+
+    const ValueType = mod {
+        const UNKNOWN = 0;
+        const STRING = 1;
+        const NUMBER = 2;
+        const BOOL = 3;
+        const ARRAY = 4;
+        const OBJECT = 5;
+    };
+
+    const Element = struct {
+        value: *Value,
+        next: *Element,
+    };
+
+    const Array = struct {
+        elements: *Element,
+        length: i32
+    };
+
+    const Value = struct {
+        type: i32,
+        string: strings::string,
+        number: i64,
+        bool: i1,
+        array: *Array,
+        object: *Object,
+    };
+
+    const parser = mod {
+        const context = struct {
+            source: strings::string,
+            index: i32.
+        };
+
+        fn make = fn(str: strings::string): context {
+            return .context {
+                source: str,
+                index: 0,
+            };
+        };
+
+        fn peek = fn(context: *context): i8 {
+            fn peek_inner = fn(context: *Context) {
+                if context.index >= context.source.len {
+                    return -1;
+                }
+                const ptr = context.source.data;
+                return ptr[context.index];
+            };
+
+            while cstd::iswhitespace(peek_inner(context)) {
+                context.index = context.index + 1;
+            }
+
+            return peek_inner(context);
+        };
+
+        fn expect = fn(context, *context, expected: i8) {
+            const actual = peek(context);
+            assert(actual == expected);
+            context.index = context.index + 1;
+        }
+
+        fn parse_field = fn(context, *context): *Field {
+            const name = parse_string(context);
+            expect(context, ':');
+            const value = parse_value(context);
+
+            return .Field {
+                name: name,
+                value: value,
+                next: @cast(*Field,0),
+            };
+        };
+
+        fn parse_object = fn(context: *context): *Object {
+            expect(context, '{');
+            const head_field = parse_field(context);
+            let tail_field = head_field;
+            while peek(context) == ',' {
+                expect(context, ',');
+                tail_field.next = parse_field(context);
+                tail_field = tail_field.next;
+            };
+            expect(context, '}');
+
+            return .Object {
+                fields: head_field
+            };
+        };
+
+        fn parse_array = fn(context:: *Context): *Value {
+            expect(context, '[');
+            if peek(context) == ']' {
+                return .Array {
+                    elements: @cast(*Element,0),
+                    length: 0,
+                };
+            };
+            const head_element = .Element {
+                value: parse_value(),
+                next: @cast(*Element, 0),
+            };
+            let tail_element = head_element;
+
+            let length = 1;
+
+            while peek(context) == ',' {
+                expect(context, ',');
+                tail_element.next = .Element {
+                    value: parse_value(context),
+                    next: @cast(*Element, 0),
+                };
+                tail_element = tail_element.next;
+                length = length + 1;
+            };
+
+            expect(context, ']');
+
+            return .Array {
+                elements: head_element,
+                length: length,
+            };
+        };
+
+        fn parse_value = fn(context: *Context): *Value {
+            const inner = fn(context: *Context): Value {
+                const token = peek(context);
+                if token == '"' {
+                    return .Value {
+                        type: ValueType::STRING,
+                        string: parse_string(),
+                    };
+                } else if token == '[' {
+                    return parse_array(context);
+                } else if token == '{' {
+                    return parse_object(context);
+                } else if cstd::isdigit(token) {
+                    return .Value {
+                        type: ValueType::NUMBER,
+                        number: parse_number(context),
+                    };
+                };
+            };
+
+            const result = inner(context);
+            return @cast(*Value, promote(&result, @valuesize(result)));
+        };
+    };
+
+    const parse = fn(str: strings::string): *Value {
+        const context = parser::make(str);
+        return parser::parse_value(context);
+    };
+
+    const to_string = fn(value: *Value): strings::string {
+        const result = strings::make();
+
+        assert(value.type != ValueType::UNKNOWN);
+        if value.type == ValueType::NUMBER {
+            strings::append::integer(&result, value.number);
+        } else if value.type == ValueType::STRING {
+            strings::append::cstr(&result, "\"");
+            strings::append::string(&result, value.string);
+            strings::append::cstr(&result, "\"");
+        } else if value.type == ValueType::BOOL {
+            strings::append::cstr(&result, value.bool ? "true" : "false");
+        } else if value.type == ValueType::ARRAY {
+            strings::append::cstr(&result, "[");
+            let element = value.array.elements;
+            while element != @cast(*Element, 0) {
+                const inner = to_string(element.value);
+                strings::append::string(&result, inner);
+                element = element.next;
+            };
+            strings::append::cstr(&result, "]");
+        } else if value.type == ValueType::OBJECT {
+            strings::append::cstr(&result, "{");
+            let field = value.object.fields;
+            while field != @cast(*Element, 0) {
+                strings::append::cstr(&result, "\"");
+                strings::append::string(&result, field.name);
+                strings::append::cstr(&result, "\":");
+
+                const inner = to_string(field.value);
+                strings::append::string(&result, inner);
+                field = field.next;
+            };
+            strings::append::cstr(&result, "}");
+        };
+
+        return result;
+    };
+};

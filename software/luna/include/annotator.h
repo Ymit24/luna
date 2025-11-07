@@ -171,4 +171,6 @@ bool scoped_symbols_equal(struct ScopedSymbolLiteralNode *left,
 struct SymbolTableEntry *
 lookup_scoped_symbol_in(struct ScopedSymbolLiteralNode *scoped_symbol,
                         struct SymbolTable *symbol_table);
+
+void print_scoped_symbol(struct ScopedSymbolLiteralNode *scoped_symbol);
 #endif

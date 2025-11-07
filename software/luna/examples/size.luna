@@ -1,0 +1,26 @@
+const printf = fn@extern["printf"]@variadic(fmt: *i8): i32;
+
+const s = struct {
+    x: i32,
+    y: i64,
+};
+
+const main = fn() {
+  const a: i8 = 9;
+  const b: i16 = 5;
+  const c: i32 = 5;
+  const d: i64 = 5;
+
+  const ss = .s {x: 1, y: 9};
+
+  printf(
+      "size of a: %d %d %d %d %d\n",
+      @valuesize(a),
+      @valuesize(b),
+      @valuesize(c),
+      @valuesize(d),
+      @valuesize(ss),
+      @typesize(s)
+  );
+  return;
+};

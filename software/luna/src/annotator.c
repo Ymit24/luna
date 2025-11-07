@@ -324,6 +324,10 @@ get_or_resolve_struct_definition_from_type(struct DataType *type,
                                            struct SymbolTable *symbol_table) {
   assert(type != NULL);
 
+  puts("TYPE IS:\n\t");
+  print_data_type(type);
+  puts("");
+
   assert(type->kind == DTK_STRUCTURE ||
          (type->kind == DTK_POINTER && type->value.pointer_inner != NULL &&
           type->value.pointer_inner->kind == DTK_STRUCTURE));
@@ -596,6 +600,30 @@ struct DataType *infer_type(struct Annotator *annotator,
 
         },
         sizeof(struct DataType));
+  case EXPR_VALUESIZE:
+    return ast_promote(annotator->allocator,
+                       &(struct DataType){.kind = DTK_PRIMITIVE,
+                                          .next = NULL,
+                                          .value.primitive =
+                                              (struct PrimitiveType){
+                                                  .kind = P_INT,
+                                                  .bitwidth = 32,
+                                                  .is_signed = 0,
+                                              }},
+                       sizeof(struct DataType));
+
+    break;
+  case EXPR_TYPESIZE:
+    return ast_promote(annotator->allocator,
+                       &(struct DataType){.kind = DTK_PRIMITIVE,
+                                          .next = NULL,
+                                          .value.primitive =
+                                              (struct PrimitiveType){
+                                                  .kind = P_INT,
+                                                  .bitwidth = 32,
+                                                  .is_signed = 0,
+                                              }},
+                       sizeof(struct DataType));
   default:
     puts("fell through default");
     printf("kind: %d\n", expr->type);
@@ -851,6 +879,13 @@ void annotator_visit_expr(struct Annotator *annotator,
                                       expr->node.module_definition->statements);
 
     annotator->current_symbol_table = old_symbol_table;
+    break;
+  case EXPR_VALUESIZE:
+    puts("[visit @valuesize]");
+    annotator_visit_expr(annotator, expr->node.valuesize);
+    break;
+  case EXPR_TYPESIZE:
+    puts("[visit @typesize]");
     break;
   }
 }
@@ -1194,8 +1229,6 @@ bool can_store_data_type_in(struct DataType *value_type,
     return can_store_data_type_in(value_type->value.function.return_type,
                                   storage_type->value.function.return_type);
   case DTK_VOID:
-    puts("This seems illegal..");
-    assert(0);
     return true;
   case DTK_STRUCTURE:
     if (!scoped_symbols_equal(value_type->value.structure.name,
@@ -1308,7 +1341,9 @@ bool can_operate_data_types(struct DataType *left, struct DataType *right,
       operation == BIN_EXPR_ADD || operation == BIN_EXPR_SUB;
 
   bool operation_is_logical =
-      operation == BIN_EXPR_GT || operation == BIN_EXPR_LT;
+      operation == BIN_EXPR_GT || operation == BIN_EXPR_LT ||
+      operation == BIN_EXPR_EQ || operation == BIN_EXPR_NEQ ||
+      operation == BIN_EXPR_LEQ || operation == BIN_EXPR_GEQ;
 
   switch (left->kind) {
   case DTK_PRIMITIVE:

@@ -95,6 +95,14 @@ uint8_t precedence_for_token(enum TokenType type) {
     return 3;
   case T_RANGLE:
     return 3;
+  case T_EQEQ:
+    return 3;
+  case T_LEQ:
+    return 3;
+  case T_GEQ:
+    return 3;
+  case T_NTEQ:
+    return 3;
   case T_RPAREN:
     return 0;
   case T_RBRACE:
@@ -217,13 +225,14 @@ parse_struct_field_access(struct Parser *parser) {
 
   assert(parser_peek(parser).type == T_SYMBOL);
   struct LunaString symbol = parser_peek(parser).value.symbol;
+  printf("Got symbol: '%s'\n", symbol.data);
   parser->position++;
 
   return ast_promote(
       parser->allocator,
       &(struct StructFieldAccessInnerExpressionNode){
           .symbol = symbol, .next = parse_struct_field_access(parser)},
-      sizeof(struct StructFieldAccessExpressionNode));
+      sizeof(struct StructFieldAccessInnerExpressionNode));
 }
 
 struct ArrayInitializerExpressionNode *
@@ -268,6 +277,10 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
     }
     case T_PERIOD: {
       puts("found period, so this is field accessor");
+      printf("scoped symbol: ");
+      print_scoped_symbol(scoped_symbol);
+      puts("");
+
       return ast_promote_expression_node(
           parser->allocator,
           (struct ExpressionNode){
@@ -278,8 +291,6 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
                                   .root_symbol = scoped_symbol,
                                   .next = parse_struct_field_access(parser)},
                               sizeof(struct StructFieldAccessExpressionNode))});
-      ;
-      break;
     }
     case T_LBRACK:
       puts("Found index operation");
@@ -361,6 +372,32 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
         sizeof(struct ExpressionNode));
     break;
   }
+  case T_VALUESIZE:
+    parser->position++;
+    assert(parser_peek(parser).type == T_LPAREN);
+    parser->position++;
+
+    struct ExpressionNode *expr = parse_expression(parser, 0);
+
+    assert(parser_peek(parser).type == T_RPAREN);
+    parser->position++;
+
+    return ast_promote_expression_node(
+        parser->allocator, (struct ExpressionNode){.type = EXPR_VALUESIZE,
+                                                   .node.valuesize = expr});
+  case T_TYPESIZE:
+    parser->position++;
+    assert(parser_peek(parser).type == T_LPAREN);
+    parser->position++;
+
+    struct DataType *dt = parse_data_type(parser);
+
+    assert(parser_peek(parser).type == T_RPAREN);
+    parser->position++;
+
+    return ast_promote_expression_node(
+        parser->allocator,
+        (struct ExpressionNode){.type = EXPR_TYPESIZE, .node.typesize = dt});
   case T_CAST: {
     parser->position++;
 
@@ -640,6 +677,42 @@ struct ExpressionNode *parse_expression(struct Parser *parser,
               .node.binary = ast_make_binary_expression(
                   parser->allocator, BIN_EXPR_GT, left,
                   parse_expression(parser, precedence_for_token(T_RANGLE)))});
+      break;
+    case T_EQEQ:
+      left = ast_promote_expression_node(
+          parser->allocator,
+          (struct ExpressionNode){
+              .type = EXPR_BINARY,
+              .node.binary = ast_make_binary_expression(
+                  parser->allocator, BIN_EXPR_EQ, left,
+                  parse_expression(parser, precedence_for_token(T_EQEQ)))});
+      break;
+    case T_NTEQ:
+      left = ast_promote_expression_node(
+          parser->allocator,
+          (struct ExpressionNode){
+              .type = EXPR_BINARY,
+              .node.binary = ast_make_binary_expression(
+                  parser->allocator, BIN_EXPR_NEQ, left,
+                  parse_expression(parser, precedence_for_token(T_NTEQ)))});
+      break;
+    case T_LEQ:
+      left = ast_promote_expression_node(
+          parser->allocator,
+          (struct ExpressionNode){
+              .type = EXPR_BINARY,
+              .node.binary = ast_make_binary_expression(
+                  parser->allocator, BIN_EXPR_LEQ, left,
+                  parse_expression(parser, precedence_for_token(T_LEQ)))});
+      break;
+    case T_GEQ:
+      left = ast_promote_expression_node(
+          parser->allocator,
+          (struct ExpressionNode){
+              .type = EXPR_BINARY,
+              .node.binary = ast_make_binary_expression(
+                  parser->allocator, BIN_EXPR_GEQ, left,
+                  parse_expression(parser, precedence_for_token(T_GEQ)))});
       break;
     default:
       printf("Found unexpected token of type %d\n", token.type);
@@ -1060,8 +1133,6 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
         break;
       }
     }
-    printf("\n\n\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-           "---\n\n");
 
     assert(parser_peek(parser).type == T_SEMICOLON);
     parser->position++;
@@ -1201,6 +1272,8 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
     case EXPR_REF:
     case EXPR_CAST:
     case EXPR_MOD_DEF:
+    case EXPR_VALUESIZE:
+    case EXPR_TYPESIZE:
       puts("illegal expression type as function statement.");
       assert(0);
       return NULL;

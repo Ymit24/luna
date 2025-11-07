@@ -40,7 +40,7 @@ struct ModuleStatementNode *parse_source_file(struct ArenaAllocator *allocator,
   struct LunaString src = read_file(source_file, allocator);
   struct Lexer lexer = lexer_make(allocator, src);
 
-  struct Token toks[1024];
+  struct Token toks[4096];
   uint16_t tok_index = 0;
 
   puts("tokens:");
@@ -164,7 +164,7 @@ int main(int argc, char **argv) {
   cg_make_entrypoint(&code_generator, global_module_initializer);
   puts("Done code gen");
 
-  LLVMDumpModule(code_generator.module);
+  // LLVMDumpModule(code_generator.module);
 
   char *error = NULL;
   if (LLVMPrintModuleToFile(code_generator.module, "out/compiled.ll", &error) !=

@@ -1,0 +1,66 @@
+const list = struct {
+  data: **i8,
+  len: i32,
+  cap: i32,
+  size: i32,
+};
+
+const make = fn(element_size: i32): lists::list {
+  return .lists::list {
+      data: cstd::malloc(element_size * 10)
+      len: 0,
+      cap: 10,
+      size: element_size
+  };
+};
+
+// TODO: may need to get some more stuff done before this.
+// const prepend = fn(l: *lists::list, data: *i8) {
+//     if l.len == 0 {
+//         const ptr = l.data;
+//         ptr[0] = data;
+//         l.len = 1;
+//     } else if l.len < l.cap {
+//         // 1. memcpy shift down
+//         const ptr = l.data;
+//         // cstd::memmove(ptr + @cast(i8, l.len + 1 ));
+//         // 2. insert new
+//         const ptr = l.data;
+//         ptr[l.len] = data;
+//         // 3. update len
+//         l.len = l.len + 1;
+//     };
+// };
+
+const push = fn(l: *lists::list, data: *i8) {
+  if l.len == l.cap {
+      // cstd::puts("Must grow list.");
+  } else {
+      // cstd::puts("No need to grow list.");
+      const ptr = l.data;
+      ptr[l.len] = data;
+      l.len = l.len + 1;
+  };
+  return;
+};
+
+const each = fn(l: *lists::list, f: fn(index: i32, value: *i8)) {
+  let index = 0;
+
+  while index < l.len {
+      const ptr = l.data;
+      f(index, ptr[index]);
+      index = index + 1;
+  };
+
+  return;
+};
+
+const print = fn(l: *lists::list) {
+  cstd::printf("list (%d/%d):\n", l.len, l.cap);
+  lists::each(l, fn(index:i32, value: *i8) {
+      cstd::printf("\t%d: %d\n", index, *value);
+      return;
+  });
+  return;
+};

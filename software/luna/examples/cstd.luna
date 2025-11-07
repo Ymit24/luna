@@ -1,0 +1,46 @@
+const puts = fn@extern["puts"](fmt: *i8):i32;
+const printf = fn@extern["printf"]@variadic(fmt: *i8): i32;
+
+const malloc = fn@extern["malloc"](size: i32): *i8;
+const free = fn@extern["free"](ptr: *i8);
+
+const memcpy = fn@extern["memcpy"](dst: *i8, src: *i8, size: i32);
+const memmove = fn@extern["memmove"](dst: *i8, src: *i8, size: i32);
+
+const abort = fn@extern["abort"]();
+
+const execvp = fn@extern["execvp"](file: *i8, argv: **i8): i32;
+const fork = fn@extern["fork"](): i32;
+const waitpid = fn@extern["waitpid"](pid: i32, status: *i32, options: i32): i32;
+const exit = fn@extern["exit"](status: i32);
+const perror = fn@extern["perror"](s: *i8);
+const system = fn@extern["system"](s: *i8):i32;
+
+
+// NOTE: This is macos version of dirent
+const dirent = struct {
+    d_fileno: i64,
+    d_seekoff: u64,
+    d_reclen: u16,
+    d_namlen: u16,
+    d_type: u8,
+    d_name: [i8; 1024],
+};
+
+const DIR = struct {
+    mystery: i8,
+    // NOTE: Dont actually access this besides as pointer.
+};
+
+const open = fn@extern["open"](pathname: *i8, flags: i32): i32;
+const close = fn@extern["close"](fd: i32);
+const dup2 = fn@extern["dup2"](oldfd: i32, newfd: i32): i32;
+
+const opendir = fn@extern["opendir"](path: *i8): *cstd::DIR;
+const readdir = fn@extern["readdir"](dirp: *cstd::DIR): *cstd::dirent;
+const closedir = fn@extern["closedir"](dirp: *cstd::DIR): i32;
+const strlen = fn@extern["strlen"](s: *i8): i32;
+
+const strncmp = fn@extern["strncmp"](a: *i8, b: *i8, len: i32): i32;
+const sprintf = fn@extern["sprintf"]@variadic(str: *i8, fmt: *i8): i32;
+const snprintf = fn@extern["snprintf"]@variadic(str: *i8, size: i32, fmt: *i8): i32;
