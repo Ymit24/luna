@@ -1,0 +1,51 @@
+const main = fn() {
+    const json_ex = "{ \"x\": 10 }";
+
+};
+
+const json = mod {
+    const Field = struct {
+        name: strings::string,
+        value: *Value
+    };
+
+    const Object = struct {
+        fields: *Field,
+    };
+
+    const Value = struct {
+        string: strings::string,
+        number: i64,
+        bool: i1,
+        array: *Value,
+        object: Object,
+    };
+
+    const parser = mod {
+        const context = struct {
+            source: strings::string,
+            index: i32.
+        };
+
+        fn make = fn(str: strings::string): context {
+            return .context {
+                source: str,
+                index: 0,
+            };
+        };
+
+        fn parse_token = fn(context: *context) {};
+
+        fn parse_object = fn(context: *context): *Object {
+        };
+    };
+
+    const parse = fn(str: strings::string): *Object {
+        const context = parser::make(str);
+        return parser::parse_object(context);
+    };
+
+    const to_string = fn(object: *Object) {
+        // ...
+    };
+};
