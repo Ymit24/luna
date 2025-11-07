@@ -149,6 +149,7 @@ int main(int argc, char **argv) {
       current = new_root;
     }
   }
+  new_root = wrap_module(&allocator, new_root, string_make("src"));
   struct Annotator annotator = annotator_make(&allocator);
   annotator.current_symbol_table = &annotator.root_symbol_table;
 
