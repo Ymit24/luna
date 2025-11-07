@@ -9,6 +9,25 @@ const main = fn() {
     assert(first_field.value.number == 10);
 };
 
+const lsp = mod {
+    const transport = mod {
+        const decode = fn(packet: strings::string): *json::Object {
+            const header = strings::make("Content-Length: ");
+            assert(strings::starts_with(packet, header));
+            // ... decode the length
+
+            const body: strings::string = ...; // string which is after \r\n
+            const result = json::parse(body);
+            assert(result.type == json::ValueType::OBJECT);
+
+            return result.object;
+        };
+
+        const encode = fn(body: *json::Object): strings::string {
+        };
+    };
+};
+
 const json = mod {
     const Field = struct {
         name: strings::string,
@@ -62,11 +81,19 @@ const json = mod {
         };
 
         fn peek = fn(context: *context): i8 {
-            if context.index >= context.source.len {
-                return -1;
+            fn peek_inner = fn(context: *Context) {
+                if context.index >= context.source.len {
+                    return -1;
+                }
+                const ptr = context.source.data;
+                return ptr[context.index];
+            };
+
+            while cstd::iswhitespace(peek_inner(context)) {
+                context.index = context.index + 1;
             }
-            const ptr = context.source.data;
-            return ptr[context.index];
+
+            return peek_inner(context);
         };
 
         fn expect = fn(context, *context, expected: i8) {
@@ -138,22 +165,27 @@ const json = mod {
         };
 
         fn parse_value = fn(context: *Context): *Value {
-            const token = peek(context);
-            if token == '"' {
-                return .Value {
-                    type: ValueType::STRING,
-                    string: parse_string(),
-                };
-            } else if token == '[' {
-                return parse_array(context);
-            } else if token == '{' {
-                return parse_object(context);
-            } else if cstd::isdigit(token) {
-                return .Value {
-                    type: ValueType::NUMBER,
-                    number: parse_number(context),
+            const inner = fn(context: *Context): Value {
+                const token = peek(context);
+                if token == '"' {
+                    return .Value {
+                        type: ValueType::STRING,
+                        string: parse_string(),
+                    };
+                } else if token == '[' {
+                    return parse_array(context);
+                } else if token == '{' {
+                    return parse_object(context);
+                } else if cstd::isdigit(token) {
+                    return .Value {
+                        type: ValueType::NUMBER,
+                        number: parse_number(context),
+                    };
                 };
             };
+
+            const result = inner(context);
+            return @cast(*Value, promote(&result, @valuesize(result)));
         };
     };
 
