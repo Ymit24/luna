@@ -10,6 +10,7 @@
 #include "lexer.h"
 #include "llvm-backend/code_generator.h"
 #include "luna_string.h"
+#include "module_symbol_table_builder.h"
 #include "parser.h"
 #include "token.h"
 #include "llvm-c/Core.h"
@@ -150,6 +151,18 @@ int main(int argc, char **argv) {
   }
   struct Annotator annotator = annotator_make(&allocator);
   annotator.current_symbol_table = &annotator.root_symbol_table;
+
+  puts("\n\n\n\n\n\n");
+  puts("----------------------------------------------------------");
+  puts("Starting mstb visitation.");
+  puts("\n\n");
+
+  mstb_visit_module(&annotator, new_root);
+
+  puts("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
+  puts("\n\n\n\n\n\n");
+
+  assert(0);
 
   annotator_initialize_primitives(&annotator);
   annotator_visit_module_statements(&annotator, new_root);
