@@ -18,6 +18,12 @@ enum DataTypeKind {
   DTK_STRUCTURE_DEF,
   DTK_MODULE_DEF,
   DTK_MODULE,
+  DTK_RESOLVABLE
+};
+
+struct ResolvableType {
+  struct ScopedSymbolLiteralNode *scoped_symbol;
+  struct DataType *resolved_type;
 };
 
 enum PrimitiveKind { P_INT, P_FLOAT };
@@ -69,6 +75,7 @@ struct DataType {
     struct StructDefinitionType structure_definition;
     struct ModuleDefinitionType *module_definition;
     struct ModuleType *module;
+    struct ResolvableType resolvable;
   } value;
   struct DataType *next;
 };
@@ -177,4 +184,9 @@ void print_scoped_symbol(struct ScopedSymbolLiteralNode *scoped_symbol);
 struct SymbolTable *
 find_parent_table(struct SymbolTable *symbol_table,
                   enum SymbolTableType new_symbol_table_type);
+void insert_symbol_entry(struct Annotator *annotator,
+                         struct SymbolTableEntry entry);
+void insert_symbol_entry_in(struct Annotator *annotator,
+                            struct SymbolTable *symbol_table,
+                            struct SymbolTableEntry entry);
 #endif

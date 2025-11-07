@@ -14,8 +14,6 @@ bool can_operate_data_types(struct DataType *left, struct DataType *right,
                             enum BinaryExpressionType operation);
 bool can_store_data_type_in(struct DataType *value_type,
                             struct DataType *storage_type);
-void insert_symbol_entry(struct Annotator *annotator,
-                         struct SymbolTableEntry entry);
 void annotator_visit_function_statements(
     struct Annotator *annotator, struct FunctionStatementNode *statement);
 void annotator_visit_function_statement(
@@ -436,10 +434,22 @@ struct DataType *infer_type(struct Annotator *annotator,
     printf("symbol is: ");
     print_scoped_symbol(expr->node.scoped_symbol);
     puts("");
-    struct SymbolTableEntry *entry = lookup_scoped_symbol_in(
-        expr->node.scoped_symbol, annotator->current_symbol_table);
-    assert(entry != NULL);
-    return entry->type;
+    struct DataType *resolvable = ast_promote(
+        annotator->allocator,
+        &(struct DataType){.kind = DTK_RESOLVABLE,
+                           .value.resolvable =
+                               (struct ResolvableType){
+                                   .scoped_symbol = expr->node.scoped_symbol,
+                                   .resolved_type = NULL}},
+        sizeof(struct DataType));
+    puts("resolvable type created.");
+    print_data_type(resolvable);
+    assert(0);
+    return resolvable;
+    // struct SymbolTableEntry *entry = lookup_scoped_symbol_in(
+    //     expr->node.scoped_symbol, annotator->current_symbol_table);
+    // assert(entry != NULL);
+    // return entry->type;
   }
   case EXPR_STRING_LITERAL: {
     puts("infered string");
@@ -864,11 +874,12 @@ void annotator_visit_expr(struct Annotator *annotator,
   case EXPR_MOD_DEF:
     puts("[visit submodule]");
 
-    expr->node.module_definition->symbol_table = (struct SymbolTable){
-        .head = NULL,
-        .type = STT_MOD,
-        .parent = find_parent_table(annotator->current_symbol_table, STT_MOD),
-    };
+    // expr->node.module_definition->symbol_table = (struct SymbolTable){
+    //     .head = NULL,
+    //     .type = STT_MOD,
+    //     .parent = find_parent_table(annotator->current_symbol_table,
+    //     STT_MOD),
+    // };
 
     struct SymbolTable *old_symbol_table = annotator->current_symbol_table;
 
@@ -894,8 +905,12 @@ void annotator_visit_decl(struct Annotator *annotator,
                           struct DeclarationStatementNode *decl,
                           bool is_module) {
   assert(decl != NULL);
-  printf("symbol is: %s\n", decl->symbol.data);
-  assert(lookup_symbol(annotator, decl->symbol) == NULL);
+  printf("symbol is: '%s'\n", decl->symbol.data);
+  if (is_module) {
+    assert(lookup_symbol(annotator, decl->symbol) != NULL);
+  } else {
+    assert(lookup_symbol(annotator, decl->symbol) != NULL);
+  }
   puts("precheck");
   struct DataType *type = infer_type(annotator, decl->expression);
   puts("postcheck");
@@ -1170,6 +1185,17 @@ bool can_store_data_type_in(struct DataType *value_type,
   print_data_type(storage_type);
   puts(">");
 
+  if (value_type->kind == DTK_RESOLVABLE) {
+    puts("Found resolvable type for value type.");
+    return can_store_data_type_in(value_type->value.resolvable.resolved_type,
+                                  storage_type);
+  }
+  if (storage_type->kind == DTK_RESOLVABLE) {
+    puts("Found resolvable for storag type.");
+    return can_store_data_type_in(value_type,
+                                  storage_type->value.resolvable.resolved_type);
+  }
+
   if (value_type->kind == DTK_PRIMITIVE &&
       value_type->value.primitive.kind == P_INT &&
       storage_type->kind == DTK_POINTER) {
@@ -1260,6 +1286,10 @@ bool can_store_data_type_in(struct DataType *value_type,
     return true;
   case DTK_MODULE:
     return false;
+  case DTK_RESOLVABLE:
+    puts("Found resolvable type. Should not be able to reach this?");
+    assert(0);
+    return false;
   };
   return false;
 }
@@ -1307,6 +1337,9 @@ struct DataType *get_common_type(struct ArenaAllocator *allocator,
     case DTK_MODULE_DEF:
     case DTK_MODULE:
       break;
+    case DTK_RESOLVABLE:
+      return get_common_type(allocator, left,
+                             right->value.resolvable.resolved_type);
     }
   case DTK_POINTER:
     return left;
@@ -1320,6 +1353,9 @@ struct DataType *get_common_type(struct ArenaAllocator *allocator,
   case DTK_MODULE:
     assert(0);
     break;
+  case DTK_RESOLVABLE:
+    return get_common_type(allocator, left->value.resolvable.resolved_type,
+                           right);
   }
 
   assert(0);
@@ -1362,6 +1398,9 @@ bool can_operate_data_types(struct DataType *left, struct DataType *right,
     case DTK_MODULE:
       assert(0);
       return false;
+    case DTK_RESOLVABLE:
+      return can_operate_data_types(left, right->value.resolvable.resolved_type,
+                                    operation);
     }
     break;
   case DTK_POINTER:
@@ -1381,6 +1420,9 @@ bool can_operate_data_types(struct DataType *left, struct DataType *right,
   case DTK_MODULE:
     assert(0);
     return false;
+  case DTK_RESOLVABLE:
+    return can_operate_data_types(left->value.resolvable.resolved_type, right,
+                                  operation);
   }
 
   return false;
@@ -1598,6 +1640,18 @@ void print_data_type(struct DataType *data_type) {
     break;
   case DTK_MODULE:
     printf("mod_ref");
+    break;
+  case DTK_RESOLVABLE:
+    printf("resolvable(");
+    if (data_type->value.resolvable.resolved_type != NULL) {
+      print_scoped_symbol(data_type->value.resolvable.scoped_symbol);
+      printf(":");
+      print_data_type(data_type->value.resolvable.resolved_type);
+    } else {
+      printf("?");
+      print_scoped_symbol(data_type->value.resolvable.scoped_symbol);
+    }
+    printf(")");
     break;
   }
 }

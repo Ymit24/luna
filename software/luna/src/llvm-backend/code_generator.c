@@ -217,6 +217,11 @@ LLVMTypeRef cg_get_type(struct CodeGenerator *code_generator,
     puts("Illegal use of module (/def) type.");
     assert(0);
     return NULL;
+  case DTK_RESOLVABLE:
+    puts("Found resolvable type.");
+    assert(data_type->value.resolvable.resolved_type != NULL);
+    return cg_get_type(code_generator,
+                       data_type->value.resolvable.resolved_type);
   default:
     puts("Unknown data type kind.");
     assert(0);

@@ -63,6 +63,8 @@ void mstb_visit_module(struct Annotator *annotator,
                            .current_index = 0,
                            .parent = &annotator->root_symbol_table};
 
+  root->node.decl->data_type = infer_type(annotator, root->node.decl->expression);
+
   queue_push(annotator->allocator, queue, root);
 
   while (queue->head != NULL) {
@@ -74,9 +76,6 @@ void mstb_visit_module(struct Annotator *annotator,
              head->node.decl->symbol.data);
       print_data_type(head->node.decl->data_type);
       printf("'\n");
-      // print_symbol_table(
-      //     head->node.decl->symbol,
-      //     &head->node.decl->expression->node.module_definition->symbol_table);
     }
 
     if (head->node.decl->expression->type == EXPR_MOD_DEF) {
@@ -100,6 +99,28 @@ void mstb_visit_module(struct Annotator *annotator,
                                        &head->node.decl->expression->node
                                             .module_definition->symbol_table};
         }
+
+        struct DataType *inferred_type =
+            infer_type(annotator, stmt->node.decl->expression);
+
+        printf("inferred type: ");
+        print_data_type(inferred_type);
+        puts("");
+
+        insert_symbol_entry_in(
+            annotator,
+            &head->node.decl->expression->node.module_definition->symbol_table,
+            (struct SymbolTableEntry){
+                .symbol = stmt->node.decl->symbol,
+                .type = inferred_type,
+                .llvm_value = NULL,
+                .llvm_structure_type = NULL,
+                .next = NULL,
+                .symbol_location = SL_LOCAL,
+                .index = 0,
+            });
+        stmt->node.decl->data_type = inferred_type;
+
 
         queue_push(annotator->allocator, queue, stmt);
         stmt = stmt->next;
