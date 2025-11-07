@@ -6,19 +6,40 @@ const main = fn() {
 const json = mod {
     const Field = struct {
         name: strings::string,
-        value: *Value
+        value: *Value,
+        next: *Field
     };
 
     const Object = struct {
         fields: *Field,
     };
 
+    const ValueType = mod {
+        const UNKNOWN = 0;
+        const STRING = 1;
+        const NUMBER = 2;
+        const BOOL = 3;
+        const ARRAY = 4;
+        const OBJECT = 5;
+    };
+
+    const Element = struct {
+        value: *Value,
+        next: *Element,
+    };
+
+    const Array = struct {
+        elements: *Element,
+        length: i32
+    };
+
     const Value = struct {
+        type: i32,
         string: strings::string,
         number: i64,
         bool: i1,
-        array: *Value,
-        object: Object,
+        array: *Array,
+        object: *Object,
     };
 
     const parser = mod {
@@ -34,9 +55,99 @@ const json = mod {
             };
         };
 
-        fn parse_token = fn(context: *context) {};
+        fn peek = fn(context: *context): i8 {
+            if context.index >= context.source.len {
+                return -1;
+            }
+            const ptr = context.source.data;
+            return ptr[context.index];
+        };
+
+        fn expect = fn(context, *context, expected: i8) {
+            const actual = peek(context);
+            assert(actual == expected);
+            context.index = context.index + 1;
+        }
+
+        fn parse_field = fn(context, *context): *Field {
+            const name = parse_string(context);
+            expect(context, ':');
+            const value = parse_value(context);
+
+            return .Field {
+                name: name,
+                value: value,
+                next: @cast(*Field,0),
+            };
+        };
 
         fn parse_object = fn(context: *context): *Object {
+            expect(context, '{');
+            const head_field = parse_field(context);
+            let tail_field = head_field;
+            while peek(context) == ',' {
+                expect(context, ',');
+                tail_field.next = parse_field(context);
+                tail_field = tail_field.next;
+            };
+            expect(context, '}');
+
+            return .Object {
+                fields: head_field
+            };
+        };
+
+        fn parse_array = fn(context:: *Context): *Value {
+            expect(context, '[');
+            if peek(context) == ']' {
+                return .Array {
+                    elements: @cast(*Element,0),
+                    length: 0,
+                };
+            };
+            const head_element = .Element {
+                value: parse_value(),
+                next: @cast(*Element, 0),
+            };
+            let tail_element = head_element;
+
+            let length = 1;
+
+            while peek(context) == ',' {
+                expect(context, ',');
+                tail_element.next = .Element {
+                    value: parse_value(context),
+                    next: @cast(*Element, 0),
+                };
+                tail_element = tail_element.next;
+                length = length + 1;
+            };
+
+            expect(context, ']');
+
+            return .Array {
+                elements: head_element,
+                length: length,
+            };
+        };
+
+        fn parse_value = fn(context: *Context): *Value {
+            const token = peek(context);
+            if token == '"' {
+                return .Value {
+                    type: ValueType::STRING,
+                    string: parse_string(),
+                };
+            } else if token == '[' {
+                return parse_array(context);
+            } else if token == '{' {
+                return parse_object(context);
+            } else if cstd::isdigit(token) {
+                return .Value {
+                    type: ValueType::NUMBER,
+                    number: parse_number(context),
+                };
+            };
         };
     };
 
@@ -45,7 +156,42 @@ const json = mod {
         return parser::parse_object(context);
     };
 
-    const to_string = fn(object: *Object) {
-        // ...
+    const to_string = fn(value: *Value): strings::string {
+        const result = strings::make();
+
+        assert(value.type != ValueType::UNKNOWN);
+        if value.type == ValueType::NUMBER {
+            strings::append::integer(&result, value.number);
+        } else if value.type == ValueType::STRING {
+            strings::append::cstr(&result, "\"");
+            strings::append::string(&result, value.string);
+            strings::append::cstr(&result, "\"");
+        } else if value.type == ValueType::BOOL {
+            strings::append::cstr(&result, value.bool ? "true" : "false");
+        } else if value.type == ValueType::ARRAY {
+            strings::append::cstr(&result, "[");
+            let element = value.array.elements;
+            while element != @cast(*Element, 0) {
+                const inner = to_string(element.value);
+                strings::append::string(&result, inner);
+                element = element.next;
+            };
+            strings::append::cstr(&result, "]");
+        } else if value.type == ValueType::OBJECT {
+            strings::append::cstr(&result, "{");
+            let field = value.object.fields;
+            while field != @cast(*Element, 0) {
+                strings::append::cstr(&result, "\"");
+                strings::append::string(&result, field.name);
+                strings::append::cstr(&result, "\":");
+
+                const inner = to_string(field.value);
+                strings::append::string(&result, inner);
+                field = field.next;
+            };
+            strings::append::cstr(&result, "}");
+        };
+
+        return result;
     };
 };
