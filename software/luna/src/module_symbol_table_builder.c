@@ -192,8 +192,26 @@ void mstb_resolve_types(struct Annotator *annotator, struct DataType *type) {
   case DTK_STRUCTURE_DEF: {
     struct StructFieldDefinitionNode *field =
         type->value.structure_definition.definition->fields;
+    type->value.structure_definition.definition->symbol_table =
+        (struct SymbolTable){
+            .head = NULL,
+            .type = STT_STRUCT,
+            .parent = NULL,
+            .current_index = 0,
+        };
     while (field != NULL) {
       mstb_resolve_types(annotator, field->type);
+      insert_symbol_entry_in(
+          annotator, &type->value.structure_definition.definition->symbol_table,
+          (struct SymbolTableEntry){
+              .symbol = field->name,
+              .type = field->type,
+              .llvm_value = NULL,
+              .llvm_structure_type = NULL,
+              .next = NULL,
+              .symbol_location = SL_LOCAL,
+              .index = 0,
+          });
       field = field->next;
     }
     break;

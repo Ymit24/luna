@@ -190,7 +190,7 @@ int main(int argc, char **argv) {
 
   print_symbol_table(string_make("Root2"), &annotator.root_symbol_table);
 
-  assert(0);
+  // assert(0);
 
   struct CodeGenerator code_generator = cg_make(&allocator, &annotator);
 

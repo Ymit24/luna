@@ -338,6 +338,10 @@ get_or_resolve_struct_definition_from_type(struct DataType *type,
   }
 
   if (struct_type->definition != NULL) {
+    printf("get_or_resolve_struct_definition_from_type: found struct def, "
+           "entry type is:");
+    print_struct_def_data_type(struct_type->definition);
+    puts("");
     return struct_type->definition;
   }
 
@@ -350,6 +354,11 @@ get_or_resolve_struct_definition_from_type(struct DataType *type,
   assert(entry->type->value.structure_definition.definition != NULL);
 
   struct_type->definition = entry->type->value.structure_definition.definition;
+
+  printf("get_or_resolve_struct_definition_from_type: resolved struct def, "
+         "entry type is:");
+  print_data_type(entry->type);
+  puts("");
 
   return struct_type->definition;
 }
@@ -399,6 +408,12 @@ struct DataType *infer_type_of_field_access(
 
   struct StructDefinitionExpressionNode *definition =
       get_or_resolve_struct_definition_from_type(entry->type, symbol_table);
+
+  puts("infer_type_of_field_access: found struct def, entry type is:");
+  print_symbol_table(string_make("StructDef"), &definition->symbol_table);
+  puts("");
+
+  // assert(0);
 
   assert(definition != NULL);
 
@@ -922,6 +937,9 @@ void annotator_visit_decl(struct Annotator *annotator,
   printf("symbol is: '%s'\n", decl->symbol.data);
   if (is_module) {
     assert(lookup_symbol(annotator, decl->symbol) != NULL);
+
+    annotator_visit_expr(annotator, decl->expression);
+    return;
   } else {
     assert(lookup_symbol(annotator, decl->symbol) == NULL);
   }
@@ -941,8 +959,8 @@ void annotator_visit_decl(struct Annotator *annotator,
       assert(struct_def_symbol->type != NULL);
       assert(struct_def_symbol->type->kind == DTK_STRUCTURE_DEF);
 
-      // puts("should remove this.");
-      // assert(0);
+      puts("should remove this.");
+      assert(0);
 
       decl->data_type->value.structure.definition =
           struct_def_symbol->type->value.structure_definition.definition;
@@ -957,15 +975,6 @@ void annotator_visit_decl(struct Annotator *annotator,
   print_data_type(type);
   printf(")\n");
 
-  puts("d.");
-
-  printf("got type infer done for %s\n", decl->symbol.data);
-  if (decl->data_type != NULL) {
-    printf("decl type: %d\n", decl->data_type->kind);
-  }
-  if (type != NULL) {
-    printf("infered type: %d\n", type->kind);
-  }
   if (decl->has_type) {
     puts("has type, about to check equality");
     printf("is TYPE null?: %d : %d\n", type != NULL, decl->data_type != NULL);
