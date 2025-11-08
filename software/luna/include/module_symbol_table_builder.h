@@ -19,4 +19,11 @@ void mstb_visit_module(struct Annotator *annotator,
 void mstb_infer_types(struct Annotator *annotator,
                       struct SymbolTable *symbol_table);
 
+struct QueueItem *queue_item_make(struct ArenaAllocator *allocator, void *data);
+
+struct Queue *queue_make(struct ArenaAllocator *allocator);
+void queue_push(struct ArenaAllocator *allocator, struct Queue *queue,
+                void *data);
+
+void *queue_pop_head(struct Queue *queue);
 #endif
