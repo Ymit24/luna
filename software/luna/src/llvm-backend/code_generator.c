@@ -1301,8 +1301,6 @@ void cg_visit_function_statements(struct CodeGenerator *code_generator,
   }
 }
 
-// TODO/NOTE: return module initialization function. if root then we should add
-// "main" to end of our own initiailzier
 LLVMValueRef cg_visit_module_statements(struct CodeGenerator *code_generator,
                                         struct ModuleStatementNode *stmt,
                                         bool is_root,
@@ -1331,38 +1329,6 @@ LLVMValueRef cg_visit_module_statements(struct CodeGenerator *code_generator,
     code_generator->current_block = previous_block;
     LLVMPositionBuilderAtEnd(code_generator->builder, previous_block);
   }
-  // if (is_root) {
-  // struct SymbolTableEntry *main_symbol = lookup_symbol_in(
-  //     string_make("main"), code_generator->current_symbol_table);
-  //
-  // assert(main_symbol != NULL);
-  // assert(main_symbol->type != NULL);
-  // assert(main_symbol->type->kind == DTK_FUNCTION);
-  // assert(main_symbol->llvm_value != NULL);
-
-  // LLVMTypeRef func_type = LLVMFunctionType(LLVMInt32Type(), NULL, 0, 0);
-
-  // LLVMTypeRef func_type = cg_get_func_type(code_generator,
-  // main_symbol->type); LLVMTypeRef ptr_type = LLVMPointerType(func_type, 0);
-
-  // LLVMValueRef fn_pointer = LLVMBuildLoad2(code_generator->builder, ptr_type,
-  //                                          main_symbol->llvm_value, "");
-  //
-  // if (main_symbol->type->value.function.return_type->kind == DTK_VOID) {
-  //   puts("\n\n------\nVOID\n");
-  //   LLVMBuildCall2(code_generator->builder, func_type, fn_pointer, 0, 0, "");
-  //   LLVMBuildRet(code_generator->builder,
-  //                LLVMConstInt(LLVMInt32Type(), 0, 0));
-  // } else {
-  //   puts("\n\n------\nNON VOID\n");
-  //   LLVMValueRef main_ret = LLVMBuildCall2(code_generator->builder,
-  //   func_type,
-  //                                          fn_pointer, 0, 0, "");
-  //   LLVMBuildRet(code_generator->builder, main_ret);
-  // }
-  // }
-
-  // LLVMBuildRetVoid(code_generator->builder);
 
   return module_initialization_function;
 }
