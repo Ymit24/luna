@@ -16,5 +16,7 @@ struct Queue {
 
 void mstb_visit_module(struct Annotator *annotator,
                        struct ModuleStatementNode *root);
+void mstb_infer_types(struct Annotator *annotator,
+                      struct SymbolTable *symbol_table);
 
 #endif

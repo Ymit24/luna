@@ -362,6 +362,10 @@ struct DataType *infer_type_of_inner_field_access(
   struct SymbolTableEntry *entry =
       lookup_symbol_in(field_accessor->symbol, symbol_table);
 
+  printf("about to check symbol for inner field access: %s\n",
+         field_accessor->symbol.data);
+  puts("");
+
   assert(entry != NULL);
   assert(entry->type != NULL);
   if (field_accessor->next == NULL) {
@@ -431,25 +435,35 @@ struct DataType *infer_type(struct Annotator *annotator,
   case EXPR_SYMBOL_LITERAL: {
     puts("inferring on symb lit.");
     assert(expr->node.scoped_symbol != NULL);
+
     printf("symbol is: ");
     print_scoped_symbol(expr->node.scoped_symbol);
     puts("");
-    struct DataType *resolvable = ast_promote(
-        annotator->allocator,
-        &(struct DataType){.kind = DTK_RESOLVABLE,
-                           .value.resolvable =
-                               (struct ResolvableType){
-                                   .scoped_symbol = expr->node.scoped_symbol,
-                                   .resolved_type = NULL}},
-        sizeof(struct DataType));
-    puts("resolvable type created.");
-    print_data_type(resolvable);
-    assert(0);
-    return resolvable;
-    // struct SymbolTableEntry *entry = lookup_scoped_symbol_in(
-    //     expr->node.scoped_symbol, annotator->current_symbol_table);
-    // assert(entry != NULL);
-    // return entry->type;
+
+    struct SymbolTableEntry *entry = lookup_scoped_symbol_in(
+        expr->node.scoped_symbol, annotator->current_symbol_table);
+    assert(entry != NULL);
+    assert(entry->type != NULL);
+
+    puts("resolved type:");
+    print_data_type(entry->type);
+    puts("");
+
+    return entry->type;
+
+    // struct DataType *resolvable = ast_promote(
+    //     annotator->allocator,
+    //     &(struct DataType){.kind = DTK_RESOLVABLE,
+    //                        .value.resolvable =
+    //                            (struct ResolvableType){
+    //                                .scoped_symbol = expr->node.scoped_symbol,
+    //                                .resolved_type = NULL}},
+    //     sizeof(struct DataType));
+
+    // puts("resolvable type created.");
+    // print_data_type(resolvable);
+    // puts("");
+    // return resolvable;
   }
   case EXPR_STRING_LITERAL: {
     puts("infered string");

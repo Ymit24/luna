@@ -170,6 +170,10 @@ int main(int argc, char **argv) {
                                       .index = 0,
                                   });
 
+  mstb_infer_types(
+      &annotator,
+      &new_root->node.decl->expression->node.module_definition->symbol_table);
+
   print_symbol_table(string_make("Root1"), &annotator.root_symbol_table);
   annotator.current_symbol_table = &annotator.root_symbol_table;
 
