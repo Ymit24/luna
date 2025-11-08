@@ -1477,6 +1477,13 @@ void cg_prepare_module(struct CodeGenerator *code_generator,
           code_generator->current_symbol_table = old_symbol_table;
           LLVMValueRef variable =
               LLVMAddGlobal(code_generator->module, type, "");
+
+          if (stmt->node.decl->data_type->kind == DTK_FUNCTION ||
+              stmt->node.decl->data_type->kind == DTK_POINTER) {
+            LLVMSetInitializer(variable, LLVMConstPointerNull(type));
+          } else {
+            LLVMSetInitializer(variable, LLVMConstInt(LLVMInt32Type(), 0, 0));
+          }
           entry->llvm_value = variable;
         }
         stmt = stmt->next;
