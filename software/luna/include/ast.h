@@ -163,6 +163,7 @@ struct StructFieldDefinitionNode {
 struct StructDefinitionExpressionNode {
   struct StructFieldDefinitionNode *fields;
   struct SymbolTable symbol_table;
+  LLVMTypeRef llvm_structure_type;
 };
 
 struct StructFieldAccessInnerExpressionNode {

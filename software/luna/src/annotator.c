@@ -597,14 +597,34 @@ struct DataType *infer_type(struct Annotator *annotator,
         entry->type->value.structure_definition.definition);
     puts("");
 
-    struct DataType *data_type = make_structure_data_type(
-        annotator->allocator,
-        (struct StructType){
-            .name = expr->node.struct_init->name,
-            .definition = entry->type->value.structure_definition.definition});
-    printf("created data type:\n\t");
+    struct DataType *data_type =
+        ast_promote(annotator->allocator,
+                    &(struct DataType){
+                        .kind = DTK_RESOLVABLE,
+                        .next = NULL,
+                        .value.resolvable =
+                            (struct ResolvableType){
+                                .scoped_symbol = expr->node.struct_init->name,
+                                .resolved_type = NULL,
+                            },
+                    },
+                    sizeof(struct DataType));
+
+    printf("for struct init, resolved type: ");
     print_data_type(data_type);
     puts("");
+
+    // assert(0);
+
+    // struct DataType *data_type = make_structure_data_type(
+    //     annotator->allocator,
+    //     (struct StructType){
+    //         .name = expr->node.struct_init->name,
+    //         .definition =
+    //         entry->type->value.structure_definition.definition});
+    // printf("created data type:\n\t");
+    // print_data_type(data_type);
+    // puts("");
     return data_type;
   case EXPR_FIELD_ACCESS:
     puts("expr field access");
@@ -760,7 +780,7 @@ void annotator_visit_expr(struct Annotator *annotator,
                                  .symbol = argument->symbol,
                                  .type = argument->data_type,
                                  .llvm_value = NULL,
-                                 .llvm_structure_type = NULL,
+                                 // .llvm_structure_type = NULL,
                                  .next = NULL,
                                  .symbol_location = SL_ARGUMENT,
                              });
@@ -831,7 +851,7 @@ void annotator_visit_expr(struct Annotator *annotator,
                                  .symbol = field->name,
                                  .type = field->type,
                                  .llvm_value = NULL,
-                                 .llvm_structure_type = NULL,
+                                 // .llvm_structure_type = NULL,
                                  // TODO: do we need new symbol location?
                                  .symbol_location = SL_LOCAL,
                                  .next = NULL,
@@ -1016,7 +1036,7 @@ void annotator_visit_decl(struct Annotator *annotator,
                           .symbol = decl->symbol,
                           .type = decl->data_type,
                           .llvm_value = NULL,
-                          .llvm_structure_type = NULL,
+                          // .llvm_structure_type = NULL,
                           .next = NULL,
                           .symbol_location = is_module ? SL_MODULE : SL_LOCAL,
                       });
@@ -1357,8 +1377,13 @@ bool can_store_data_type_in(struct Annotator *annotator,
     break;
   case DTK_STRUCTURE_DEF:
     puts("unimplemented behavior for struct defs.");
-    assert(0);
-    break;
+    if (value_type->value.structure_definition.definition ==
+        storage_type->value.structure_definition.definition) {
+      puts("HAD THE SAME STRUCT DEF");
+      return true;
+    }
+    puts("DIFFERENT STRUCT DEFS");
+    return false;
   case DTK_ARRAY:
     puts("Found case of array -> array");
     if (value_type->value.array.length > storage_type->value.array.length) {

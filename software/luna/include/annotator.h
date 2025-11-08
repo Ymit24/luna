@@ -94,7 +94,7 @@ struct SymbolTableEntry {
   struct LunaString symbol;
   struct DataType *type;
   LLVMValueRef llvm_value;
-  LLVMTypeRef llvm_structure_type;
+  // LLVMTypeRef llvm_structure_type;
   struct SymbolTableEntry *next;
   enum MemorySegment memory_segment;
   enum SymbolLocation symbol_location;

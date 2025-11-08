@@ -164,7 +164,7 @@ int main(int argc, char **argv) {
                                       .symbol = string_make("src"),
                                       .type = new_root->node.decl->data_type,
                                       .llvm_value = NULL,
-                                      .llvm_structure_type = NULL,
+                                      // .llvm_structure_type = NULL,
                                       .next = NULL,
                                       .symbol_location = SL_MODULE,
                                       .index = 0,
