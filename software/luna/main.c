@@ -170,9 +170,13 @@ int main(int argc, char **argv) {
                                       .index = 0,
                                   });
 
+  puts("Finished mstb.");
+
   mstb_infer_types(
       &annotator,
       &new_root->node.decl->expression->node.module_definition->symbol_table);
+
+  puts("Finished infer types");
 
   print_symbol_table(string_make("Root1"), &annotator.root_symbol_table);
   annotator.current_symbol_table = &annotator.root_symbol_table;
@@ -186,7 +190,9 @@ int main(int argc, char **argv) {
   // assert(0);
 
   annotator_initialize_primitives(&annotator);
+  puts("About to visit module statements.");
   annotator_visit_module_statements(&annotator, new_root);
+  puts("Done visit module statements.");
 
   print_symbol_table(string_make("Root2"), &annotator.root_symbol_table);
 

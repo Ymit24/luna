@@ -26,4 +26,7 @@ void queue_push(struct ArenaAllocator *allocator, struct Queue *queue,
                 void *data);
 
 void *queue_pop_head(struct Queue *queue);
+
+
+void mstb_resolve_types(struct Annotator *annotator, struct DataType *type);
 #endif

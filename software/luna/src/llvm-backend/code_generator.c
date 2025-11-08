@@ -202,6 +202,9 @@ LLVMTypeRef cg_get_type(struct CodeGenerator *code_generator,
   }
   case DTK_STRUCTURE_DEF:
     puts("unimplemented for struct def");
+    printf("data type: ");
+    print_data_type(data_type);
+    puts("");
     assert(0);
     break;
   case DTK_STRUCTURE: {

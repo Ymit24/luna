@@ -1,0 +1,12 @@
+const foo = mod {
+    const bar = struct { x: i32 };
+
+    const get_bar = fn(): bar {
+        return .bar { x: 10 };
+    };
+};
+
+const main = fn() {
+  const t = foo::get_bar();
+  return;
+};

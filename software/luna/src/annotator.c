@@ -2,6 +2,7 @@
 #include "arena_allocator.h"
 #include "ast.h"
 #include "luna_string.h"
+#include "module_symbol_table_builder.h"
 #include <alloca.h>
 #include <assert.h>
 #include <stdint.h>
@@ -12,7 +13,8 @@
 // bool data_types_equal(struct DataType *left, struct DataType *right);
 bool can_operate_data_types(struct DataType *left, struct DataType *right,
                             enum BinaryExpressionType operation);
-bool can_store_data_type_in(struct DataType *value_type,
+bool can_store_data_type_in(struct Annotator *annotator,
+                            struct DataType *value_type,
                             struct DataType *storage_type);
 void annotator_visit_function_statements(
     struct Annotator *annotator, struct FunctionStatementNode *statement);
@@ -545,6 +547,7 @@ struct DataType *infer_type(struct Annotator *annotator,
       if (field->type->kind == DTK_STRUCTURE &&
           field->type->value.structure.definition == NULL) {
         puts("structure type hasnt been resolved yet, resolving.");
+        // TODO: maybe this dtk_sructure should be a resolvable type?
         struct SymbolTableEntry *struct_def_symbol = lookup_scoped_symbol_in(
             field->type->value.structure.name, annotator->current_symbol_table);
         assert(struct_def_symbol != NULL);
@@ -854,7 +857,8 @@ void annotator_visit_expr(struct Annotator *annotator,
         infer_type(annotator, initializer->initializer);
     while (initializer != NULL) {
       assert(can_store_data_type_in(
-          infer_type(annotator, initializer->initializer), first_element_type));
+          annotator, infer_type(annotator, initializer->initializer),
+          first_element_type));
       initializer = initializer->next;
     }
     break;
@@ -883,9 +887,24 @@ void annotator_visit_expr(struct Annotator *annotator,
       while (field_def != NULL) {
         assert(field_init != NULL);
         assert(strings_equal(field_def->name, field_init->name));
+        struct DataType *inferred_type =
+            infer_type(annotator, field_init->expression);
 
-        assert(can_store_data_type_in(
-            infer_type(annotator, field_init->expression), field_def->type));
+        puts("\n\n");
+        printf("inferred type: ");
+        print_data_type(inferred_type);
+        puts("");
+        printf("field type: ");
+        print_data_type(field_def->type);
+        puts("");
+
+        bool can_store =
+            can_store_data_type_in(annotator, inferred_type, field_def->type);
+
+        printf("can store: %d\n", can_store);
+        puts("");
+
+        assert(can_store);
 
         field_def = field_def->next;
         field_init = field_init->next;
@@ -981,7 +1000,7 @@ void annotator_visit_decl(struct Annotator *annotator,
     assert(type != NULL);
 
     printf("1. type: %p :: %d\n", (void *)type, type == NULL);
-    assert(can_store_data_type_in(type, decl->data_type));
+    assert(can_store_data_type_in(annotator, type, decl->data_type));
     puts("types matched.");
     printf("type: %d\n", type->kind);
   } else {
@@ -1095,7 +1114,7 @@ void annotator_visit_function_statement(
     struct DataType *dest_type =
         infer_type(annotator, statement->node.assign->result_expression);
 
-    assert(can_store_data_type_in(dest_type, source_type));
+    assert(can_store_data_type_in(annotator, dest_type, source_type));
 
     // NOTE: check inner expressions for validity
     annotator_visit_expr(annotator, statement->node.assign->source_expression);
@@ -1116,7 +1135,7 @@ void annotator_visit_function_statement(
     struct DataType *value_type =
         infer_type(annotator, statement->node.ret->expression);
     assert(value_type != NULL);
-    assert(can_store_data_type_in(value_type,
+    assert(can_store_data_type_in(annotator, value_type,
                                   annotator->current_function->return_type));
     break;
   }
@@ -1155,7 +1174,7 @@ void annotator_visit_function_statement(
     while (call_arg != NULL && def_arg != NULL) {
       struct DataType *type = infer_type(annotator, call_arg->argument);
 
-      assert(can_store_data_type_in(type, def_arg->data_type));
+      assert(can_store_data_type_in(annotator, type, def_arg->data_type));
 
       call_arg = call_arg->next;
       def_arg = def_arg->next;
@@ -1197,7 +1216,8 @@ void annotator_visit_module_statements(struct Annotator *annotator,
   puts("Finished module annotation.");
 }
 
-bool can_store_data_type_in(struct DataType *value_type,
+bool can_store_data_type_in(struct Annotator *annotator,
+                            struct DataType *value_type,
                             struct DataType *storage_type) {
   assert(value_type != NULL);
   assert(storage_type != NULL);
@@ -1207,15 +1227,23 @@ bool can_store_data_type_in(struct DataType *value_type,
   printf(">, Storage Type: <");
   print_data_type(storage_type);
   puts(">");
+  puts("");
 
   if (value_type->kind == DTK_RESOLVABLE) {
     puts("Found resolvable type for value type.");
-    return can_store_data_type_in(value_type->value.resolvable.resolved_type,
-                                  storage_type);
+    mstb_resolve_types(annotator, value_type);
+
+    return can_store_data_type_in(
+        annotator, value_type->value.resolvable.resolved_type, storage_type);
   }
   if (storage_type->kind == DTK_RESOLVABLE) {
     puts("Found resolvable for storag type.");
-    return can_store_data_type_in(value_type,
+    mstb_resolve_types(annotator, storage_type);
+    printf("After resolving storage type: ");
+    print_data_type(storage_type);
+    puts("");
+    assert(storage_type->value.resolvable.resolved_type != NULL);
+    return can_store_data_type_in(annotator, value_type,
                                   storage_type->value.resolvable.resolved_type);
   }
 
@@ -1232,8 +1260,51 @@ bool can_store_data_type_in(struct DataType *value_type,
   if (value_type->kind == DTK_ARRAY && storage_type->kind == DTK_POINTER) {
     puts("Found array -> pointer, checking if array element is of coereceable "
          "type as pointer inner.");
-    return can_store_data_type_in(value_type->value.array.element_type,
+    return can_store_data_type_in(annotator,
+                                  value_type->value.array.element_type,
                                   storage_type->value.pointer_inner);
+  }
+
+  if (value_type->kind == DTK_STRUCTURE) {
+    assert(storage_type->kind == DTK_STRUCTURE_DEF ||
+           storage_type->kind == DTK_STRUCTURE);
+
+    printf("storage type: ");
+    print_data_type(storage_type);
+    puts("");
+
+    puts("[NOTE] we should check for more than just symbol equality, but for "
+         "now lets just do this.");
+
+    // TODO: implement structural equality check.
+
+    if (storage_type->kind == DTK_STRUCTURE_DEF) {
+      puts("storage type is struct def");
+      assert(value_type->value.structure.definition ==
+             storage_type->value.structure_definition.definition);
+    } else if (storage_type->kind == DTK_STRUCTURE) {
+      puts("storage type is structure");
+      assert(value_type->value.structure.definition ==
+             storage_type->value.structure.definition);
+
+      if (!scoped_symbols_equal(value_type->value.structure.name,
+                                storage_type->value.structure.name)) {
+        printf("value type name: ");
+        print_scoped_symbol(value_type->value.structure.name);
+        printf("storage type name: ");
+        print_scoped_symbol(storage_type->value.structure.name);
+        puts("");
+        assert(0);
+        return false;
+      }
+    } else {
+      printf("storage type is: ");
+      print_data_type(storage_type);
+      puts("");
+      assert(0);
+    }
+
+    return true;
   }
 
   if (value_type->kind != storage_type->kind) {
@@ -1254,7 +1325,7 @@ bool can_store_data_type_in(struct DataType *value_type,
     puts("Other prim prim is valid.");
     return true;
   case DTK_POINTER:
-    return can_store_data_type_in(value_type->value.pointer_inner,
+    return can_store_data_type_in(annotator, value_type->value.pointer_inner,
                                   storage_type->value.pointer_inner);
   case DTK_FUNCTION:
     puts("recurse case");
@@ -1275,22 +1346,13 @@ bool can_store_data_type_in(struct DataType *value_type,
                        value_type->value.function.extern_name->length) == 0;
       }
     }
-    return can_store_data_type_in(value_type->value.function.return_type,
+    return can_store_data_type_in(annotator,
+                                  value_type->value.function.return_type,
                                   storage_type->value.function.return_type);
   case DTK_VOID:
     return true;
   case DTK_STRUCTURE:
-    if (!scoped_symbols_equal(value_type->value.structure.name,
-                              storage_type->value.structure.name)) {
-      return false;
-    }
-
-    puts("[NOTE] we should check for more than just symbol equality, but for "
-         "now lets just do this.");
-
-    // TODO: implement structural equality check.
-
-    return true;
+    puts("unreachable");
     assert(0);
     break;
   case DTK_STRUCTURE_DEF:
@@ -1303,7 +1365,8 @@ bool can_store_data_type_in(struct DataType *value_type,
       puts("Value array had more elements than storage.");
       return false;
     }
-    return can_store_data_type_in(value_type->value.array.element_type,
+    return can_store_data_type_in(annotator,
+                                  value_type->value.array.element_type,
                                   storage_type->value.array.element_type);
   case DTK_MODULE_DEF:
     return true;

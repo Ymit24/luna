@@ -143,7 +143,7 @@ void mstb_resolve_types(struct Annotator *annotator, struct DataType *type) {
     break;
   }
   case DTK_RESOLVABLE: {
-    if (type->value.resolvable.resolved_type == NULL) {
+    if (type->value.resolvable.resolved_type != NULL) {
       break;
     }
     struct SymbolTableEntry *entry = lookup_scoped_symbol_in(
@@ -153,7 +153,7 @@ void mstb_resolve_types(struct Annotator *annotator, struct DataType *type) {
 
     puts("Resolved type:");
     print_data_type(entry->type);
-    assert(0);
+    puts("");
 
     type->value.resolvable.resolved_type = entry->type;
     break;
