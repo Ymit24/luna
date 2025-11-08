@@ -63,6 +63,9 @@ void mstb_visit_module(struct Annotator *annotator,
                            .current_index = 0,
                            .parent = &annotator->root_symbol_table};
 
+  root->node.decl->data_type =
+      infer_type(annotator, root->node.decl->expression);
+
   queue_push(annotator->allocator, queue, root);
 
   while (queue->head != NULL) {
@@ -74,9 +77,6 @@ void mstb_visit_module(struct Annotator *annotator,
              head->node.decl->symbol.data);
       print_data_type(head->node.decl->data_type);
       printf("'\n");
-      // print_symbol_table(
-      //     head->node.decl->symbol,
-      //     &head->node.decl->expression->node.module_definition->symbol_table);
     }
 
     if (head->node.decl->expression->type == EXPR_MOD_DEF) {
@@ -101,11 +101,152 @@ void mstb_visit_module(struct Annotator *annotator,
                                             .module_definition->symbol_table};
         }
 
+        struct DataType *inferred_type =
+            infer_type(annotator, stmt->node.decl->expression);
+        assert(inferred_type != NULL);
+
+        printf("inferred type: ");
+        print_data_type(inferred_type);
+        puts("");
+
+        insert_symbol_entry_in(
+            annotator,
+            &head->node.decl->expression->node.module_definition->symbol_table,
+            (struct SymbolTableEntry){
+                .symbol = stmt->node.decl->symbol,
+                .type = inferred_type,
+                .llvm_value = NULL,
+                .llvm_structure_type = NULL,
+                .next = NULL,
+                .symbol_location = SL_LOCAL,
+                .index = 0,
+            });
+        stmt->node.decl->data_type = inferred_type;
+
         queue_push(annotator->allocator, queue, stmt);
         stmt = stmt->next;
       }
     }
   }
   puts("Finished queue.");
-  ;
+}
+
+void mstb_resolve_types(struct Annotator *annotator, struct DataType *type) {
+  switch (type->kind) {
+  case DTK_FUNCTION: {
+    mstb_resolve_types(annotator, type->value.function.return_type);
+    struct FunctionArgumentNode *argument = type->value.function.arguments;
+    while (argument != NULL) {
+      mstb_resolve_types(annotator, argument->data_type);
+      argument = argument->next;
+    }
+    break;
+  }
+  case DTK_RESOLVABLE: {
+    if (type->value.resolvable.resolved_type == NULL) {
+      break;
+    }
+    struct SymbolTableEntry *entry = lookup_scoped_symbol_in(
+        type->value.resolvable.scoped_symbol, annotator->current_symbol_table);
+    assert(entry != NULL);
+    assert(entry->type != NULL);
+
+    puts("Resolved type:");
+    print_data_type(entry->type);
+    assert(0);
+
+    type->value.resolvable.resolved_type = entry->type;
+    break;
+  }
+  case DTK_POINTER:
+    mstb_resolve_types(annotator, type->value.pointer_inner);
+    break;
+  case DTK_ARRAY:
+    mstb_resolve_types(annotator, type->value.array.element_type);
+    break;
+  case DTK_STRUCTURE: {
+    puts("mstb_resolve_types: DTK_STRUCTURE. will remove this soon");
+    struct SymbolTableEntry *entry = lookup_scoped_symbol_in(
+        type->value.structure.name, annotator->current_symbol_table);
+
+    assert(entry != NULL);
+    assert(entry->type != NULL);
+    assert(entry->type->kind == DTK_STRUCTURE_DEF);
+
+    printf("For (%s), resolved structure type:\n", entry->symbol.data);
+    print_data_type(entry->type);
+    puts("");
+
+    type->value.structure.definition =
+        entry->type->value.structure_definition.definition;
+
+    assert(entry->type->value.structure_definition.definition != NULL);
+
+    printf("mstb_resolve_types: DTK_STRUCTURE. resolved structure type:\n");
+    print_data_type(type);
+    puts("");
+
+    assert(type->value.structure.definition != NULL);
+    break;
+  }
+  case DTK_STRUCTURE_DEF: {
+    struct StructFieldDefinitionNode *field =
+        type->value.structure_definition.definition->fields;
+    type->value.structure_definition.definition->symbol_table =
+        (struct SymbolTable){
+            .head = NULL,
+            .type = STT_STRUCT,
+            .parent = NULL,
+            .current_index = 0,
+        };
+    while (field != NULL) {
+      mstb_resolve_types(annotator, field->type);
+      insert_symbol_entry_in(
+          annotator, &type->value.structure_definition.definition->symbol_table,
+          (struct SymbolTableEntry){
+              .symbol = field->name,
+              .type = field->type,
+              .llvm_value = NULL,
+              .llvm_structure_type = NULL,
+              .next = NULL,
+              .symbol_location = SL_LOCAL,
+              .index = 0,
+          });
+      field = field->next;
+    }
+    break;
+  }
+  case DTK_MODULE_DEF:
+  case DTK_MODULE:
+  case DTK_PRIMITIVE:
+  case DTK_VOID:
+    break;
+  }
+}
+
+void mstb_infer_types(struct Annotator *annotator,
+                      struct SymbolTable *symbol_table) {
+  struct SymbolTableEntry *entry = symbol_table->head;
+
+  while (entry != NULL) {
+    printf("mstb_infer_types entry: %s\n", entry->symbol.data);
+    assert(entry->type != NULL);
+
+    struct SymbolTable *old_symbol_table = annotator->current_symbol_table;
+    annotator->current_symbol_table = symbol_table;
+
+    mstb_resolve_types(annotator, entry->type);
+
+    printf("mstb_infer_types resolved type: ");
+    print_data_type(entry->type);
+    printf("\n");
+
+    annotator->current_symbol_table = old_symbol_table;
+
+    if (entry->type->kind == DTK_MODULE_DEF) {
+      mstb_infer_types(annotator, &entry->type->value.module_definition
+                                       ->module_definition->symbol_table);
+    }
+    entry = entry->next;
+  }
 }

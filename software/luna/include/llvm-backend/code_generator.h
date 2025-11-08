@@ -33,4 +33,6 @@ LLVMValueRef cg_visit_module_statements(struct CodeGenerator *code_generator,
 
 void cg_make_entrypoint(struct CodeGenerator *code_generator,
                         LLVMValueRef global_module_initializer);
+void cg_prepare_module(struct CodeGenerator *code_generator,
+                       struct ModuleStatementNode *root);
 #endif
