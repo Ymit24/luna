@@ -3,6 +3,7 @@
 #include "arena_allocator.h"
 #include "ast.h"
 #include "luna_string.h"
+#include "module_symbol_table_builder.h"
 #include "llvm-c/Core.h"
 #include "llvm-c/Target.h"
 #include "llvm-c/Types.h"
@@ -28,6 +29,10 @@ cg_count_structure_definition_fields(struct StructFieldDefinitionNode *field);
 
 size_t
 cg_count_field_access_depth(struct StructFieldAccessExpressionNode *field);
+
+void cg_visit_struct_definition(
+    struct CodeGenerator *code_generator,
+    struct StructDefinitionExpressionNode *definition);
 
 size_t count_function_arguments(struct FunctionArgumentNode *argument) {
   if (argument == NULL) {
@@ -196,15 +201,40 @@ LLVMTypeRef cg_get_type(struct CodeGenerator *code_generator,
   }
   case DTK_STRUCTURE_DEF:
     puts("unimplemented for struct def");
-    assert(0);
-    break;
+    printf("data type: ");
+    print_data_type(data_type);
+    puts("");
+    assert(data_type->value.structure_definition.definition != NULL);
+    if (data_type->value.structure_definition.definition->llvm_structure_type ==
+        NULL) {
+      cg_visit_struct_definition(
+          code_generator, data_type->value.structure_definition.definition);
+    }
+    assert(
+        data_type->value.structure_definition.definition->llvm_structure_type !=
+        NULL);
+    return data_type->value.structure_definition.definition
+        ->llvm_structure_type;
   case DTK_STRUCTURE: {
-    struct SymbolTableEntry *entry = lookup_scoped_symbol_in(
-        data_type->value.structure.name, code_generator->current_symbol_table);
-    assert(entry != NULL);
-    assert(entry->llvm_structure_type != NULL);
-
-    return entry->llvm_structure_type;
+    puts("Unreachable");
+    assert(0);
+    return NULL;
+    // struct SymbolTableEntry *entry = lookup_scoped_symbol_in(
+    //     data_type->value.structure.name,
+    //     code_generator->current_symbol_table);
+    // assert(entry != NULL);
+    // printf("entry: '%s' of type: ", entry->symbol.data);
+    // print_data_type(entry->type);
+    // puts("");
+    // assert(entry->type->value.structure_definition.definition != NULL);
+    // if (entry->llvm_structure_type == NULL) {
+    //   cg_visit_struct_definition(
+    //       code_generator, entry->type->value.structure_definition.definition,
+    //       entry);
+    // }
+    // assert(entry->llvm_structure_type != NULL);
+    //
+    // return entry->llvm_structure_type;
   }
   case DTK_ARRAY:
     puts("Found array in type inference.");
@@ -217,6 +247,25 @@ LLVMTypeRef cg_get_type(struct CodeGenerator *code_generator,
     puts("Illegal use of module (/def) type.");
     assert(0);
     return NULL;
+  case DTK_RESOLVABLE:
+    puts("Found resolvable type.");
+    if (data_type->value.resolvable.resolved_type == NULL) {
+      puts("resolving type.");
+
+      struct SymbolTable *old_symbol_table =
+          code_generator->annotator->current_symbol_table;
+      code_generator->annotator->current_symbol_table =
+          code_generator->current_symbol_table;
+      mstb_resolve_types(code_generator->annotator, data_type);
+      code_generator->annotator->current_symbol_table = old_symbol_table;
+
+      printf("resolved type: ");
+      print_data_type(data_type);
+      puts("");
+    }
+    assert(data_type->value.resolvable.resolved_type != NULL);
+    return cg_get_type(code_generator,
+                       data_type->value.resolvable.resolved_type);
   default:
     puts("Unknown data type kind.");
     assert(0);
@@ -424,9 +473,16 @@ LLVMValueRef cg_visit_field_access_expr(
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+  struct SymbolTable *old_symbol_table = code_generator->current_symbol_table;
+
+  code_generator->annotator->current_symbol_table =
+      code_generator->current_symbol_table;
+
   struct StructDefinitionExpressionNode *definition =
-      get_or_resolve_struct_definition_from_type(
-          entry->type, code_generator->current_symbol_table);
+      get_or_resolve_struct_definition_from_type(entry->type,
+                                                 code_generator->annotator);
+
+  code_generator->annotator->current_symbol_table = old_symbol_table;
 
   assert(definition != NULL);
 
@@ -733,8 +789,19 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
     struct SymbolTableEntry *entry = lookup_scoped_symbol_in(
         expr->node.struct_init->name, code_generator->current_symbol_table);
 
+    assert(entry->type != NULL);
+    assert(entry->type->kind == DTK_STRUCTURE_DEF);
+    assert(entry->type->value.structure_definition.definition != NULL);
+    assert(entry->type->value.structure_definition.definition
+               ->llvm_structure_type != NULL);
+
+    LLVMTypeRef struct_type =
+        entry->type->value.structure_definition.definition->llvm_structure_type;
+
+    // assert(0);
+
     assert(entry != NULL);
-    assert(entry->llvm_structure_type != NULL);
+    assert(struct_type != NULL);
 
     struct StructFieldDefinitionNode *field_def =
         entry->type->value.structure_definition.definition->fields;
@@ -746,8 +813,8 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
     size_t field_count = cg_count_structure_definition_fields(field_def);
     printf("found %zu fields\n", field_count);
 
-    LLVMValueRef local_struct = LLVMBuildAlloca(code_generator->builder,
-                                                entry->llvm_structure_type, "");
+    LLVMValueRef local_struct =
+        LLVMBuildAlloca(code_generator->builder, struct_type, "");
 
     puts("Generating field initializers.");
     size_t field_index = 0;
@@ -757,9 +824,8 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
           LLVMConstInt(LLVMInt32Type(), field_index++, 0)};
 
       puts("Building field ptr..");
-      LLVMValueRef field_ptr =
-          LLVMBuildGEP2(code_generator->builder, entry->llvm_structure_type,
-                        local_struct, indicies, 2, "");
+      LLVMValueRef field_ptr = LLVMBuildGEP2(
+          code_generator->builder, struct_type, local_struct, indicies, 2, "");
 
       LLVMValueRef coereced = cg_coerce(
           code_generator, cg_visit_expr(code_generator, field_init->expression),
@@ -774,8 +840,8 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
     }
     puts("Done.");
 
-    return LLVMBuildLoad2(code_generator->builder, entry->llvm_structure_type,
-                          local_struct, "");
+    return LLVMBuildLoad2(code_generator->builder, struct_type, local_struct,
+                          "");
   }
   case EXPR_FIELD_ACCESS: {
     puts("cg visit expr for struct field access.");
@@ -923,41 +989,52 @@ cg_count_structure_definition_fields(struct StructFieldDefinitionNode *field) {
   return field_count;
 }
 
+void cg_visit_struct_definition(
+    struct CodeGenerator *code_generator,
+    struct StructDefinitionExpressionNode *definition) {
+  puts("code genning struct definition");
+  struct StructFieldDefinitionNode *field = definition->fields;
+  size_t field_count = 0;
+  while (field != NULL) {
+    field_count++;
+    field = field->next;
+  }
+  field = definition->fields;
+
+  LLVMTypeRef *field_types =
+      arena_alloc(code_generator->allocator, sizeof(LLVMTypeRef) * field_count);
+
+  size_t field_index = 0;
+  while (field != NULL) {
+    field_types[field_index++] = cg_get_type(code_generator, field->type);
+    field = field->next;
+  }
+
+  LLVMTypeRef type = LLVMStructType(field_types, field_count, false);
+  definition->llvm_structure_type = type;
+  // entry->llvm_structure_type = type;
+
+  assert(definition->llvm_structure_type != NULL);
+
+  char *msg = LLVMPrintTypeToString(type);
+  printf("llvm struct def type: %s\n", msg);
+  LLVMDisposeMessage(msg);
+}
+
 void cg_visit_module_decl(struct CodeGenerator *code_generator,
                           struct DeclarationStatementNode *decl) {
-  struct SymbolTableEntry *symbol =
+  struct SymbolTableEntry *entry =
       lookup_symbol_in(decl->symbol, code_generator->current_symbol_table);
-  assert(symbol != NULL);
+  assert(entry != NULL);
 
-  printf("Code genning MODULE decl %s.\n", symbol->symbol.data);
+  printf("Code genning MODULE decl %s.\n", entry->symbol.data);
 
   if (decl->data_type->kind == DTK_STRUCTURE_DEF) {
-    puts("code genning struct definition");
-    struct StructFieldDefinitionNode *field =
-        decl->data_type->value.structure_definition.definition->fields;
-    size_t field_count = 0;
-    while (field != NULL) {
-      field_count++;
-      field = field->next;
-    }
-    field = decl->data_type->value.structure_definition.definition->fields;
-
-    LLVMTypeRef *field_types = arena_alloc(code_generator->allocator,
-                                           sizeof(LLVMTypeRef) * field_count);
-
-    size_t field_index = 0;
-    while (field != NULL) {
-      field_types[field_index++] = cg_get_type(code_generator, field->type);
-      field = field->next;
-    }
-
-    LLVMTypeRef type = LLVMStructType(field_types, field_count, false);
-    symbol->llvm_structure_type = type;
-
-    char *msg = LLVMPrintTypeToString(type);
-    printf("llvm struct def type: %s\n", msg);
-    LLVMDisposeMessage(msg);
-
+    cg_visit_struct_definition(
+        code_generator, decl->data_type->value.structure_definition.definition);
+    puts("TODO: remove this.");
+    assert(decl->data_type->value.structure_definition.definition
+               ->llvm_structure_type != NULL);
     return;
   } else if (decl->data_type->kind == DTK_MODULE_DEF) {
     puts("Found module def, not code genning module decl normally.");
@@ -980,21 +1057,24 @@ void cg_visit_module_decl(struct CodeGenerator *code_generator,
   }
 
   LLVMTypeRef type = cg_get_type(code_generator, decl->data_type);
+
   // if (decl->data_type->kind == DTK_FUNCTION) {
   //   type = LLVMPointerType(type, 0);
   // }
 
-  LLVMValueRef variable = LLVMAddGlobal(code_generator->module, type, "");
-  if (decl->data_type->kind == DTK_FUNCTION ||
-      decl->data_type->kind == DTK_POINTER) {
-    LLVMSetInitializer(variable, LLVMConstPointerNull(type));
-  } else {
-    LLVMSetInitializer(variable, LLVMConstInt(LLVMInt32Type(), 0, 0));
+  if (entry->llvm_value == NULL) {
+    LLVMValueRef variable = LLVMAddGlobal(code_generator->module, type, "");
+    if (decl->data_type->kind == DTK_FUNCTION ||
+        decl->data_type->kind == DTK_POINTER) {
+      LLVMSetInitializer(variable, LLVMConstPointerNull(type));
+    } else {
+      LLVMSetInitializer(variable, LLVMConstInt(LLVMInt32Type(), 0, 0));
+    }
+
+    entry->llvm_value = variable;
   }
 
-  symbol->llvm_value = variable;
-
-  cg_gen_assignment(code_generator, variable, type, decl->expression);
+  cg_gen_assignment(code_generator, entry->llvm_value, type, decl->expression);
 }
 
 void cg_visit_module_statement(struct CodeGenerator *code_generator,
@@ -1207,9 +1287,14 @@ void cg_visit_function_statement(struct CodeGenerator *code_generator,
       break;
     } else if (node->source_expression->type == EXPR_FIELD_ACCESS) {
       puts("in field access");
+      struct SymbolTable *old_symbol_table =
+          code_generator->annotator->current_symbol_table;
+      code_generator->annotator->current_symbol_table =
+          code_generator->current_symbol_table;
       struct DataType *source_type = infer_type_of_field_access(
           node->source_expression->node.struct_field_access,
-          code_generator->current_symbol_table);
+          code_generator->annotator);
+      code_generator->annotator->current_symbol_table = old_symbol_table;
 
       puts("about to gen assignment");
 
@@ -1296,8 +1381,6 @@ void cg_visit_function_statements(struct CodeGenerator *code_generator,
   }
 }
 
-// TODO/NOTE: return module initialization function. if root then we should add
-// "main" to end of our own initiailzier
 LLVMValueRef cg_visit_module_statements(struct CodeGenerator *code_generator,
                                         struct ModuleStatementNode *stmt,
                                         bool is_root,
@@ -1326,38 +1409,6 @@ LLVMValueRef cg_visit_module_statements(struct CodeGenerator *code_generator,
     code_generator->current_block = previous_block;
     LLVMPositionBuilderAtEnd(code_generator->builder, previous_block);
   }
-  // if (is_root) {
-  // struct SymbolTableEntry *main_symbol = lookup_symbol_in(
-  //     string_make("main"), code_generator->current_symbol_table);
-  //
-  // assert(main_symbol != NULL);
-  // assert(main_symbol->type != NULL);
-  // assert(main_symbol->type->kind == DTK_FUNCTION);
-  // assert(main_symbol->llvm_value != NULL);
-
-  // LLVMTypeRef func_type = LLVMFunctionType(LLVMInt32Type(), NULL, 0, 0);
-
-  // LLVMTypeRef func_type = cg_get_func_type(code_generator,
-  // main_symbol->type); LLVMTypeRef ptr_type = LLVMPointerType(func_type, 0);
-
-  // LLVMValueRef fn_pointer = LLVMBuildLoad2(code_generator->builder, ptr_type,
-  //                                          main_symbol->llvm_value, "");
-  //
-  // if (main_symbol->type->value.function.return_type->kind == DTK_VOID) {
-  //   puts("\n\n------\nVOID\n");
-  //   LLVMBuildCall2(code_generator->builder, func_type, fn_pointer, 0, 0, "");
-  //   LLVMBuildRet(code_generator->builder,
-  //                LLVMConstInt(LLVMInt32Type(), 0, 0));
-  // } else {
-  //   puts("\n\n------\nNON VOID\n");
-  //   LLVMValueRef main_ret = LLVMBuildCall2(code_generator->builder,
-  //   func_type,
-  //                                          fn_pointer, 0, 0, "");
-  //   LLVMBuildRet(code_generator->builder, main_ret);
-  // }
-  // }
-
-  // LLVMBuildRetVoid(code_generator->builder);
 
   return module_initialization_function;
 }
@@ -1380,8 +1431,11 @@ void cg_make_entrypoint(struct CodeGenerator *code_generator,
 
   struct SymbolTableEntry *main_symbol = NULL;
   struct LunaString main_symbol_name = string_make("main");
+  // NOTE: We do an extra unwrapping here because the all the root modules are
+  // wrapped in a src modules.
   struct SymbolTableEntry *entry =
-      code_generator->annotator->root_symbol_table.head;
+      code_generator->annotator->root_symbol_table.head->type->value
+          .module_definition->module_definition->symbol_table.head;
   while (entry != NULL) {
     if (entry->type->kind == DTK_MODULE_DEF) {
       struct SymbolTableEntry *subentry = lookup_symbol_in(
@@ -1427,5 +1481,64 @@ void cg_make_entrypoint(struct CodeGenerator *code_generator,
     LLVMBuildRet(code_generator->builder, LLVMConstInt(LLVMInt32Type(), 0, 0));
   } else {
     LLVMBuildRet(code_generator->builder, main_ret);
+  }
+}
+
+void cg_prepare_module(struct CodeGenerator *code_generator,
+                       struct ModuleStatementNode *root) {
+  struct Queue *queue = queue_make(code_generator->allocator);
+
+  queue_push(code_generator->allocator, queue, root);
+  while (queue->head != NULL) {
+    struct ModuleStatementNode *head = queue_pop_head(queue);
+
+    printf("head: %s\n", head->node.decl->symbol.data);
+
+    if (head->node.decl->expression->type == EXPR_MOD_DEF) {
+      struct ModuleStatementNode *stmt =
+          head->node.decl->expression->node.module_definition->statements;
+
+      while (stmt != NULL) {
+        if (stmt->node.decl->expression->type == EXPR_MOD_DEF) {
+          printf("Pushing module def %s\n", stmt->node.decl->symbol.data);
+          queue_push(code_generator->allocator, queue, stmt);
+        } else if (stmt->node.decl->expression->type == EXPR_STRUCT_DEF) {
+          puts("Pushing struct def");
+          struct SymbolTableEntry *entry = lookup_symbol_in(
+              stmt->node.decl->symbol, &head->node.decl->expression->node
+                                            .module_definition->symbol_table);
+          assert(entry != NULL);
+          cg_visit_struct_definition(
+              code_generator, stmt->node.decl->expression->node.struct_def);
+          assert(stmt->node.decl->expression->node.struct_def
+                     ->llvm_structure_type != NULL);
+        } else if (stmt->node.decl->expression->type == EXPR_FN_DEF) {
+          struct SymbolTableEntry *entry = lookup_symbol_in(
+              stmt->node.decl->symbol, &head->node.decl->expression->node
+                                            .module_definition->symbol_table);
+          assert(entry != NULL);
+          assert(entry->llvm_value == NULL);
+          struct SymbolTable *old_symbol_table =
+              code_generator->current_symbol_table;
+          code_generator->current_symbol_table =
+              &head->node.decl->expression->node.module_definition
+                   ->symbol_table;
+          LLVMTypeRef type =
+              cg_get_type(code_generator, stmt->node.decl->data_type);
+          code_generator->current_symbol_table = old_symbol_table;
+          LLVMValueRef variable =
+              LLVMAddGlobal(code_generator->module, type, "");
+
+          if (stmt->node.decl->data_type->kind == DTK_FUNCTION ||
+              stmt->node.decl->data_type->kind == DTK_POINTER) {
+            LLVMSetInitializer(variable, LLVMConstPointerNull(type));
+          } else {
+            LLVMSetInitializer(variable, LLVMConstInt(LLVMInt32Type(), 0, 0));
+          }
+          entry->llvm_value = variable;
+        }
+        stmt = stmt->next;
+      }
+    }
   }
 }

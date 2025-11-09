@@ -1,0 +1,31 @@
+const foo = mod {
+    const inner = mod {
+        const puts = fn@extern["puts"](fmt: *i8): i32;
+    };
+
+    const get_bar = fn(): bar {
+        inner::puts("get_bar");
+        return .bar { x: 10 };
+    };
+
+    const bar = struct { x: i32 };
+
+    const printf = fn@extern["printf"]@variadic(fmt: *i8): i32;
+};
+
+const main = fn() {
+  const t = foo::get_bar();
+
+  foo::printf("hello world outer\n");
+
+  const t2: foo::bar = foo::get_bar();
+
+  foo::printf("The t.x is: %d\n", t.x);
+
+  foo::printf("The t2.x is: %d\n", t2.x);
+
+  return;
+};
+
+
+

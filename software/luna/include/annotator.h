@@ -18,6 +18,12 @@ enum DataTypeKind {
   DTK_STRUCTURE_DEF,
   DTK_MODULE_DEF,
   DTK_MODULE,
+  DTK_RESOLVABLE
+};
+
+struct ResolvableType {
+  struct ScopedSymbolLiteralNode *scoped_symbol;
+  struct DataType *resolved_type;
 };
 
 enum PrimitiveKind { P_INT, P_FLOAT };
@@ -69,6 +75,7 @@ struct DataType {
     struct StructDefinitionType structure_definition;
     struct ModuleDefinitionType *module_definition;
     struct ModuleType *module;
+    struct ResolvableType resolvable;
   } value;
   struct DataType *next;
 };
@@ -87,7 +94,7 @@ struct SymbolTableEntry {
   struct LunaString symbol;
   struct DataType *type;
   LLVMValueRef llvm_value;
-  LLVMTypeRef llvm_structure_type;
+  // LLVMTypeRef llvm_structure_type;
   struct SymbolTableEntry *next;
   enum MemorySegment memory_segment;
   enum SymbolLocation symbol_location;
@@ -140,7 +147,7 @@ void print_data_type(struct DataType *data_type);
 
 struct StructDefinitionExpressionNode *
 get_or_resolve_struct_definition_from_type(struct DataType *type,
-                                           struct SymbolTable *symbol_table);
+                                           struct Annotator *annotator);
 
 struct ExpressionNode;
 struct DataType *infer_type(struct Annotator *annotator,
@@ -149,7 +156,7 @@ struct DataType *infer_type(struct Annotator *annotator,
 struct StructFieldAccessExpressionNode;
 struct DataType *infer_type_of_field_access(
     struct StructFieldAccessExpressionNode *field_accessor,
-    struct SymbolTable *symbol_table);
+    struct Annotator *annotator);
 
 void print_symbol_table(struct LunaString name,
                         struct SymbolTable *symbol_table);
@@ -173,4 +180,13 @@ lookup_scoped_symbol_in(struct ScopedSymbolLiteralNode *scoped_symbol,
                         struct SymbolTable *symbol_table);
 
 void print_scoped_symbol(struct ScopedSymbolLiteralNode *scoped_symbol);
+
+struct SymbolTable *
+find_parent_table(struct SymbolTable *symbol_table,
+                  enum SymbolTableType new_symbol_table_type);
+void insert_symbol_entry(struct Annotator *annotator,
+                         struct SymbolTableEntry entry);
+void insert_symbol_entry_in(struct Annotator *annotator,
+                            struct SymbolTable *symbol_table,
+                            struct SymbolTableEntry entry);
 #endif

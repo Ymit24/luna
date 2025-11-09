@@ -15,12 +15,12 @@
       "-D__STDC_FORMAT_MACROS",
       "-D__STDC_LIMIT_MACROS",
       "-o",
-      "lunac",
+      "bin/lunac",
       "main.c"
     ],
     "directory": "/Users/chris/dev/luna/software/luna",
     "file": "/Users/chris/dev/luna/software/luna/main.c",
-    "output": "/Users/chris/dev/luna/software/luna/lunac"
+    "output": "/Users/chris/dev/luna/software/luna/bin/lunac"
   },
   {
     "arguments": [
@@ -38,12 +38,12 @@
       "-D__STDC_FORMAT_MACROS",
       "-D__STDC_LIMIT_MACROS",
       "-o",
-      "lunac",
+      "bin/lunac",
       "src/luna_string.c"
     ],
     "directory": "/Users/chris/dev/luna/software/luna",
     "file": "/Users/chris/dev/luna/software/luna/src/luna_string.c",
-    "output": "/Users/chris/dev/luna/software/luna/lunac"
+    "output": "/Users/chris/dev/luna/software/luna/bin/lunac"
   },
   {
     "arguments": [
@@ -61,12 +61,12 @@
       "-D__STDC_FORMAT_MACROS",
       "-D__STDC_LIMIT_MACROS",
       "-o",
-      "lunac",
+      "bin/lunac",
       "src/lexer.c"
     ],
     "directory": "/Users/chris/dev/luna/software/luna",
     "file": "/Users/chris/dev/luna/software/luna/src/lexer.c",
-    "output": "/Users/chris/dev/luna/software/luna/lunac"
+    "output": "/Users/chris/dev/luna/software/luna/bin/lunac"
   },
   {
     "arguments": [
@@ -84,12 +84,12 @@
       "-D__STDC_FORMAT_MACROS",
       "-D__STDC_LIMIT_MACROS",
       "-o",
-      "lunac",
+      "bin/lunac",
       "src/parser.c"
     ],
     "directory": "/Users/chris/dev/luna/software/luna",
     "file": "/Users/chris/dev/luna/software/luna/src/parser.c",
-    "output": "/Users/chris/dev/luna/software/luna/lunac"
+    "output": "/Users/chris/dev/luna/software/luna/bin/lunac"
   },
   {
     "arguments": [
@@ -107,12 +107,12 @@
       "-D__STDC_FORMAT_MACROS",
       "-D__STDC_LIMIT_MACROS",
       "-o",
-      "lunac",
+      "bin/lunac",
       "src/ast.c"
     ],
     "directory": "/Users/chris/dev/luna/software/luna",
     "file": "/Users/chris/dev/luna/software/luna/src/ast.c",
-    "output": "/Users/chris/dev/luna/software/luna/lunac"
+    "output": "/Users/chris/dev/luna/software/luna/bin/lunac"
   },
   {
     "arguments": [
@@ -130,12 +130,12 @@
       "-D__STDC_FORMAT_MACROS",
       "-D__STDC_LIMIT_MACROS",
       "-o",
-      "lunac",
+      "bin/lunac",
       "src/arena_allocator.c"
     ],
     "directory": "/Users/chris/dev/luna/software/luna",
     "file": "/Users/chris/dev/luna/software/luna/src/arena_allocator.c",
-    "output": "/Users/chris/dev/luna/software/luna/lunac"
+    "output": "/Users/chris/dev/luna/software/luna/bin/lunac"
   },
   {
     "arguments": [
@@ -153,12 +153,12 @@
       "-D__STDC_FORMAT_MACROS",
       "-D__STDC_LIMIT_MACROS",
       "-o",
-      "lunac",
+      "bin/lunac",
       "src/interpreter.c"
     ],
     "directory": "/Users/chris/dev/luna/software/luna",
     "file": "/Users/chris/dev/luna/software/luna/src/interpreter.c",
-    "output": "/Users/chris/dev/luna/software/luna/lunac"
+    "output": "/Users/chris/dev/luna/software/luna/bin/lunac"
   },
   {
     "arguments": [
@@ -176,12 +176,12 @@
       "-D__STDC_FORMAT_MACROS",
       "-D__STDC_LIMIT_MACROS",
       "-o",
-      "lunac",
+      "bin/lunac",
       "src/annotator.c"
     ],
     "directory": "/Users/chris/dev/luna/software/luna",
     "file": "/Users/chris/dev/luna/software/luna/src/annotator.c",
-    "output": "/Users/chris/dev/luna/software/luna/lunac"
+    "output": "/Users/chris/dev/luna/software/luna/bin/lunac"
   },
   {
     "arguments": [
@@ -199,12 +199,12 @@
       "-D__STDC_FORMAT_MACROS",
       "-D__STDC_LIMIT_MACROS",
       "-o",
-      "lunac",
+      "bin/lunac",
       "src/instruction_builder.c"
     ],
     "directory": "/Users/chris/dev/luna/software/luna",
     "file": "/Users/chris/dev/luna/software/luna/src/instruction_builder.c",
-    "output": "/Users/chris/dev/luna/software/luna/lunac"
+    "output": "/Users/chris/dev/luna/software/luna/bin/lunac"
   },
   {
     "arguments": [
@@ -222,11 +222,34 @@
       "-D__STDC_FORMAT_MACROS",
       "-D__STDC_LIMIT_MACROS",
       "-o",
-      "lunac",
-      "src/code_gen.c"
+      "bin/lunac",
+      "src/llvm-backend/code_generator.c"
     ],
     "directory": "/Users/chris/dev/luna/software/luna",
-    "file": "/Users/chris/dev/luna/software/luna/src/code_gen.c",
-    "output": "/Users/chris/dev/luna/software/luna/lunac"
+    "file": "/Users/chris/dev/luna/software/luna/src/llvm-backend/code_generator.c",
+    "output": "/Users/chris/dev/luna/software/luna/bin/lunac"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wall",
+      "-Wextra",
+      "-Wpedantic",
+      "-Werror",
+      "-std=c99",
+      "-Iinclude",
+      "-I/opt/homebrew/Cellar/llvm/21.1.3_1/include",
+      "-DEXPERIMENTAL_KEY_INSTRUCTIONS",
+      "-D__STDC_CONSTANT_MACROS",
+      "-D__STDC_FORMAT_MACROS",
+      "-D__STDC_LIMIT_MACROS",
+      "-o",
+      "bin/lunac",
+      "src/module_symbol_table_builder.c"
+    ],
+    "directory": "/Users/chris/dev/luna/software/luna",
+    "file": "/Users/chris/dev/luna/software/luna/src/module_symbol_table_builder.c",
+    "output": "/Users/chris/dev/luna/software/luna/bin/lunac"
   }
 ]

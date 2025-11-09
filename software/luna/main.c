@@ -10,6 +10,7 @@
 #include "lexer.h"
 #include "llvm-backend/code_generator.h"
 #include "luna_string.h"
+#include "module_symbol_table_builder.h"
 #include "parser.h"
 #include "token.h"
 #include "llvm-c/Core.h"
@@ -148,17 +149,60 @@ int main(int argc, char **argv) {
       current = new_root;
     }
   }
+  new_root = wrap_module(&allocator, new_root, string_make("src"));
   struct Annotator annotator = annotator_make(&allocator);
   annotator.current_symbol_table = &annotator.root_symbol_table;
 
-  annotator_initialize_primitives(&annotator);
-  annotator_visit_module_statements(&annotator, new_root);
+  puts("\n\n\n\n\n\n");
+  puts("----------------------------------------------------------");
+  puts("Starting mstb visitation.");
+  puts("\n\n");
 
-  print_symbol_table(string_make("Root"), &annotator.root_symbol_table);
+  mstb_visit_module(&annotator, new_root);
+
+  insert_symbol_entry(&annotator, (struct SymbolTableEntry){
+                                      .symbol = string_make("src"),
+                                      .type = new_root->node.decl->data_type,
+                                      .llvm_value = NULL,
+                                      // .llvm_structure_type = NULL,
+                                      .next = NULL,
+                                      .symbol_location = SL_MODULE,
+                                      .index = 0,
+                                  });
+
+  puts("Finished mstb.");
+
+  mstb_infer_types(
+      &annotator,
+      &new_root->node.decl->expression->node.module_definition->symbol_table);
+
+  puts("Finished infer types");
+
+  print_symbol_table(string_make("Root1"), &annotator.root_symbol_table);
+  annotator.current_symbol_table = &annotator.root_symbol_table;
+
+  // annotator.root_symbol_table =
+  //     new_root->node.decl->expression->node.module_definition->symbol_table;
+
+  puts("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
+  puts("\n\n\n\n\n\n");
+
+  // assert(0);
+
+  annotator_initialize_primitives(&annotator);
+  puts("About to visit module statements.");
+  annotator_visit_module_statements(&annotator, new_root);
+  puts("Done visit module statements.");
+
+  print_symbol_table(string_make("Root2"), &annotator.root_symbol_table);
+
+  // assert(0);
 
   struct CodeGenerator code_generator = cg_make(&allocator, &annotator);
 
   puts("Start code gen");
+  cg_prepare_module(&code_generator, new_root);
+  puts("Done prep");
   LLVMValueRef global_module_initializer = cg_visit_module_statements(
       &code_generator, new_root, true, string_make("core"));
   cg_make_entrypoint(&code_generator, global_module_initializer);

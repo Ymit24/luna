@@ -875,9 +875,28 @@ struct DataType *parse_data_type(struct Parser *parser) {
       struct ScopedSymbolLiteralNode *scoped_symbol =
           parse_scoped_symbol_literal(parser);
 
-      return make_structure_data_type(
-          parser->allocator,
-          (struct StructType){.name = scoped_symbol, .definition = NULL});
+      struct DataType *data_type =
+          ast_promote(parser->allocator,
+                      &(struct DataType){
+                          .kind = DTK_RESOLVABLE,
+                          .next = NULL,
+                          .value.resolvable =
+                              (struct ResolvableType){
+                                  .resolved_type = NULL,
+                                  .scoped_symbol = scoped_symbol,
+                              },
+                      },
+                      sizeof(struct DataType));
+
+      printf("resolved type: ");
+      print_data_type(data_type);
+      puts("");
+
+      return data_type;
+
+      // return make_structure_data_type(
+      //     parser->allocator,
+      //     (struct StructType){.name = scoped_symbol, .definition = NULL});
     }
     break;
   }
