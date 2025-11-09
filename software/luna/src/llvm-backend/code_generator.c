@@ -1504,7 +1504,6 @@ void cg_prepare_module(struct CodeGenerator *code_generator,
           head->node.decl->expression->node.module_definition->statements;
 
       while (stmt != NULL) {
-        // TODO: Make this also work for global variable defs. e.g. in cstd F_OK.
         if (stmt->node.decl->expression->type == EXPR_MOD_DEF) {
           printf("Pushing module def %s\n", stmt->node.decl->symbol.data);
           queue_push(code_generator->allocator, queue, stmt);
@@ -1518,7 +1517,7 @@ void cg_prepare_module(struct CodeGenerator *code_generator,
               code_generator, stmt->node.decl->expression->node.struct_def);
           assert(stmt->node.decl->expression->node.struct_def
                      ->llvm_structure_type != NULL);
-        } else if (stmt->node.decl->expression->type == EXPR_FN_DEF) {
+        } else {
           struct SymbolTableEntry *entry = lookup_symbol_in(
               stmt->node.decl->symbol, &head->node.decl->expression->node
                                             .module_definition->symbol_table);
