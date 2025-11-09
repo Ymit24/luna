@@ -10,6 +10,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 LLVMTypeRef cg_get_type(struct CodeGenerator *code_generator,
                         struct DataType *data_type);
@@ -1393,8 +1394,12 @@ LLVMValueRef cg_visit_module_statements(struct CodeGenerator *code_generator,
   printf("isroot: %d\n", is_root);
   LLVMBasicBlockRef previous_block = code_generator->current_block;
 
+  char *header = "module_initializer_";
+  char module_initializer_name[module_name.length + strlen(header)];
+  sprintf((char *)&module_initializer_name, "%s%s", header, module_name.data);
+
   LLVMValueRef module_initialization_function =
-      LLVMAddFunction(code_generator->module, module_name.data,
+      LLVMAddFunction(code_generator->module, module_initializer_name,
                       LLVMFunctionType(LLVMVoidType(), NULL, 0, 0));
   LLVMBasicBlockRef block =
       LLVMAppendBasicBlock(module_initialization_function, "entry");
@@ -1447,6 +1452,16 @@ void cg_make_entrypoint(struct CodeGenerator *code_generator,
           main_symbol_name, &entry->type->value.module_definition
                                  ->module_definition->symbol_table);
       if (subentry != NULL) {
+        assert(subentry->type != NULL);
+        if (subentry->type->kind == DTK_MODULE_DEF) {
+          struct SymbolTableEntry *supersubentry = lookup_symbol_in(
+              main_symbol_name, &subentry->type->value.module_definition
+                                     ->module_definition->symbol_table);
+          if (supersubentry != NULL) {
+            main_symbol = supersubentry;
+            break;
+          }
+        }
         main_symbol = subentry;
         break;
       }
