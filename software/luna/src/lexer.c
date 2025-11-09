@@ -5,6 +5,7 @@
 
 #include <assert.h>
 #include <ctype.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -37,10 +38,10 @@ uint16_t lexer_read_integer(struct Lexer *lexer) {
 }
 
 struct LunaString lexer_read_string(struct Lexer *lexer) {
-  char *buf = arena_alloc(lexer->allocator, 128 * sizeof(char));
-  uint8_t index = 0;
+  char *buf = arena_alloc(lexer->allocator, 256 * sizeof(char));
+  uint16_t index = 0;
 
-  while (lexer_peek(lexer) != '"' && index < 128) {
+  while (lexer_peek(lexer) != '"' && index < 256) {
     char c = lexer_peek(lexer);
     if (c == '\\') {
       lexer->position++;
@@ -80,6 +81,11 @@ struct LunaString lexer_read_string(struct Lexer *lexer) {
       buf[index++] = c;
     }
     lexer->position++;
+  }
+
+  if (index >= 256) {
+    puts("Lexer: string length surpassed 256.");
+    assert(0);
   }
 
   buf[index] = 0;

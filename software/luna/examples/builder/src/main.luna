@@ -17,8 +17,12 @@ const main = fn(argc: i8, argv: **i8) {
     return;
 };
 
+const does_file_exist = fn(filepath: *i8): i1 {
+    return cstd::access(filepath, cstd::F_OK) == 0;
+};
+
 const do_build = fn() {
-    if cstd::access("build.luna", cstd::F_OK) == 0 {
+    if does_file_exist("build.luna") {
         const files = lists::make(@typesize(strings::string));
 
         const files_raw = [
@@ -49,10 +53,29 @@ const do_build = fn() {
     return;
 };
 
+const default_build_luna_source = "const build = fn(context: *builder::context) {
+    builder::add_sources(context, strings::make(\"src/\"));
+    context.binary_name = strings::make(\"out/name\");
+    builder::compile(context);
+    return;
+};";
+
 const do_new = fn(name: strings::string) {
     cstd::printf("Creating new lune project called '%s'\n", name.data);
+    cstd::printf("build.luna > \n```luna\n%s\n```\n", default_build_luna_source);
+
+    if does_file_exist(name.data) {
+        cstd::puts("File/Directory with that name already exists.");
+        return;
+    };
+
     // 1. mkdir [name]
-    // 2. make default build.luna in [name]
+    // NOTE: 511 is decomal form of octal 0777. Luna does not support octal literals
+    cstd::mkdir(name.data, 511);
+
+    // 2. make [name]/build.luna
+
+    cstd::fopen()
     // 3. make [name]/src/main.luna
     return;
 };
