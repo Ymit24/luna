@@ -1,6 +1,4 @@
 const foo = mod {
-    const bar = struct { x: i32 };
-
     const inner = mod {
         const puts = fn@extern["puts"](fmt: *i8): i32;
     };
@@ -10,13 +8,15 @@ const foo = mod {
         return .bar { x: 10 };
     };
 
+    const bar = struct { x: i32 };
+
     const printf = fn@extern["printf"]@variadic(fmt: *i8): i32;
 };
 
 const main = fn() {
   const t = foo::get_bar();
 
-  foo::inner::printf("hello world outer\n");
+  foo::printf("hello world outer\n");
 
   const t2: foo::bar = foo::get_bar();
 
@@ -26,3 +26,6 @@ const main = fn() {
 
   return;
 };
+
+
+
