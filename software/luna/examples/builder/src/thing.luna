@@ -1,4 +1,4 @@
 const main = fn() {
-  cstd::puts("Hello world built.");
+  cstd::puts("Hello world built 2.");
   return;
 };

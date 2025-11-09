@@ -4,3 +4,37 @@ const promote = fn(obj: *i8, size: u16): *i8 {
     return ptr;
 };
 
+const list_files = fn(path: *i8): lists::list {
+    const dir = cstd::opendir(path);
+    if dir == 0 {
+        cstd::perror("opendir");
+        assert(0);
+    };
+
+    let ent = @cast(*cstd::dirent, 0);
+
+    let list_of_files = lists::make(@typesize(strings::string));
+    ent = cstd::readdir(dir);
+    while ent != 0 {
+        if ent.d_type == 8 {
+            const buf: [i8; 64] = [0];
+            cstd::sprintf(buf, "src/%s", &ent.d_name);
+            const file_str = strings::make_from(buf);
+            const file_str_ptr = @cast(*strings::string, promote(&file_str, @valuesize(file_str)));
+            lists::push(&list_of_files, @cast(*i8, file_str_ptr));
+        };
+        ent = cstd::readdir(dir);
+    };
+
+    cstd::closedir(dir);
+
+    return list_of_files;
+};
+
+const assert = fn(condition: i1) {
+    if condition != 1 {
+        cstd::printf("Assertion failed.");
+        cstd::abort();
+    };
+    return;
+};
