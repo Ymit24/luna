@@ -6,11 +6,11 @@ const main = fn() {
 
     build::build(&ctx);
 
-    lists::each(&ctx.srcs, fn(index: i32, value: *i8) {
-        const str = @cast(*strings::string, value);
-        cstd::printf("src: %s\n", str.data);
-        return;
-    });
+    // lists::each(&ctx.srcs, fn(index: i32, value: *i8) {
+    //     const str = @cast(*strings::string, value);
+    //     cstd::printf("src: %s\n", str.data);
+    //     return;
+    // });
 
     return;
 };

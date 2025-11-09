@@ -4,11 +4,11 @@ const context = struct {
 };
 
 const add_src = fn(context: *context, path: strings::string) {
-  cstd::printf("Adding src: %s\n", path.data);
+  // cstd::printf("Adding src: %s\n", path.data);
   lists::push(&context.srcs, std::promote(&path, @valuesize(path)));
   const ptr = context.srcs.data;
   const str = @cast(*strings::string, ptr[context.srcs.len - 1]);
-  cstd::printf("str: %s\n", str.data);
+  // cstd::printf("str: %s\n", str.data);
   return;
 };
 
@@ -27,6 +27,24 @@ const compile_with_exec = fn(l: *lists::list) {
             index = index + 1;
         };
         args[index+1] = @cast(*i8, 0);
+
+        const print_args = fn(args: **i8, argc: i32) {
+            cstd::puts("about to print args:");
+            cstd::printf("argc: %d\n", argc);
+
+            let index = 0;
+            cstd::printf("index: %d\n", index);
+            while index < argc {
+                cstd::printf("2. index: %d\n", index);
+                cstd::printf("\t'%s'\n", args[index]);
+                index = index + 1;
+            };
+            cstd::printf("Printed all %d args.", argc);
+            return;
+        };
+
+        cstd::printf("Printing args:\n");
+        print_args(args, l.len + 2);
 
         const fd = cstd::open("/dev/null", 1);
         if fd < 0 {

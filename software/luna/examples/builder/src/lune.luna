@@ -6,7 +6,13 @@ const main = fn(argc: i8, argv: **i8) {
         index = index + 1;
     };
 
+    if argc < 2 {
+        cstd::puts("usage: lune <command>");
+        return;
+    };
+
     if cstd::strncmp("build", argv[1], 5) == 0 {
+        cstd::puts("found build");
         // find build.luna file
         if cstd::access("build.luna", cstd::F_OK) == 0 {
             cstd::puts("Found build.luna.");
@@ -32,7 +38,7 @@ const main = fn(argc: i8, argv: **i8) {
                 index2 = index2 + 1;
             };
 
-            const binary_name = strings::make("lune2");
+            const binary_name = strings::make("out/lune_builder");
 
             builder::compile_with(&files, &binary_name);
         } else {

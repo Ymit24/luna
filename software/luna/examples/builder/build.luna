@@ -1,7 +1,11 @@
 const build = fn(context: *builder::context) {
-    builder::add_src(context, strings::make("src/lune.luna"));
-    builder::add_src(context, strings::make("lib/builder.luna"));
+    cstd::puts("Building application...");
     builder::add_src(context, strings::make("../cstd.luna"));
+    builder::add_src(context, strings::make("src/lune.luna"));
+    builder::add_src(context, strings::make("src/lists.luna"));
+    builder::add_src(context, strings::make("src/strings.luna"));
+    builder::add_src(context, strings::make("lib/std.luna"));
+    builder::add_src(context, strings::make("lib/builder.luna"));
     context.binary_name = strings::make("out/lune");
     builder::compile(context);
     return;

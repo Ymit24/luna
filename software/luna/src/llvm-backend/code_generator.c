@@ -1504,6 +1504,7 @@ void cg_prepare_module(struct CodeGenerator *code_generator,
           head->node.decl->expression->node.module_definition->statements;
 
       while (stmt != NULL) {
+        // TODO: Make this also work for global variable defs. e.g. in cstd F_OK.
         if (stmt->node.decl->expression->type == EXPR_MOD_DEF) {
           printf("Pushing module def %s\n", stmt->node.decl->symbol.data);
           queue_push(code_generator->allocator, queue, stmt);
