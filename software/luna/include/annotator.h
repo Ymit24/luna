@@ -147,7 +147,7 @@ void print_data_type(struct DataType *data_type);
 
 struct StructDefinitionExpressionNode *
 get_or_resolve_struct_definition_from_type(struct DataType *type,
-                                           struct SymbolTable *symbol_table);
+                                           struct Annotator *annotator);
 
 struct ExpressionNode;
 struct DataType *infer_type(struct Annotator *annotator,
@@ -156,7 +156,7 @@ struct DataType *infer_type(struct Annotator *annotator,
 struct StructFieldAccessExpressionNode;
 struct DataType *infer_type_of_field_access(
     struct StructFieldAccessExpressionNode *field_accessor,
-    struct SymbolTable *symbol_table);
+    struct Annotator *annotator);
 
 void print_symbol_table(struct LunaString name,
                         struct SymbolTable *symbol_table);

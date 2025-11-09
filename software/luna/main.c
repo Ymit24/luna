@@ -202,6 +202,7 @@ int main(int argc, char **argv) {
 
   puts("Start code gen");
   cg_prepare_module(&code_generator, new_root);
+  puts("Done prep");
   LLVMValueRef global_module_initializer = cg_visit_module_statements(
       &code_generator, new_root, true, string_make("core"));
   cg_make_entrypoint(&code_generator, global_module_initializer);

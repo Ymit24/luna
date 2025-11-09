@@ -32,8 +32,7 @@ cg_count_field_access_depth(struct StructFieldAccessExpressionNode *field);
 
 void cg_visit_struct_definition(
     struct CodeGenerator *code_generator,
-    struct StructDefinitionExpressionNode *definition,
-    struct SymbolTableEntry *entry);
+    struct StructDefinitionExpressionNode *definition);
 
 size_t count_function_arguments(struct FunctionArgumentNode *argument) {
   if (argument == NULL) {
@@ -206,6 +205,14 @@ LLVMTypeRef cg_get_type(struct CodeGenerator *code_generator,
     print_data_type(data_type);
     puts("");
     assert(data_type->value.structure_definition.definition != NULL);
+    if (data_type->value.structure_definition.definition->llvm_structure_type ==
+        NULL) {
+      cg_visit_struct_definition(
+          code_generator, data_type->value.structure_definition.definition);
+    }
+    assert(
+        data_type->value.structure_definition.definition->llvm_structure_type !=
+        NULL);
     return data_type->value.structure_definition.definition
         ->llvm_structure_type;
   case DTK_STRUCTURE: {
@@ -466,9 +473,16 @@ LLVMValueRef cg_visit_field_access_expr(
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+  struct SymbolTable *old_symbol_table = code_generator->current_symbol_table;
+
+  code_generator->annotator->current_symbol_table =
+      code_generator->current_symbol_table;
+
   struct StructDefinitionExpressionNode *definition =
-      get_or_resolve_struct_definition_from_type(
-          entry->type, code_generator->current_symbol_table);
+      get_or_resolve_struct_definition_from_type(entry->type,
+                                                 code_generator->annotator);
+
+  code_generator->annotator->current_symbol_table = old_symbol_table;
 
   assert(definition != NULL);
 
@@ -977,9 +991,7 @@ cg_count_structure_definition_fields(struct StructFieldDefinitionNode *field) {
 
 void cg_visit_struct_definition(
     struct CodeGenerator *code_generator,
-    struct StructDefinitionExpressionNode *definition,
-    struct SymbolTableEntry *entry) {
-  assert(entry != NULL); // TODO: remove this
+    struct StructDefinitionExpressionNode *definition) {
   puts("code genning struct definition");
   struct StructFieldDefinitionNode *field = definition->fields;
   size_t field_count = 0;
@@ -1019,8 +1031,7 @@ void cg_visit_module_decl(struct CodeGenerator *code_generator,
 
   if (decl->data_type->kind == DTK_STRUCTURE_DEF) {
     cg_visit_struct_definition(
-        code_generator, decl->data_type->value.structure_definition.definition,
-        entry);
+        code_generator, decl->data_type->value.structure_definition.definition);
     puts("TODO: remove this.");
     assert(decl->data_type->value.structure_definition.definition
                ->llvm_structure_type != NULL);
@@ -1276,9 +1287,14 @@ void cg_visit_function_statement(struct CodeGenerator *code_generator,
       break;
     } else if (node->source_expression->type == EXPR_FIELD_ACCESS) {
       puts("in field access");
+      struct SymbolTable *old_symbol_table =
+          code_generator->annotator->current_symbol_table;
+      code_generator->annotator->current_symbol_table =
+          code_generator->current_symbol_table;
       struct DataType *source_type = infer_type_of_field_access(
           node->source_expression->node.struct_field_access,
-          code_generator->current_symbol_table);
+          code_generator->annotator);
+      code_generator->annotator->current_symbol_table = old_symbol_table;
 
       puts("about to gen assignment");
 
@@ -1493,8 +1509,7 @@ void cg_prepare_module(struct CodeGenerator *code_generator,
                                             .module_definition->symbol_table);
           assert(entry != NULL);
           cg_visit_struct_definition(
-              code_generator, stmt->node.decl->expression->node.struct_def,
-              entry);
+              code_generator, stmt->node.decl->expression->node.struct_def);
           assert(stmt->node.decl->expression->node.struct_def
                      ->llvm_structure_type != NULL);
         } else if (stmt->node.decl->expression->type == EXPR_FN_DEF) {

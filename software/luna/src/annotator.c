@@ -321,53 +321,87 @@ get_or_resolve_mod_definition_from_type(struct DataType *type,
 
 struct StructDefinitionExpressionNode *
 get_or_resolve_struct_definition_from_type(struct DataType *type,
-                                           struct SymbolTable *symbol_table) {
+                                           struct Annotator *annotator) {
   assert(type != NULL);
 
   puts("TYPE IS:\n\t");
   print_data_type(type);
   puts("");
 
-  assert(type->kind == DTK_STRUCTURE ||
-         (type->kind == DTK_POINTER && type->value.pointer_inner != NULL &&
-          type->value.pointer_inner->kind == DTK_STRUCTURE));
+  if (type->kind == DTK_POINTER) {
+    assert(type->value.pointer_inner != NULL);
+    if (type->value.pointer_inner->kind == DTK_RESOLVABLE) {
+      return get_or_resolve_struct_definition_from_type(
+          type->value.pointer_inner, annotator);
+    } else {
+      printf("Pointer inner is not to a resolvable.");
+      assert(0);
+    }
+  } else if (type->kind == DTK_RESOLVABLE) {
+    if (type->value.resolvable.resolved_type != NULL) {
+      struct DataType *resolved_type = type->value.resolvable.resolved_type;
+      assert(resolved_type->kind == DTK_STRUCTURE_DEF);
 
-  struct StructType *struct_type = NULL;
-  if (type->kind == DTK_STRUCTURE) {
-    struct_type = &type->value.structure;
-  } else {
-    struct_type = &type->value.pointer_inner->value.structure;
+      return resolved_type->value.structure_definition.definition;
+    } else {
+      mstb_resolve_types(annotator, type);
+      assert(type->value.resolvable.resolved_type != NULL);
+      assert(type->value.resolvable.resolved_type->kind == DTK_STRUCTURE_DEF);
+      assert(type->value.resolvable.resolved_type->value.structure_definition
+                 .definition != NULL);
+      return type->value.resolvable.resolved_type->value.structure_definition
+          .definition;
+    }
   }
 
-  if (struct_type->definition != NULL) {
-    printf("get_or_resolve_struct_definition_from_type: found struct def, "
-           "entry type is:");
-    print_struct_def_data_type(struct_type->definition);
-    puts("");
-    return struct_type->definition;
-  }
+  printf("Found type that is neither a structure nor a resolvable.");
+  assert(0);
 
-  struct SymbolTableEntry *entry =
-      lookup_scoped_symbol_in(struct_type->name, symbol_table);
-  assert(entry != NULL);
+  return NULL;
 
-  assert(entry->type != NULL);
-  assert(entry->type->kind == DTK_STRUCTURE_DEF);
-  assert(entry->type->value.structure_definition.definition != NULL);
-
-  struct_type->definition = entry->type->value.structure_definition.definition;
-
-  printf("get_or_resolve_struct_definition_from_type: resolved struct def, "
-         "entry type is:");
-  print_data_type(entry->type);
-  puts("");
-
-  return struct_type->definition;
+  // assert(type->kind == DTK_STRUCTURE ||
+  //        (type->kind == DTK_POINTER && type->value.pointer_inner != NULL &&
+  //         type->value.pointer_inner->kind == DTK_RESOLVABLE &&
+  //         type->value.pointer_inner->value.resolvable.resolved_type !=
+  //         NULL));
+  //
+  // struct StructType *struct_type = NULL;
+  // if (type->kind == DTK_STRUCTURE) {
+  //   struct_type = &type->value.structure;
+  // } else {
+  //   struct_type = type->value.pointer_inner->value.resolvable.resolved_type;
+  // }
+  //
+  // if (struct_type->definition != NULL) {
+  //   printf("get_or_resolve_struct_definition_from_type: found struct def, "
+  //          "entry type is:");
+  //   print_struct_def_data_type(struct_type->definition);
+  //   puts("");
+  //   return struct_type->definition;
+  // }
+  //
+  // struct SymbolTableEntry *entry =
+  //     lookup_scoped_symbol_in(struct_type->name, symbol_table);
+  // assert(entry != NULL);
+  //
+  // assert(entry->type != NULL);
+  // assert(entry->type->kind == DTK_STRUCTURE_DEF);
+  // assert(entry->type->value.structure_definition.definition != NULL);
+  //
+  // struct_type->definition =
+  // entry->type->value.structure_definition.definition;
+  //
+  // printf("get_or_resolve_struct_definition_from_type: resolved struct def, "
+  //        "entry type is:");
+  // print_data_type(entry->type);
+  // puts("");
+  //
+  // return struct_type->definition;
 }
 
 struct DataType *infer_type_of_inner_field_access(
     struct StructFieldAccessInnerExpressionNode *field_accessor,
-    struct SymbolTable *symbol_table) {
+    struct SymbolTable *symbol_table, struct Annotator *annotator) {
   assert(field_accessor != NULL);
 
   struct SymbolTableEntry *entry =
@@ -384,23 +418,23 @@ struct DataType *infer_type_of_inner_field_access(
   }
 
   struct StructDefinitionExpressionNode *definition =
-      get_or_resolve_struct_definition_from_type(entry->type, symbol_table);
+      get_or_resolve_struct_definition_from_type(entry->type, annotator);
 
   assert(definition != NULL);
 
   struct DataType *next = infer_type_of_inner_field_access(
-      field_accessor->next, &definition->symbol_table);
+      field_accessor->next, &definition->symbol_table, annotator);
 
   return next;
 }
 
 struct DataType *infer_type_of_field_access(
     struct StructFieldAccessExpressionNode *field_accessor,
-    struct SymbolTable *symbol_table) {
+    struct Annotator *annotator) {
   assert(field_accessor != NULL);
 
-  struct SymbolTableEntry *entry =
-      lookup_scoped_symbol_in(field_accessor->root_symbol, symbol_table);
+  struct SymbolTableEntry *entry = lookup_scoped_symbol_in(
+      field_accessor->root_symbol, annotator->current_symbol_table);
 
   assert(entry != NULL);
   assert(entry->type != NULL);
@@ -409,7 +443,7 @@ struct DataType *infer_type_of_field_access(
   }
 
   struct StructDefinitionExpressionNode *definition =
-      get_or_resolve_struct_definition_from_type(entry->type, symbol_table);
+      get_or_resolve_struct_definition_from_type(entry->type, annotator);
 
   puts("infer_type_of_field_access: found struct def, entry type is:");
   print_symbol_table(string_make("StructDef"), &definition->symbol_table);
@@ -420,7 +454,7 @@ struct DataType *infer_type_of_field_access(
   assert(definition != NULL);
 
   struct DataType *next = infer_type_of_inner_field_access(
-      field_accessor->next, &definition->symbol_table);
+      field_accessor->next, &definition->symbol_table, annotator);
 
   return next;
 }
@@ -524,8 +558,7 @@ struct DataType *infer_type(struct Annotator *annotator,
   case EXPR_REF: {
     return make_pointer_data_type(
         annotator->allocator,
-        infer_type_of_field_access(expr->node.struct_field_access,
-                                   annotator->current_symbol_table));
+        infer_type_of_field_access(expr->node.struct_field_access, annotator));
   }
   case EXPR_DEREF: {
     puts("doing deref");
@@ -628,8 +661,8 @@ struct DataType *infer_type(struct Annotator *annotator,
     return data_type;
   case EXPR_FIELD_ACCESS:
     puts("expr field access");
-    struct DataType *field_accessor_type = infer_type_of_field_access(
-        expr->node.struct_field_access, annotator->current_symbol_table);
+    struct DataType *field_accessor_type =
+        infer_type_of_field_access(expr->node.struct_field_access, annotator);
     printf("found field accessor of type: ");
     print_data_type(field_accessor_type);
     puts("");
