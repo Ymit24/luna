@@ -1,0 +1,27 @@
+const context = struct {
+  srcs: lists::list,
+};
+
+const add_src = fn(context: *context, path: strings::string) {
+  cstd::printf("Adding src: %s\n", path.data);
+  lists::push(&context.srcs, std::promote(&path, @valuesize(path)));
+  const ptr = context.srcs.data;
+  const str = @cast(*strings::string, ptr[context.srcs.len - 1]);
+  cstd::printf("str: %s\n", str.data);
+  return;
+};
+
+const main = fn() {
+    const ctx = .context {
+        srcs: lists::make(@typesize(strings::string)),
+    };
+    build::build(&ctx);
+
+    lists::each(&ctx.srcs, fn(index: i32, value: *i8) {
+        const str = @cast(*strings::string, value);
+        cstd::printf("src: %s\n", str.data);
+        return;
+    });
+
+    return;
+};

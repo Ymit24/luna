@@ -433,9 +433,14 @@ void cg_visit_field_inner_access_expr(
     if (field_access_expr->next != NULL) {
       puts("still have further stuff.");
       field_def = result.field_definition;
-      assert(field_def->type->kind == DTK_STRUCTURE);
-      assert(field_def->type->value.structure.definition != NULL);
-      field_defs = field_def->type->value.structure.definition->fields;
+      printf("Field def kind: %d\n", field_def->type->kind);
+      puts("");
+      assert(field_def->type->kind == DTK_RESOLVABLE);
+      assert(field_def->type->value.resolvable.resolved_type != NULL);
+      assert(field_def->type->value.resolvable.resolved_type->kind ==
+             DTK_STRUCTURE_DEF);
+      field_defs = field_def->type->value.resolvable.resolved_type->value
+                       .structure_definition.definition->fields;
 
       // NOTE: If field is pointer, add extra deref for the pointer. We dont
       // do this for last field though.

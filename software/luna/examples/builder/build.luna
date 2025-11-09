@@ -1,0 +1,5 @@
+const build = fn(context: *builder::context) {
+    builder::add_src(context, strings::make("src/thing.luna"));
+    return;
+};
+

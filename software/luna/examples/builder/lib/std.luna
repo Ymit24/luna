@@ -1,0 +1,6 @@
+const promote = fn(obj: *i8, size: u16): *i8 {
+    const ptr = cstd::malloc(size);
+    cstd::memcpy(ptr, obj, size);
+    return ptr;
+};
+
