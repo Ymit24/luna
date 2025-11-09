@@ -2,6 +2,7 @@ const puts = fn@extern["puts"](fmt: *i8):i32;
 const printf = fn@extern["printf"]@variadic(fmt: *i8): i32;
 
 const malloc = fn@extern["malloc"](size: i32): *i8;
+const realloc = fn@extern["realloc"](ptr: *i8, size: i32): *i8;
 const free = fn@extern["free"](ptr: *i8);
 
 const memcpy = fn@extern["memcpy"](dst: *i8, src: *i8, size: i32);

@@ -62,20 +62,27 @@ const default_build_luna_source = "const build = fn(context: *builder::context) 
 
 const do_new = fn(name: strings::string) {
     cstd::printf("Creating new lune project called '%s'\n", name.data);
-    cstd::printf("build.luna > \n```luna\n%s\n```\n", default_build_luna_source);
+    // cstd::printf("build.luna > \n```luna\n%s\n```\n", default_build_luna_source);
 
     if does_file_exist(name.data) {
         cstd::puts("File/Directory with that name already exists.");
         return;
     };
 
+    cstd::printf("Current name: '%s'\n", name);
+
+    strings::append::cstr(&name, "foo");
+
+    cstd::printf("New name: '%s'\n", name);
+
     // 1. mkdir [name]
     // NOTE: 511 is decomal form of octal 0777. Luna does not support octal literals
+    // TODO: uncomment -> 
     cstd::mkdir(name.data, 511);
 
     // 2. make [name]/build.luna
 
-    cstd::fopen()
+    // cstd::fopen()
     // 3. make [name]/src/main.luna
     return;
 };

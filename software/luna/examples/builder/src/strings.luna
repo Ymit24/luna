@@ -1,12 +1,17 @@
 const string = struct {
     data: *i8,
     len: i32,
+    cap: i32,
+    is_heap: i1,
 };
 
 const make = fn(raw: *i8): string {
+    const len = cstd::strlen(raw);
     return .string {
         data: raw,
-        len: cstd::strlen(raw),
+        len: len,
+        cap: len,
+        is_heap: 0,
     };
 };
 
@@ -16,5 +21,41 @@ const make_from = fn(src: *i8): string {
     const dst = cstd::malloc(@typesize(i8) * size);
     cstd::memcpy(dst, src, size);
     // cstd::printf("Copied string: '%s'\n", dst);
-    return make(dst);
+    const str = make(dst);
+    str.is_heap = 1;
+    return str;
+};
+
+const free = fn(str: string) {
+    std::assert(str.is_heap);
+    cstd::free(str.data);
+    str.data = @cast(*i8, 0);
+    return;
+};
+
+const append = mod {
+    const ensure_heap = fn(str: *string) {
+        if str.is_heap { return; };
+        const new_str = make_from(str.data);
+        str.data = new_str.data;
+        str.is_heap = 1;
+        return;
+    };
+
+    const cstr = fn(str: *string, cstr: *i8) {
+        ensure_heap(str);
+        const cstr_len = cstd::strlen(cstr);
+
+        // NOTE: Grow str data
+        const needed_cap = str.len + cstr_len;
+        if needed_cap >= str.cap {
+            str.cap = needed_cap;
+            str.data = cstd::realloc(str.data, needed_cap);
+        };
+
+        cstd::memcpy((str.data + str.len), cstr, cstr_len);
+        str.len = needed_cap;
+
+        return;
+    };
 };
