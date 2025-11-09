@@ -1,0 +1,16 @@
+const main = fn() {
+    const ctx = .builder::context {
+        srcs: lists::make(@typesize(strings::string)),
+        binary_name: strings::make("out/default"),
+    };
+
+    build::build(&ctx);
+
+    lists::each(&ctx.srcs, fn(index: i32, value: *i8) {
+        const str = @cast(*strings::string, value);
+        cstd::printf("src: %s\n", str.data);
+        return;
+    });
+
+    return;
+};

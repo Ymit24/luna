@@ -57,36 +57,23 @@ const compile_with_exec = fn(l: *lists::list) {
 };
 
 const compile = fn(ctx: *context) {
-    // const files = std::list_files("src/");
-    compile_with_exec(&ctx.srcs);
+    compile_with(&ctx.srcs, &ctx.binary_name);
+    return;
+};
 
-    cstd::system("llc out/compiled.ll");
+const compile_with = fn(files: *lists::list, binary_name: *strings::string) {
+    compile_with_exec(files);
+
+    cstd::system("llc -filetype=asm out/compiled.ll");
     cstd::system("as out/compiled.s -o out/compiled.o");
-    const section_one = "clang out/compiled.o -o";
+    const section_one = "clang -no-pie out/compiled.o -o";
     const buf: [i8; 64] = [0];
-    cstd::sprintf(buf, "%s %s", section_one, ctx.binary_name.data);
+    cstd::sprintf(buf, "%s %s", section_one, binary_name.data);
     cstd::printf("buf: '%s'\n", buf);
     cstd::system(buf);
 
     cstd::puts("Fully built.");
 
     // cstd::system("./out/compiled");
-    return;
-};
-
-const main = fn() {
-    const ctx = .context {
-        srcs: lists::make(@typesize(strings::string)),
-        binary_name: strings::make("out/default"),
-    };
-
-    build::build(&ctx);
-
-    lists::each(&ctx.srcs, fn(index: i32, value: *i8) {
-        const str = @cast(*strings::string, value);
-        cstd::printf("src: %s\n", str.data);
-        return;
-    });
-
     return;
 };

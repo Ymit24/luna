@@ -32,6 +32,12 @@ const DIR = struct {
     // NOTE: Dont actually access this besides as pointer.
 };
 
+const F_OK: i32 = 0;
+
+// NOTE/TODO: if you do just "mode" the lexer thinks that is "mod e"
+const fopen = fn@extern["fopen"](filepath: *i8, smode: *i8): *i8;
+const access = fn@extern["access"](filepath: *i8, smode: i32): i32;
+
 const open = fn@extern["open"](pathname: *i8, flags: i32): i32;
 const close = fn@extern["close"](fd: i32);
 const dup2 = fn@extern["dup2"](oldfd: i32, newfd: i32): i32;

@@ -1,5 +1,6 @@
 const build = fn(context: *builder::context) {
     builder::add_src(context, strings::make("src/lune.luna"));
+    builder::add_src(context, strings::make("lib/builder.luna"));
     builder::add_src(context, strings::make("../cstd.luna"));
     context.binary_name = strings::make("out/lune");
     builder::compile(context);
