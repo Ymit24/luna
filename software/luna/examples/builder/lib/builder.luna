@@ -53,8 +53,8 @@ const compile_with_exec = fn(l: *lists::list) {
             return;
         };
 
-        cstd::printf("Printing args:\n");
-        print_args(args, l.len + 2);
+        // cstd::printf("Printing args:\n");
+        // print_args(args, l.len + 2);
 
         const fd = cstd::open("/dev/null", 1);
         if fd < 0 {
@@ -94,13 +94,11 @@ const compile_with = fn(files: *lists::list, binary_name: *strings::string) {
 
     cstd::system("llc -filetype=asm out/compiled.ll");
     cstd::system("as out/compiled.s -o out/compiled.o");
-    const section_one = "clang -no-pie out/compiled.o -o";
+    const section_one_linux = "clang -no-pie out/compiled.o -o";
+    const section_one_mac = "clang out/compiled.o -o";
     const buf: [i8; 64] = [0];
-    cstd::sprintf(buf, "%s %s", section_one, binary_name.data);
-    cstd::printf("buf: '%s'\n", buf);
+    cstd::sprintf(buf, "%s %s", section_one_mac, binary_name.data);
     cstd::system(buf);
-
-    cstd::puts("Fully built.");
 
     // cstd::system("./out/compiled");
     return;

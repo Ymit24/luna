@@ -46,7 +46,7 @@ const list_files = fn(path: *i8): lists::list {
             // cstd::puts("\t\t\tFILE");
 
             const buf: [i8; 64] = [0];
-            cstd::sprintf(buf, "src/%s", &ent.d_name);
+            // cstd::sprintf(buf, "src/%s", &ent.d_name);
 
             const file_str = strings::make_from(buf);
 

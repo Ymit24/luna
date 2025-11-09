@@ -1,5 +1,4 @@
 const build = fn(context: *builder::context) {
-    cstd::puts("Building application...");
     builder::add_sources(context, strings::make("src/"));
     builder::add_src(context, strings::make("lib/std.luna"));
     builder::add_src(context, strings::make("lib/builder.luna"));

@@ -1,49 +1,43 @@
 const main = fn(argc: i8, argv: **i8) {
-    cstd::puts("Lune.");
-    let index = 1;
-    while index < argc {
-        cstd::printf("arg[%d] -> %s\n", index, argv[index]);
-        index = index + 1;
-    };
-
     if argc < 2 {
         cstd::puts("usage: lune <command>");
         return;
     };
 
     if cstd::strncmp("build", argv[1], 5) == 0 {
-        cstd::puts("found build");
-        // find build.luna file
-        if cstd::access("build.luna", cstd::F_OK) == 0 {
-            cstd::puts("Found build.luna.");
+        do_build();
+    };
+    return;
+};
 
-            const files = lists::make(@typesize(strings::string));
+const do_build = fn() {
+    if cstd::access("build.luna", cstd::F_OK) == 0 {
+        const files = lists::make(@typesize(strings::string));
 
-            const files_raw = [
-                "build.luna",
-                "../cstd.luna",
-                "lib/builder.luna",
-                "lib/std.luna",
-                "src/lists.luna",
-                "src/strings.luna",
-                "lib/builder_with_main.luna"
-            ];
+        const files_raw = [
+            "build.luna",
+            "../cstd.luna",
+            "lib/builder.luna",
+            "lib/std.luna",
+            "src/lists.luna",
+            "src/strings.luna",
+            "lib/builder_with_main.luna"
+        ];
 
-            let index2 = 0;
-            while index2 < 7 {
-                cstd::printf("file[%d]: %s\n", index2, files_raw[index2]);
-
-                const str = strings::make(files_raw[index2]);
-                lists::push(&files, @cast(*i8, &str));
-                index2 = index2 + 1;
-            };
-
-            const binary_name = strings::make("out/lune_builder");
-
-            builder::compile_with(&files, &binary_name);
-        } else {
-            cstd::printf("error: missing build.luna");
+        let index = 0;
+        while index < 7 {
+            const str = strings::make(files_raw[index]);
+            lists::push(&files, @cast(*i8, &str));
+            index = index + 1;
         };
+
+        const binary_name = strings::make("out/lune_builder");
+
+        builder::compile_with(&files, &binary_name);
+
+        cstd::system("./out/lune_builder");
+    } else {
+        cstd::printf("error: missing build.luna");
     };
     return;
 };
