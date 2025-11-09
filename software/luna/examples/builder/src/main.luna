@@ -27,11 +27,11 @@ const do_build = fn() {
 
         const files_raw = [
             "build.luna",
-            "../cstd.luna",
+            "lib/cstd.luna",
             "lib/builder.luna",
             "lib/std.luna",
-            "src/lists.luna",
-            "src/strings.luna",
+            "lib/lists.luna",
+            "lib/strings.luna",
             "lib/builder_with_main.luna"
         ];
 
@@ -60,6 +60,12 @@ const default_build_luna_source = "const build = fn(context: *builder::context) 
     return;
 };";
 
+const default_main_luna_source = "
+const puts = fn@extern[\"puts\"](fmt: *i8):i32;
+const main = fn() {
+    puts(\"Hello world!\");
+};";
+
 const do_new = fn(name: strings::string) {
     cstd::printf("Creating new lune project called '%s'\n", name.data);
     // cstd::printf("build.luna > \n```luna\n%s\n```\n", default_build_luna_source);
@@ -69,11 +75,6 @@ const do_new = fn(name: strings::string) {
         return;
     };
 
-    cstd::printf("Current name: '%s'\n", name);
-
-    strings::append::cstr(&name, "foo");
-
-    cstd::printf("New name: '%s'\n", name);
 
     // 1. mkdir [name]
     // NOTE: 511 is decomal form of octal 0777. Luna does not support octal literals
@@ -81,8 +82,25 @@ const do_new = fn(name: strings::string) {
     cstd::mkdir(name.data, 511);
 
     // 2. make [name]/build.luna
+    const build_luna_filepath = strings::make_from(name.data);
+    strings::append::cstr(&build_luna_filepath, "/build.luna");
 
-    // cstd::fopen()
-    // 3. make [name]/src/main.luna
+    const build_luna_file = cstd::fopen(build_luna_filepath.data, "w");
+    cstd::fprintf(build_luna_file, "%s", default_build_luna_source);
+    cstd::fclose(build_luna_file);
+
+    // 3. make [name]/src
+
+    const src_directory_name = strings::make_from(name.data);
+    strings::append::cstr(&src_directory_name, "/src");
+    cstd::mkdir(src_directory_name.data, 511);
+
+    // 4. make [name]/src/main.luna
+    const main_luna_filepath = strings::make_from(src_directory_name.data);
+    strings::append::cstr(&main_luna_filepath, "/main.luna");
+
+    const main_luna_file = cstd::fopen(main_luna_filepath.data, "w");
+    cstd::fprintf(main_luna_file, "%s", default_main_luna_source);
+    cstd::fclose(main_luna_file);
     return;
 };
