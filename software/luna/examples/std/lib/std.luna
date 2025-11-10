@@ -17,8 +17,8 @@ const list_files = fn(path: *i8): lists::list {
     ent = cstd::readdir(dir);
     while ent != 0 {
         if ent.d_type == 8 {
-            const buf: [i8; 64] = [0];
-            cstd::sprintf(buf, "src/%s", &ent.d_name);
+            const buf: [i8; 256] = [0];
+            cstd::sprintf(buf, "%s/%s", path, &ent.d_name);
             const file_str = strings::make_from(buf);
             const file_str_ptr = @cast(*strings::string, promote(&file_str, @valuesize(file_str)));
             lists::push(&list_of_files, @cast(*i8, file_str_ptr));

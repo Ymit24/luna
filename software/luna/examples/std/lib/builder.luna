@@ -19,7 +19,24 @@ const add_src = fn(ctx: *context, path: strings::string) {
   lists::push(&ctx.srcs, std::promote(&path, @valuesize(path)));
   const ptr = ctx.srcs.data;
   const str = @cast(*strings::string, ptr[ctx.srcs.len - 1]);
+
+  // cstd::printf("[builder-lib] adding source file '%s'\n", path.data);
   return;
+};
+
+const add_std = fn(ctx: *context) {
+    const luna_std_home = cstd::getenv("LUNA_STD");
+    if luna_std_home == @cast(*i8, 0) {
+        cstd::puts("Missing LUNA_STD environment variable required to link with luna std lib.");
+        std::assert(0);
+        return;
+    };
+
+    const luna_std_home_str = strings::make_from(luna_std_home);
+    strings::append::cstr(&luna_std_home_str, "/lib");
+
+    add_sources(ctx, luna_std_home_str);
+    return;
 };
 
 const compile_with_exec = fn(l: *lists::list) {

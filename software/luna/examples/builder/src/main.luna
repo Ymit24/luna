@@ -31,23 +31,29 @@ const do_build = fn() {
         const files = lists::make(@typesize(strings::string));
 
         const luna_std_home = cstd::getenv("LUNA_STD");
+        const lune_std_home = cstd::getenv("LUNE_STD");
 
         const luna_std_home_str = strings::make_from(luna_std_home);
+        const lune_std_home_str = strings::make_from(lune_std_home);
 
         const files_raw = [
             "/lib/cstd.luna",
             "/lib/builder.luna",
             "/lib/std.luna",
             "/lib/lists.luna",
-            "/lib/strings.luna",
-            "/lib/builder_with_main.luna"
+            "/lib/strings.luna"
         ];
 
         const build_luna_str = strings::make("build.luna");
         lists::push(&files, @cast(*i8, &build_luna_str));
 
+        const builder_with_main_luna_str = strings::make_from(lune_std_home_str.data);
+        strings::append::cstr(&builder_with_main_luna_str, "/lib/builder_with_main.luna");
+
+        lists::push(&files, @cast(*i8, &builder_with_main_luna_str));
+
         let index = 0;
-        while index < 6 { 
+        while index < 5 {
             const base_str = strings::make_from(luna_std_home_str.data);
 
             strings::append::cstr(&base_str, files_raw[index]);
@@ -69,15 +75,15 @@ const do_build = fn() {
 
 const default_build_luna_source = "const build = fn(context: *builder::context) {
     builder::add_sources(context, strings::make(\"src/\"));
+    builder::add_std(context);
     context.binary_name = strings::make(\"out/name\");
     builder::compile(context);
     return;
 };";
 
 const default_main_luna_source = "
-const puts = fn@extern[\"puts\"](fmt: *i8):i32;
 const main = fn() {
-    puts(\"Hello world!\");
+    cstd::puts(\"Hello world!\");
     return;
 };";
 

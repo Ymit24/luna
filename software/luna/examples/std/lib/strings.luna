@@ -51,6 +51,7 @@ const append = mod {
         if needed_cap >= str.cap {
             str.cap = needed_cap;
             str.data = cstd::realloc(str.data, needed_cap);
+            *(str.data + str.cap) = 0;
         };
 
         cstd::memcpy((str.data + str.len), cstr, cstr_len);
