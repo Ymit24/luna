@@ -10,6 +10,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 LLVMTypeRef cg_get_type(struct CodeGenerator *code_generator,
                         struct DataType *data_type);
@@ -433,9 +434,14 @@ void cg_visit_field_inner_access_expr(
     if (field_access_expr->next != NULL) {
       puts("still have further stuff.");
       field_def = result.field_definition;
-      assert(field_def->type->kind == DTK_STRUCTURE);
-      assert(field_def->type->value.structure.definition != NULL);
-      field_defs = field_def->type->value.structure.definition->fields;
+      printf("Field def kind: %d\n", field_def->type->kind);
+      puts("");
+      assert(field_def->type->kind == DTK_RESOLVABLE);
+      assert(field_def->type->value.resolvable.resolved_type != NULL);
+      assert(field_def->type->value.resolvable.resolved_type->kind ==
+             DTK_STRUCTURE_DEF);
+      field_defs = field_def->type->value.resolvable.resolved_type->value
+                       .structure_definition.definition->fields;
 
       // NOTE: If field is pointer, add extra deref for the pointer. We dont
       // do this for last field though.
@@ -1388,8 +1394,12 @@ LLVMValueRef cg_visit_module_statements(struct CodeGenerator *code_generator,
   printf("isroot: %d\n", is_root);
   LLVMBasicBlockRef previous_block = code_generator->current_block;
 
+  char *header = "module_initializer_";
+  char module_initializer_name[module_name.length + strlen(header)];
+  sprintf((char *)&module_initializer_name, "%s%s", header, module_name.data);
+
   LLVMValueRef module_initialization_function =
-      LLVMAddFunction(code_generator->module, module_name.data,
+      LLVMAddFunction(code_generator->module, module_initializer_name,
                       LLVMFunctionType(LLVMVoidType(), NULL, 0, 0));
   LLVMBasicBlockRef block =
       LLVMAppendBasicBlock(module_initialization_function, "entry");
@@ -1442,6 +1452,16 @@ void cg_make_entrypoint(struct CodeGenerator *code_generator,
           main_symbol_name, &entry->type->value.module_definition
                                  ->module_definition->symbol_table);
       if (subentry != NULL) {
+        assert(subentry->type != NULL);
+        if (subentry->type->kind == DTK_MODULE_DEF) {
+          struct SymbolTableEntry *supersubentry = lookup_symbol_in(
+              main_symbol_name, &subentry->type->value.module_definition
+                                     ->module_definition->symbol_table);
+          if (supersubentry != NULL) {
+            main_symbol = supersubentry;
+            break;
+          }
+        }
         main_symbol = subentry;
         break;
       }
@@ -1512,7 +1532,7 @@ void cg_prepare_module(struct CodeGenerator *code_generator,
               code_generator, stmt->node.decl->expression->node.struct_def);
           assert(stmt->node.decl->expression->node.struct_def
                      ->llvm_structure_type != NULL);
-        } else if (stmt->node.decl->expression->type == EXPR_FN_DEF) {
+        } else {
           struct SymbolTableEntry *entry = lookup_symbol_in(
               stmt->node.decl->symbol, &head->node.decl->expression->node
                                             .module_definition->symbol_table);

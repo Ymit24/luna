@@ -1,0 +1,30 @@
+const main = fn(argc: i32, argv: **i8) {
+    if argc < 2 {
+        cstd::printf("usage: <program> build | run");
+        return;
+    };
+
+    if cstd::strncmp("build", argv[1], 5) == 0 {
+        const ctx = .builder::context {
+            srcs: lists::make(@typesize(strings::string)),
+            binary_name: strings::make("out/default"),
+        };
+
+        build::build(&ctx);
+        builder::compile(&ctx);
+    } else if cstd::strncmp("run", argv[1], 3) == 0 {
+        const ctx = .builder::context {
+            srcs: lists::make(@typesize(strings::string)),
+            binary_name: strings::make("out/default"),
+        };
+
+        build::build(&ctx);
+
+        const base = strings::make("./");
+        strings::append::cstr(&base, ctx.binary_name.data);
+
+        cstd::system(base.data);
+    };
+
+    return;
+};

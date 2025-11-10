@@ -1,4 +1,0 @@
-const main = fn() {
-  cstd::puts("Hello world built.");
-  return;
-};
