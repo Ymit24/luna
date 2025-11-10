@@ -1,0 +1,130 @@
+const Field = struct {
+    name: strings::string,
+    value: *Value,
+    next: *Field
+};
+
+const Object = struct {
+    fields: *Field,
+};
+
+const ValueType = mod {
+    const UNKNOWN = 0;
+    const STRING = 1;
+    const NUMBER = 2;
+    const BOOL = 3;
+    const ARRAY = 4;
+    const OBJECT = 5;
+};
+
+const Element = struct {
+    value: *Value,
+    next: *Element,
+};
+
+const Array = struct {
+    elements: *Element,
+    length: i32
+};
+
+const Value = struct {
+    type: i32,
+    string: strings::string,
+    number: i64,
+    bool: i1,
+    array: *Array,
+    object: *Object,
+};
+
+const make_string = fn(value: strings::string): Value {
+    return .Value {
+        type: ValueType::STRING,
+        string: value,
+        number: 0,
+        bool: 0,
+        array: @cast(*Array, 0),
+        object: @cast(*Object, 0),
+    };
+};
+
+const make_number = fn(number: i64): Value {
+    return .Value {
+        type: ValueType::NUMBER,
+        string: strings::make(""),
+        number: number,
+        bool: 0,
+        array: @cast(*Array, 0),
+        object: @cast(*Object, 0),
+    };
+};
+
+const make_bool = fn(bool: i1): Value {
+    return .Value {
+        type: ValueType::BOOL,
+        string: strings::make(""),
+        number: 0,
+        bool: bool,
+        array: @cast(*Array, 0),
+        object: @cast(*Object, 0),
+    };
+};
+
+const make_array = fn(array: *Array): Value {
+    return .Value {
+        type: ValueType::ARRAY,
+        string: strings::make(""),
+        number: 0,
+        bool: 0,
+        array: array,
+        object: @cast(*Object, 0),
+    };
+};
+
+const make_object = fn(object: *Object): Value {
+    return .Value {
+        type: ValueType::OBJECT,
+        string: strings::make(""),
+        number: 0,
+        bool: 0,
+        array: @cast(*Array, 0),
+        object: object,
+    };
+};
+
+const object = mod {
+    const get = fn(obj: *Object, name: strings::string): *Value {
+        let field = obj.fields;
+        while field != @cast(*Field, 0) {
+            if strings::equal(name, field.name) {
+                return field.value;
+            };
+            field = field.next;
+        };
+
+        return @cast(*Value, 0);
+    };
+};
+
+const parser = mod {
+    const context = struct {
+        source: strings::string,
+        index: i32,
+    };
+
+    const make = fn(str: strings::string): context {
+        return .context {
+            source: str,
+            index: 0,
+        };
+    };
+
+    const parse_value = fn(ctx: *context): *Value {
+        return @cast(*Value, 0);
+    };
+
+    const parse = fn(source: strings::string): *Value {
+        const ctx = parser::make(source);
+        return parse_value(ctx);
+    };
+};
+
