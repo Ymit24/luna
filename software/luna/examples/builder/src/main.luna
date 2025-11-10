@@ -13,6 +13,11 @@ const main = fn(argc: i8, argv: **i8) {
             return;
         };
         do_new(strings::make(argv[2]));
+    } else if cstd::strncmp("run", argv[1], 3) == 0 {
+        do_build();
+        cstd::system("./out/lune_builder run");
+    } else {
+        cstd::puts("usage: lune <command>");
     };
     return;
 };
@@ -25,20 +30,29 @@ const do_build = fn() {
     if does_file_exist("build.luna") {
         const files = lists::make(@typesize(strings::string));
 
+        const luna_std_home = cstd::getenv("LUNA_STD");
+
+        const luna_std_home_str = strings::make_from(luna_std_home);
+
         const files_raw = [
-            "build.luna",
-            "lib/cstd.luna",
-            "lib/builder.luna",
-            "lib/std.luna",
-            "lib/lists.luna",
-            "lib/strings.luna",
-            "lib/builder_with_main.luna"
+            "/lib/cstd.luna",
+            "/lib/builder.luna",
+            "/lib/std.luna",
+            "/lib/lists.luna",
+            "/lib/strings.luna",
+            "/lib/builder_with_main.luna"
         ];
 
+        const build_luna_str = strings::make("build.luna");
+        lists::push(&files, @cast(*i8, &build_luna_str));
+
         let index = 0;
-        while index < 7 {
-            const str = strings::make(files_raw[index]);
-            lists::push(&files, @cast(*i8, &str));
+        while index < 6 { 
+            const base_str = strings::make_from(luna_std_home_str.data);
+
+            strings::append::cstr(&base_str, files_raw[index]);
+
+            lists::push(&files, @cast(*i8, &base_str));
             index = index + 1;
         };
 
@@ -46,7 +60,7 @@ const do_build = fn() {
 
         builder::compile_with(&files, &binary_name);
 
-        cstd::system("./out/lune_builder");
+        cstd::system("./out/lune_builder build");
     } else {
         cstd::printf("error: missing build.luna");
     };
@@ -64,6 +78,7 @@ const default_main_luna_source = "
 const puts = fn@extern[\"puts\"](fmt: *i8):i32;
 const main = fn() {
     puts(\"Hello world!\");
+    return;
 };";
 
 const do_new = fn(name: strings::string) {
@@ -89,7 +104,12 @@ const do_new = fn(name: strings::string) {
     cstd::fprintf(build_luna_file, "%s", default_build_luna_source);
     cstd::fclose(build_luna_file);
 
-    // 3. make [name]/src
+    // 3.a make [name]/out
+    const out_directory_name = strings::make_from(name.data);
+    strings::append::cstr(&out_directory_name, "/out");
+    cstd::mkdir(out_directory_name.data, 511);
+
+    // 3.b make [name]/src
 
     const src_directory_name = strings::make_from(name.data);
     strings::append::cstr(&src_directory_name, "/src");
