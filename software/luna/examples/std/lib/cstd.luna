@@ -56,3 +56,5 @@ const sprintf = fn@extern["sprintf"]@variadic(str: *i8, fmt: *i8): i32;
 const snprintf = fn@extern["snprintf"]@variadic(str: *i8, size: i32, fmt: *i8): i32;
 
 const getenv = fn@extern["getenv"](var: *i8): *i8;
+
+const isspace = fn@extern["isspace"](char: i8): i1;

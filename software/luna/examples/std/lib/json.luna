@@ -106,19 +106,60 @@ const object = mod {
 };
 
 const parser = mod {
-    const context = struct {
+    const Context = struct {
         source: strings::string,
         index: i32,
     };
 
-    const make = fn(str: strings::string): context {
-        return .context {
+    const make = fn(str: strings::string): Context {
+        return .Context {
             source: str,
             index: 0,
         };
     };
 
-    const parse_value = fn(ctx: *context): *Value {
+    const peek = fn(ctx: *Context): i8 {
+        const peek_inner = fn(context: *Context): i8 {
+            if context.index >= context.source.len {
+                return 0;
+            };
+            const ptr = context.source.data;
+            return ptr[context.index];
+        };
+
+        while cstd::isspace(peek_inner(context)) {
+            context.index = context.index + 1;
+        };
+
+        return peek_inner(context);
+    };
+
+    const expect = fn(ctx: *Context, expected: i8) {
+        const actual = peek(ctx);
+        std::assert(actual == expected);
+        context.index = context.index + 1;
+        return;
+    };
+
+    const take = fn(ctx: *Context): i8 {
+        const value = peek(ctx);
+        ctx.index = ctx.index + 1;
+        return value;
+    };
+
+    const parse_string = fn(ctx: *Context): strings::string {
+        expect(ctx, "\"");
+        const inner = strings::make_from("");
+        let val = peek(ctx);
+        while val != "\"" {
+            val = take(ctx);
+            strings::append::cstr(&inner, &val);
+        };
+        expect(ctx, "\"");
+        return inner;
+    };
+
+    const parse_value = fn(ctx: *Context): *Value {
         return @cast(*Value, 0);
     };
 
