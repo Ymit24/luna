@@ -1485,6 +1485,7 @@ struct DataType *get_common_type(struct ArenaAllocator *allocator,
       return get_common_type(allocator, left,
                              right->value.resolvable.resolved_type);
     }
+    break;
   case DTK_POINTER:
     return left;
   case DTK_ARRAY:
@@ -1777,7 +1778,7 @@ void print_data_type(struct DataType *data_type) {
   case DTK_ARRAY:
     printf("[");
     print_data_type(data_type->value.array.element_type);
-    printf(";%llu]", data_type->value.array.length);
+    printf(";%lu]", data_type->value.array.length);
     break;
   case DTK_MODULE_DEF:
     printf("mod");
