@@ -251,5 +251,28 @@
     "directory": "/Users/chris/dev/luna/software/luna",
     "file": "/Users/chris/dev/luna/software/luna/src/module_symbol_table_builder.c",
     "output": "/Users/chris/dev/luna/software/luna/bin/lunac"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wall",
+      "-Wextra",
+      "-Wpedantic",
+      "-Werror",
+      "-std=c99",
+      "-Iinclude",
+      "-I/opt/homebrew/Cellar/llvm/21.1.3_1/include",
+      "-DEXPERIMENTAL_KEY_INSTRUCTIONS",
+      "-D__STDC_CONSTANT_MACROS",
+      "-D__STDC_FORMAT_MACROS",
+      "-D__STDC_LIMIT_MACROS",
+      "-o",
+      "bin/lunac",
+      "src/diagnostics.c"
+    ],
+    "directory": "/Users/chris/dev/luna/software/luna",
+    "file": "/Users/chris/dev/luna/software/luna/src/diagnostics.c",
+    "output": "/Users/chris/dev/luna/software/luna/bin/lunac"
   }
 ]

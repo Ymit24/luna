@@ -7,11 +7,13 @@
 #include "annotator.h"
 #include "arena_allocator.h"
 #include "ast.h"
+#include "diagnostics.h"
 #include "lexer.h"
 #include "llvm-backend/code_generator.h"
 #include "luna_string.h"
 #include "module_symbol_table_builder.h"
 #include "parser.h"
+#include "source_spans.h"
 #include "token.h"
 #include "llvm-c/Core.h"
 
@@ -119,7 +121,19 @@ struct LunaString get_module_name_from_file(struct ArenaAllocator *allocator,
   return string_make(new_str);
 }
 
-int main(int argc, char **argv) {
+int main(void) {
+  struct SourceFile source = (struct SourceFile){
+      .filepath = string_make("src/main.luna"),
+      .content = string_make("const main = fn() {\n  const a = foo;\n}"),
+  };
+  struct Diagnostic diagnostic = diagnostic_entry_make(
+      &source, string_make("Unknown symbol 'foo'."), 32, 35);
+
+  diagnostic_entry_print(&diagnostic);
+  return 0;
+}
+
+int old_main(int argc, char **argv) {
   puts("Luna Compiler");
 
   uint8_t arena[UINT16_MAX * 4];
