@@ -239,7 +239,7 @@ LLVMTypeRef cg_get_type(struct CodeGenerator *code_generator,
   }
   case DTK_ARRAY:
     puts("Found array in type inference.");
-    printf("Length is: %lu\n", data_type->value.array.length);
+    printf("Length is: %d\n", (int)data_type->value.array.length);
     return LLVMArrayType2(
         cg_get_type(code_generator, data_type->value.array.element_type),
         data_type->value.array.length);

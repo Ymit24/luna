@@ -1778,7 +1778,7 @@ void print_data_type(struct DataType *data_type) {
   case DTK_ARRAY:
     printf("[");
     print_data_type(data_type->value.array.element_type);
-    printf(";%lu]", data_type->value.array.length);
+    printf(";%d]", (int)data_type->value.array.length);
     break;
   case DTK_MODULE_DEF:
     printf("mod");
