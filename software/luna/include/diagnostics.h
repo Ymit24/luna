@@ -12,10 +12,10 @@ struct Diagnostic {
   struct Diagnostic *next;
 };
 
-struct Diagnostic diagnostic_entry_make(struct SourceFile *source,
+struct Diagnostic diagnostic_make(struct SourceFile *source,
                                              struct LunaString message,
                                              uint64_t start, uint64_t end);
 
-void diagnostic_entry_print(struct Diagnostic *diagnostic);
+void diagnostic_print(struct Diagnostic *diagnostic);
 
 #endif

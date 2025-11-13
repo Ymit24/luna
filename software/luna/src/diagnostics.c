@@ -1,10 +1,11 @@
 #include "diagnostics.h"
+#include "source_spans.h"
 #include <stdio.h>
 #include <string.h>
 
-struct Diagnostic diagnostic_entry_make(struct SourceFile *source,
-                                        struct LunaString message,
-                                        uint64_t start, uint64_t end) {
+struct Diagnostic diagnostic_make(struct SourceFile *source,
+                                  struct LunaString message, uint64_t start,
+                                  uint64_t end) {
   return (struct Diagnostic){
       .source = source,
       .message = message,
@@ -13,16 +14,16 @@ struct Diagnostic diagnostic_entry_make(struct SourceFile *source,
   };
 }
 
-void diagnostic_entry_print(struct Diagnostic *diagnostic) {
+void diagnostic_print(struct Diagnostic *diagnostic) {
   printf("\nerror: %s\n", diagnostic->message.data);
-  int start_line = 2;
-  int start_line_offset = diagnostic->start_offset;
+
+  uint32_t start_line;
+  uint32_t start_line_offset;
+
+  line_map_query(&diagnostic->source->line_map, diagnostic->start_offset,
+                 &start_line, &start_line_offset);
 
   char current;
-  while ((current = diagnostic->source->content.data[start_line_offset - 1],
-          current != '\n' && start_line_offset > 0)) {
-    start_line_offset--;
-  }
   int end_line_offset = diagnostic->end_offset;
 
   while ((current = diagnostic->source->content.data[end_line_offset],
@@ -31,10 +32,10 @@ void diagnostic_entry_print(struct Diagnostic *diagnostic) {
     end_line_offset++;
   }
 
-  int start_diagnostic_offset = diagnostic->start_offset;
+  int start_diagnostic_offset = diagnostic->start_offset - start_line_offset;
 
   printf("  --> %s:%d:%d\n", diagnostic->source->filepath.data, start_line,
-         start_diagnostic_offset - start_line_offset);
+         start_diagnostic_offset);
 
   int length = snprintf(NULL, 0, "%d", 42);
   int num_spaces = length + 1;
@@ -44,19 +45,15 @@ void diagnostic_entry_print(struct Diagnostic *diagnostic) {
   }
   puts("|");
 
-  // int buflen = (int)((ceil(log10(start_line)) + 1) * sizeof(char));
-  // char buf[buflen];
-
   char buf[length + 1];
-
   sprintf(buf, "%d", start_line);
 
   printf(" %s |", buf);
 
-  int source_snippet_len = end_line_offset - start_line_offset;
+  int source_snippet_len = end_line_offset - start_line_offset - 1;
   char source_snippet[source_snippet_len + 1];
 
-  memcpy(source_snippet, &diagnostic->source->content.data[start_line_offset],
+  memcpy(source_snippet, &diagnostic->source->content.data[start_line_offset+1],
          source_snippet_len);
   source_snippet[source_snippet_len + 1] = '\0';
 
@@ -66,7 +63,7 @@ void diagnostic_entry_print(struct Diagnostic *diagnostic) {
     printf(" ");
   }
   printf("|");
-  for (int i = start_line_offset; i < start_diagnostic_offset; i++) {
+  for (int i = 1; i < start_diagnostic_offset; i++) {
     printf(" ");
   }
   for (int i = diagnostic->start_offset; i < (int)diagnostic->end_offset; i++) {
@@ -78,6 +75,4 @@ void diagnostic_entry_print(struct Diagnostic *diagnostic) {
     printf(" ");
   }
   puts("|");
-
-  // int number_of_spaces = strlen() puts("   | ");
 }

@@ -122,14 +122,19 @@ struct LunaString get_module_name_from_file(struct ArenaAllocator *allocator,
 }
 
 int main(void) {
-  struct SourceFile source = (struct SourceFile){
-      .filepath = string_make("src/main.luna"),
-      .content = string_make("const main = fn() {\n  const a = foo;\n}"),
-  };
-  struct Diagnostic diagnostic = diagnostic_entry_make(
-      &source, string_make("Unknown symbol 'foo'."), 32, 35);
 
-  diagnostic_entry_print(&diagnostic);
+  uint8_t arena[UINT16_MAX * 4];
+
+  struct ArenaAllocator allocator = arena_make(&arena, UINT16_MAX * 4);
+
+  struct SourceFile source =
+      source_file_make(&allocator, string_make("src/main.luna"),
+                       string_make("const main = fn() {\n  const a = foo;\n}"));
+
+  struct Diagnostic diagnostic =
+      diagnostic_make(&source, string_make("Unknown symbol 'foo'."), 32, 35);
+
+  diagnostic_print(&diagnostic);
   return 0;
 }
 
