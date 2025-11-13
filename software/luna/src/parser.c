@@ -2,7 +2,9 @@
 #include "annotator.h"
 #include "arena_allocator.h"
 #include "ast.h"
+#include "diagnostics.h"
 #include "luna_string.h"
+#include "source_spans.h"
 #include "token.h"
 #include <assert.h>
 #include <stdbool.h>
@@ -19,9 +21,13 @@ struct ScopedSymbolLiteralNode *
 parse_scoped_symbol_literal(struct Parser *parser);
 
 struct Parser parser_make(struct ArenaAllocator *allocator,
-                          struct Token *tokens, uint16_t token_count) {
+                          struct Diagnostics *diagnostics,
+                          struct SourceFile source_file, struct Token *tokens,
+                          uint16_t token_count) {
   return (struct Parser){
       .allocator = allocator,
+      .diagnostics = diagnostics,
+      .source_file = source_file,
       .tokens = tokens,
       .token_count = token_count,
       .position = 0,
@@ -32,6 +38,15 @@ struct Token parser_peek(struct Parser *parser) {
   assert(parser->position < parser->token_count);
 
   return parser->tokens[parser->position];
+}
+
+void parser_expect(struct Parser *parser, enum TokenType type) {
+  if (parser_peek(parser).type != type) {
+    struct Diagnostic diagnostic = diagnostic_make(
+        &parser->source_file, string_make("Expected type"), 3, 4);
+    diagnostic_emit(parser->allocator, parser->diagnostics, &diagnostic);
+    diagnostic_print(&diagnostic);
+  }
 }
 
 struct FunctionCallExpressionNode *
@@ -992,6 +1007,7 @@ struct DeclarationStatementNode *parse_decl_statement(struct Parser *parser,
 
   printf("next tok is now: %d\n", parser_peek(parser).type);
 
+  parser_expect(parser, T_EQUALS);
   assert(parser_peek(parser).type == T_EQUALS);
   parser->position++;
 

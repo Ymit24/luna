@@ -2,6 +2,7 @@
 #include <inttypes.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "annotator.h"
@@ -38,6 +39,7 @@ struct LunaString read_file(const char *path, struct ArenaAllocator *alloc) {
 }
 
 struct ModuleStatementNode *parse_source_file(struct ArenaAllocator *allocator,
+                                              struct Diagnostics *diagnostics,
                                               char *source_file) {
 
   struct LunaString src = read_file(source_file, allocator);
@@ -56,9 +58,17 @@ struct ModuleStatementNode *parse_source_file(struct ArenaAllocator *allocator,
 
   printf("Found a total of %d tokens.\n", tok_index - 1);
 
-  struct Parser parser = parser_make(allocator, toks, tok_index);
+  struct Parser parser =
+      parser_make(allocator, diagnostics,
+                  source_file_make(allocator, string_make(source_file), src),
+                  toks, tok_index);
 
   struct ModuleStatementNode *stmt = parse_module_statements(&parser);
+
+  if (diagnostics->length != 0) {
+    diagnostics_print(diagnostics);
+    return NULL;
+  }
 
   puts("done parsing");
   return stmt;
@@ -120,30 +130,32 @@ struct LunaString get_module_name_from_file(struct ArenaAllocator *allocator,
 
   return string_make(new_str);
 }
+//
+// int main(void) {
+//   uint8_t arena[UINT16_MAX * 4];
+//
+//   struct ArenaAllocator allocator = arena_make(&arena, UINT16_MAX * 4);
+//
+//   struct SourceFile source =
+//       source_file_make(&allocator, string_make("src/main.luna"),
+//                        string_make("const main = fn() {\n  const a =
+//                        foo;\n}"));
+//
+//   struct Diagnostic diagnostic =
+//       diagnostic_make(&source, string_make("Unknown symbol 'foo'."), 32, 35);
+//
+//   diagnostic_print(&diagnostic);
+//   return 0;
+// }
 
-int main(void) {
-
-  uint8_t arena[UINT16_MAX * 4];
-
-  struct ArenaAllocator allocator = arena_make(&arena, UINT16_MAX * 4);
-
-  struct SourceFile source =
-      source_file_make(&allocator, string_make("src/main.luna"),
-                       string_make("const main = fn() {\n  const a = foo;\n}"));
-
-  struct Diagnostic diagnostic =
-      diagnostic_make(&source, string_make("Unknown symbol 'foo'."), 32, 35);
-
-  diagnostic_print(&diagnostic);
-  return 0;
-}
-
-int old_main(int argc, char **argv) {
+int main(int argc, char **argv) {
   puts("Luna Compiler");
 
   uint8_t arena[UINT16_MAX * 4];
 
   struct ArenaAllocator allocator = arena_make(&arena, UINT16_MAX * 4);
+
+  struct Diagnostics diagnostics = diagnostics_make();
 
   if (argc < 2) {
     fprintf(stderr, "usage: %s <source.luna> ...\n", argv[0]);
@@ -155,7 +167,11 @@ int old_main(int argc, char **argv) {
   for (int i = 1; i < (int)argc; i++) {
     printf("parsing file (%d)->(%s)\n", i, argv[i]);
     struct ModuleStatementNode *source_root =
-        parse_source_file(&allocator, argv[i]);
+        parse_source_file(&allocator, &diagnostics, argv[i]);
+
+    if (source_root == NULL) {
+      abort();
+    }
 
     if (current != NULL) {
       current->next =

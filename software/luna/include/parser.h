@@ -3,11 +3,15 @@
 
 #include "arena_allocator.h"
 #include "ast.h"
+#include "diagnostics.h"
+#include "source_spans.h"
 #include "token.h"
 #include <stdint.h>
 
 struct Parser {
   struct ArenaAllocator *allocator;
+  struct Diagnostics *diagnostics;
+  struct SourceFile source_file;
   struct Token *tokens;
   uint16_t token_count;
   uint16_t position;
@@ -16,7 +20,9 @@ struct Parser {
 void parser_error(char *msg);
 
 struct Parser parser_make(struct ArenaAllocator *allocator,
-                          struct Token *tokens, uint16_t token_count);
+                          struct Diagnostics *diagnostics,
+                          struct SourceFile source_file, struct Token *tokens,
+                          uint16_t token_count);
 
 struct Token parser_peek(struct Parser *parser);
 

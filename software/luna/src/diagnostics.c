@@ -1,9 +1,40 @@
 #include "diagnostics.h"
+#include "arena_allocator.h"
+#include "ast.h"
 #include "luna_string.h"
 #include "source_spans.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
+
+struct Diagnostics diagnostics_make(void) {
+  return (struct Diagnostics){
+      .head = NULL,
+      .tail = NULL,
+      .length = 0,
+  };
+}
+
+void diagnostic_emit(struct ArenaAllocator *allocator,
+                     struct Diagnostics *diagnostics,
+                     struct Diagnostic *diagnostic) {
+  assert(allocator != NULL);
+  assert(diagnostics != NULL);
+  assert(diagnostic != NULL);
+
+  diagnostic = ast_promote(allocator, diagnostic, sizeof(struct Diagnostic));
+
+  if (diagnostics->head == NULL) {
+    diagnostics->head = diagnostic;
+    diagnostics->tail = diagnostic;
+    diagnostics->length = 1;
+    return;
+  }
+
+  diagnostics->tail->next = diagnostic;
+  diagnostics->tail = diagnostics->tail->next;
+  diagnostics->length++;
+}
 
 struct Diagnostic diagnostic_make(struct SourceFile *source,
                                   struct LunaString message, uint64_t start,
@@ -36,7 +67,8 @@ void print_n_times(int num_spaces, char c) {
 //                                  uint32_t end_line_number_start_offset,
 //                                  uint32_t end_line_end_offset,
 //                                  uint32_t num_spaces) {
-//   printf("  --> %s:%d:%d-%d:%d\n", diagnostic->source->filepath.data, line_number,
+//   printf("  --> %s:%d:%d-%d:%d\n", diagnostic->source->filepath.data,
+//   line_number,
 //          diagnostic_line_start_offset);
 // }
 
@@ -57,8 +89,7 @@ void diagnostic_print_single_line(struct Diagnostic *diagnostic,
 
   printf(" %s |", buf);
 
-  int source_snippet_len =
-      line_number_end_offset - line_number_start_offset;
+  int source_snippet_len = line_number_end_offset - line_number_start_offset;
   char source_snippet[source_snippet_len + 1];
 
   memcpy(source_snippet,
@@ -115,5 +146,13 @@ void diagnostic_print(struct Diagnostic *diagnostic) {
     // diagnostic_print_multi_line(
     //     diagnostic, start_line, start_line_offset, start_diagnostic_offset,
     //     end_line, end_line_offset, end_line_end_offset, num_spaces);
+  }
+}
+
+void diagnostics_print(struct Diagnostics *diagnostics) {
+  struct Diagnostic *tail = diagnostics->tail;
+  while (tail != NULL) {
+    diagnostic_print(tail);
+    tail = tail->next;
   }
 }
