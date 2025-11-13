@@ -58,7 +58,7 @@ void diagnostic_print_single_line(struct Diagnostic *diagnostic,
   printf(" %s |", buf);
 
   int source_snippet_len =
-      line_number_end_offset - line_number_start_offset - 1;
+      line_number_end_offset - line_number_start_offset;
   char source_snippet[source_snippet_len + 1];
 
   memcpy(source_snippet,
