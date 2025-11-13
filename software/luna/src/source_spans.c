@@ -67,11 +67,13 @@ struct LineMap line_map_make(struct ArenaAllocator *allocator,
   return (struct LineMap){
       .entries = entries,
       .head = head,
+      .source_length = source.length,
   };
 }
 
 bool line_map_query(struct LineMap *line_map, uint32_t offset,
-                    uint32_t *line_number, uint32_t *line_start_offset) {
+                    uint32_t *line_number, uint32_t *line_start_offset,
+                    uint32_t *line_end_offset) {
   assert(line_map != NULL);
 
   struct LineMapEntry *current = line_map->head;
@@ -81,6 +83,11 @@ bool line_map_query(struct LineMap *line_map, uint32_t offset,
         (current->next == NULL || offset < current->next->start_byte)) {
       *line_number = current->line;
       *line_start_offset = current->start_byte;
+      if (current->next == NULL) {
+        *line_end_offset = line_map->source_length;
+      } else {
+        *line_end_offset = current->next->start_byte - 1;
+      }
       return true;
     }
     current = current->next;

@@ -8,6 +8,7 @@
 struct LineMap {
   struct LineMapEntry *head;
   size_t entries;
+  size_t source_length;
 };
 
 struct LineMapEntry {
@@ -30,6 +31,7 @@ struct LineMap line_map_make(struct ArenaAllocator *allocator,
                              struct LunaString source);
 
 bool line_map_query(struct LineMap *line_map, uint32_t offset,
-                    uint32_t *line_number, uint32_t *line_start_offset);
+                    uint32_t *line_number, uint32_t *line_start_offset,
+                    uint32_t *line_end_offset);
 
 #endif
