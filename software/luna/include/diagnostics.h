@@ -6,10 +6,8 @@
 #include "source_spans.h"
 
 struct Diagnostic {
-  struct SourceFile *source;
   struct LunaString message;
-  uint64_t start_offset;
-  uint64_t end_offset;
+  struct Span span;
   struct Diagnostic *next;
 };
 
@@ -19,9 +17,7 @@ struct Diagnostics {
   size_t length;
 };
 
-struct Diagnostic diagnostic_make(struct SourceFile *source,
-                                  struct LunaString message, uint64_t start,
-                                  uint64_t end);
+struct Diagnostic diagnostic_make(struct LunaString message, struct Span span);
 
 struct Diagnostics diagnostics_make(void);
 

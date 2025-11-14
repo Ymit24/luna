@@ -36,14 +36,10 @@ void diagnostic_emit(struct ArenaAllocator *allocator,
   diagnostics->length++;
 }
 
-struct Diagnostic diagnostic_make(struct SourceFile *source,
-                                  struct LunaString message, uint64_t start,
-                                  uint64_t end) {
+struct Diagnostic diagnostic_make(struct LunaString message, struct Span span) {
   return (struct Diagnostic){
-      .source = source,
       .message = message,
-      .start_offset = start,
-      .end_offset = end,
+      .span = span,
   };
 }
 
@@ -78,8 +74,8 @@ void diagnostic_print_single_line(struct Diagnostic *diagnostic,
                                   uint32_t line_number_end_offset,
                                   uint32_t diagnostic_line_start_offset,
                                   uint32_t num_spaces) {
-  printf("  --> %s:%d:%d\n", diagnostic->source->filepath.data, line_number,
-         diagnostic_line_start_offset);
+  printf("  --> %s:%d:%d\n", diagnostic->span.source->filepath.data,
+         line_number, diagnostic_line_start_offset);
 
   print_n_times(num_spaces, ' ');
   puts("|");
@@ -89,12 +85,14 @@ void diagnostic_print_single_line(struct Diagnostic *diagnostic,
 
   printf(" %s |", buf);
 
-  int source_snippet_len = line_number_end_offset - line_number_start_offset - 1;
+  int source_snippet_len =
+      line_number_end_offset - line_number_start_offset - 1;
   char source_snippet[source_snippet_len + 1];
 
-  int source_start =
-      diagnostic_line_start_offset > 0 ? line_number_start_offset + 1 : line_number_start_offset;
-  memcpy(source_snippet, &diagnostic->source->content.data[source_start],
+  int source_start = diagnostic_line_start_offset > 0
+                         ? line_number_start_offset + 1
+                         : line_number_start_offset;
+  memcpy(source_snippet, &diagnostic->span.source->content.data[source_start],
          source_snippet_len);
   source_snippet[source_snippet_len + 1] = '\0';
 
@@ -103,7 +101,7 @@ void diagnostic_print_single_line(struct Diagnostic *diagnostic,
   print_n_times(num_spaces, ' ');
   printf("|");
   print_n_times(diagnostic_line_start_offset - 1, ' ');
-  uint32_t len = diagnostic->end_offset - diagnostic->start_offset;
+  uint32_t len = diagnostic->span.end_offset - diagnostic->span.start_offset;
   print_n_times(len < 1 ? 1 : len, '^');
   puts("");
   print_n_times(num_spaces, ' ');
@@ -121,13 +119,15 @@ void diagnostic_print(struct Diagnostic *diagnostic) {
   uint32_t end_line_offset;
   uint32_t end_line_end_offset;
 
-  line_map_query(&diagnostic->source->line_map, diagnostic->start_offset,
-                 &start_line, &start_line_offset, &start_line_end_offset);
-  line_map_query(&diagnostic->source->line_map, diagnostic->end_offset,
-                 &end_line, &end_line_offset, &end_line_end_offset);
+  line_map_query(&diagnostic->span.source->line_map,
+                 diagnostic->span.start_offset, &start_line, &start_line_offset,
+                 &start_line_end_offset);
+  line_map_query(&diagnostic->span.source->line_map,
+                 diagnostic->span.end_offset, &end_line, &end_line_offset,
+                 &end_line_end_offset);
 
   uint32_t start_diagnostic_offset =
-      diagnostic->start_offset - start_line_offset;
+      diagnostic->span.start_offset - start_line_offset;
 
   printf("start line: %d\n", start_line);
   printf("start line offset: %d\n", (int)start_line_offset);
@@ -136,9 +136,9 @@ void diagnostic_print(struct Diagnostic *diagnostic) {
   printf("end line: %d\n", end_line);
   printf("end line offset: %d\n", end_line_offset);
   printf("end line end offset line offset: %d\n", end_line_end_offset);
-  printf("diagnostic offset: %d (%llu) (%d) -- (%llu)\n",
-         start_diagnostic_offset, diagnostic->start_offset,
-         start_line_offset, diagnostic->start_offset - start_line_offset);
+  printf("diagnostic offset: %d (%u) (%d) -- (%u)\n", start_diagnostic_offset,
+         diagnostic->span.start_offset, start_line_offset,
+         diagnostic->span.start_offset - start_line_offset);
 
   int length = snprintf(NULL, 0, "%d", start_line);
   int num_spaces = length + 2;
@@ -148,9 +148,9 @@ void diagnostic_print(struct Diagnostic *diagnostic) {
                                  start_line_end_offset, start_diagnostic_offset,
                                  num_spaces);
   } else {
-    printf("Found diagnostic with span %llu-%llu. Spanning %d-%d lines\n",
-           diagnostic->start_offset, diagnostic->end_offset, start_line,
-           end_line);
+    printf("Found diagnostic with span %u-%u. Spanning %d-%d lines\n",
+           diagnostic->span.start_offset, diagnostic->span.end_offset,
+           start_line, end_line);
     assert(0);
     // diagnostic_print_multi_line(
     //     diagnostic, start_line, start_line_offset, start_diagnostic_offset,

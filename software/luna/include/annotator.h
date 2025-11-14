@@ -179,6 +179,8 @@ struct SymbolTableEntry *
 lookup_scoped_symbol_in(struct ScopedSymbolLiteralNode *scoped_symbol,
                         struct SymbolTable *symbol_table);
 
+int sprint_scoped_symbol(char *string,
+                          struct ScopedSymbolLiteralNode *scoped_symbol);
 void print_scoped_symbol(struct ScopedSymbolLiteralNode *scoped_symbol);
 
 struct SymbolTable *

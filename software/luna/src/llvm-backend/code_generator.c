@@ -418,12 +418,12 @@ void cg_visit_field_inner_access_expr(
     struct StructFieldDefinitionNode *field_defs) {
   // field_access_expr = field_access_expr->next;
   while (field_access_expr != NULL) {
-    printf("looking for field %s (%zu)..\n", field_access_expr->symbol.data,
-           *index);
+    printf("looking for field %s (%zu)..\n",
+           field_access_expr->symbol.value.data, *index);
     struct StructFieldDefinitionNode *field_def = field_defs;
 
     struct FindFieldDefinitionResult result =
-        find_field_definition(field_def, field_access_expr->symbol);
+        find_field_definition(field_def, field_access_expr->symbol.value);
     assert(result.field_definition != NULL);
 
     puts("Found field.");

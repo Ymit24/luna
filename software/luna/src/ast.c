@@ -37,11 +37,36 @@ void *ast_promote(struct ArenaAllocator *allocator, void *src, uint8_t size) {
   return dest;
 }
 
-
 size_t count_array_initializer_length(
     struct ArrayInitializerExpressionNode *initiailzier) {
   if (initiailzier == NULL) {
     return 0;
   }
   return 1 + count_array_initializer_length(initiailzier->next);
+}
+
+char *binary_expression_type_to_string(enum BinaryExpressionType type) {
+  switch (type) {
+  case BIN_EXPR_ADD:
+    return "add";
+  case BIN_EXPR_SUB:
+    return "subtract";
+  case BIN_EXPR_MUL:
+    return "multiply";
+  case BIN_EXPR_DIV:
+    return "divide";
+  case BIN_EXPR_LT:
+    return "less than";
+  case BIN_EXPR_GT:
+    return "greater than";
+  case BIN_EXPR_EQ:
+    return "equals";
+  case BIN_EXPR_NEQ:
+    return "not equals";
+  case BIN_EXPR_LEQ:
+    return "less than equals";
+  case BIN_EXPR_GEQ:
+    return "greater than equals";
+    break;
+  }
 }

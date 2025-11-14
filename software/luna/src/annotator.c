@@ -1,6 +1,7 @@
 #include "annotator.h"
 #include "arena_allocator.h"
 #include "ast.h"
+#include "diagnostics.h"
 #include "luna_string.h"
 #include "module_symbol_table_builder.h"
 #include <alloca.h>
@@ -25,11 +26,57 @@ struct ModuleDefinitionType *
 get_or_resolve_mod_definition_from_type(struct DataType *type,
                                         struct SymbolTable *symbol_table);
 
+size_t sprint_data_type(char *string, struct DataType *data_type);
 void print_struct_def_data_type(
     struct StructDefinitionExpressionNode *definition);
 
 void annotator_visit_expr(struct Annotator *annotator,
                           struct ExpressionNode *expr);
+
+void annotator_emit_failed_to_find_symbol(struct SymbolLiteralNode *symbol) {
+  char buf[256];
+  int wrote = 0;
+  wrote += sprintf(&buf[wrote], "Failed to find symbol '");
+  wrote += sprintf(&buf[wrote], "%s", symbol->value.data);
+  wrote += sprintf(&buf[wrote], "'");
+  buf[wrote] = 0;
+  struct Diagnostic diagnostic =
+      diagnostic_make(string_make(buf), symbol->span);
+  diagnostic_print(&diagnostic);
+  assert(0);
+}
+
+void annotator_emit_failed_to_find_scoped_symbol(
+    struct ScopedSymbolLiteralNode *scoped_symbol) {
+  char buf[256];
+  int wrote = 0;
+  wrote += sprintf(&buf[wrote], "Failed to find symbol '");
+  wrote += sprint_scoped_symbol(&buf[wrote], scoped_symbol);
+  wrote += sprintf(&buf[wrote], "'");
+  buf[wrote] = 0;
+  struct Diagnostic diagnostic =
+      diagnostic_make(string_make(buf), scoped_symbol->span);
+  diagnostic_print(&diagnostic);
+  assert(0);
+}
+
+void annotator_emit_cant_operate_on_types(struct DataType *left,
+                                          struct DataType *right,
+                                          enum BinaryExpressionType type,
+                                          struct Span span) {
+  char buf[256];
+  int wrote = 0;
+  wrote += sprintf(&buf[wrote], "Unable to %s nodes of type '",
+                   binary_expression_type_to_string(type));
+  wrote += sprint_data_type(&buf[wrote], left);
+  wrote += sprintf(&buf[wrote], "' and '");
+  wrote += sprint_data_type(&buf[wrote], right);
+  wrote += sprintf(&buf[wrote], "'.\n");
+  buf[wrote] = 0;
+  struct Diagnostic diagnostic = diagnostic_make(string_make(buf), span);
+  diagnostic_print(&diagnostic);
+  assert(0);
+}
 
 struct Annotator annotator_make(struct ArenaAllocator *allocator) {
   struct Annotator annotator = (struct Annotator){
@@ -197,6 +244,21 @@ void print_data_types(struct Annotator *annotator) {
   }
 }
 
+int sprint_scoped_symbol(char *string,
+                         struct ScopedSymbolLiteralNode *scoped_symbol) {
+  struct ScopedSymbolLiteralNode *symbol = scoped_symbol;
+  int wrote = 0;
+  while (symbol != NULL) {
+    wrote += sprintf(&string[wrote], "%s", symbol->symbol->value.data);
+    if (symbol->next != NULL) {
+      wrote += sprintf(&string[wrote], "::");
+    }
+    symbol = symbol->next;
+  }
+
+  return wrote;
+}
+
 void print_scoped_symbol(struct ScopedSymbolLiteralNode *scoped_symbol) {
   struct ScopedSymbolLiteralNode *symbol = scoped_symbol;
   while (symbol != NULL) {
@@ -222,7 +284,9 @@ lookup_scoped_symbol_in(struct ScopedSymbolLiteralNode *scoped_symbol,
   struct SymbolTableEntry *entry =
       lookup_symbol_in(scoped_symbol->symbol->value, symbol_table);
 
-  assert(entry != NULL);
+  if (entry == NULL) {
+    annotator_emit_failed_to_find_scoped_symbol(scoped_symbol);
+  }
 
   if (scoped_symbol->next == NULL) {
     return entry;
@@ -311,7 +375,10 @@ get_or_resolve_mod_definition_from_type(struct DataType *type,
     struct SymbolTableEntry *entry =
         lookup_scoped_symbol_in(type->value.module->name, symbol_table);
 
-    assert(entry != NULL);
+    if (entry == NULL) {
+      annotator_emit_failed_to_find_scoped_symbol(type->value.module->name);
+    }
+
     return get_or_resolve_mod_definition_from_type(entry->type, symbol_table);
   }
 
@@ -405,13 +472,15 @@ struct DataType *infer_type_of_inner_field_access(
   assert(field_accessor != NULL);
 
   struct SymbolTableEntry *entry =
-      lookup_symbol_in(field_accessor->symbol, symbol_table);
+      lookup_symbol_in(field_accessor->symbol.value, symbol_table);
 
   printf("about to check symbol for inner field access: %s\n",
-         field_accessor->symbol.data);
+         field_accessor->symbol.value.data);
   puts("");
 
-  assert(entry != NULL);
+  if (entry == NULL) {
+    annotator_emit_failed_to_find_symbol(&field_accessor->symbol);
+  }
   assert(entry->type != NULL);
   if (field_accessor->next == NULL) {
     return entry->type;
@@ -436,7 +505,9 @@ struct DataType *infer_type_of_field_access(
   struct SymbolTableEntry *entry = lookup_scoped_symbol_in(
       field_accessor->root_symbol, annotator->current_symbol_table);
 
-  assert(entry != NULL);
+  if (entry == NULL) {
+    annotator_emit_failed_to_find_scoped_symbol(field_accessor->root_symbol);
+  }
   assert(entry->type != NULL);
   if (field_accessor->next == NULL) {
     return entry->type;
@@ -493,7 +564,9 @@ struct DataType *infer_type(struct Annotator *annotator,
 
     struct SymbolTableEntry *entry = lookup_scoped_symbol_in(
         expr->node.scoped_symbol, annotator->current_symbol_table);
-    assert(entry != NULL);
+    if (entry == NULL) {
+      annotator_emit_failed_to_find_scoped_symbol(expr->node.scoped_symbol);
+    }
     assert(entry->type != NULL);
 
     puts("resolved type:");
@@ -531,7 +604,10 @@ struct DataType *infer_type(struct Annotator *annotator,
     printf("\nRight is: ");
     print_data_type(right);
     puts("");
-    assert(can_operate_data_types(left, right, expr->node.binary->type));
+    if (!can_operate_data_types(left, right, expr->node.binary->type)) {
+      annotator_emit_cant_operate_on_types(left, right, expr->node.binary->type,
+                                           expr->span);
+    }
     // TODO: return the "greater" of the two types. e.g. between i32 & *i32 ->
     // *i32, or i8 & i64 -> i64
 
@@ -1706,6 +1782,110 @@ void print_struct_def_data_type(
   printf("}");
 }
 
+size_t sprint_data_type(char *string, struct DataType *data_type) {
+  size_t wrote = 0;
+  if (data_type == NULL) {
+    wrote += sprintf(&string[wrote], "[null data_type]");
+    return wrote;
+  }
+  switch (data_type->kind) {
+  case DTK_VOID:
+    wrote += sprintf(&string[wrote], "void");
+    break;
+  case DTK_PRIMITIVE:
+    switch (data_type->value.primitive.kind) {
+    case P_INT:
+      if (data_type->value.primitive.is_signed) {
+        wrote += sprintf(&string[wrote], "i");
+      } else {
+        wrote += sprintf(&string[wrote], "u");
+      }
+      wrote +=
+          sprintf(&string[wrote], "%d", data_type->value.primitive.bitwidth);
+      break;
+    case P_FLOAT:
+      wrote += sprintf(&string[wrote], "<float, unimplemented>");
+      break;
+    }
+    break;
+  case DTK_POINTER:
+    wrote += sprintf(&string[wrote], "*");
+    wrote += sprint_data_type(&string[wrote], data_type->value.pointer_inner);
+    break;
+  case DTK_FUNCTION: {
+    wrote += sprintf(&string[wrote], "fn");
+    struct FunctionType function = data_type->value.function;
+    if (function.extern_name != NULL) {
+      wrote +=
+          sprintf(&string[wrote], "@extern[%s]", function.extern_name->data);
+    }
+    if (function.is_variadic == true) {
+      wrote += sprintf(&string[wrote], "@variadic");
+    }
+    struct FunctionArgumentNode *argument = function.arguments;
+    if (argument != NULL) {
+      wrote += sprintf(&string[wrote], "(");
+
+      while (argument != NULL) {
+        wrote += sprint_data_type(&string[wrote], argument->data_type);
+        argument = argument->next;
+        if (argument != NULL) {
+          wrote += sprintf(&string[wrote], ",");
+        }
+      }
+
+      wrote += sprintf(&string[wrote], ")");
+    }
+    if (function.return_type != NULL) {
+      wrote += sprintf(&string[wrote], ":");
+      wrote += sprint_data_type(&string[wrote], function.return_type);
+    }
+    break;
+  }
+  case DTK_STRUCTURE:
+    wrote += sprintf(&string[wrote], "(");
+    wrote +=
+        sprint_scoped_symbol(&string[wrote], data_type->value.structure.name);
+    wrote += sprintf(&string[wrote], ")");
+    // ! print_struct_def_data_type(data_type->value.structure.definition);
+    break;
+  case DTK_STRUCTURE_DEF: {
+    print_struct_def_data_type(
+        data_type->value.structure_definition.definition);
+    break;
+  }
+  case DTK_ARRAY:
+    wrote += sprintf(&string[wrote], "[");
+    wrote +=
+        sprint_data_type(&string[wrote], data_type->value.array.element_type);
+    wrote +=
+        sprintf(&string[wrote], ";%d]", (int)data_type->value.array.length);
+    break;
+  case DTK_MODULE_DEF:
+    wrote += sprintf(&string[wrote], "mod");
+    break;
+  case DTK_MODULE:
+    wrote += sprintf(&string[wrote], "mod_ref");
+    break;
+  case DTK_RESOLVABLE:
+    wrote += sprintf(&string[wrote], "resolvable(");
+    if (data_type->value.resolvable.resolved_type != NULL) {
+      wrote += sprint_scoped_symbol(&string[wrote],
+                                    data_type->value.resolvable.scoped_symbol);
+      wrote += sprintf(&string[wrote], ":");
+      wrote += sprint_data_type(&string[wrote],
+                                data_type->value.resolvable.resolved_type);
+    } else {
+      wrote += sprintf(&string[wrote], "?");
+      wrote += sprint_scoped_symbol(&string[wrote],
+                                    data_type->value.resolvable.scoped_symbol);
+    }
+    wrote += sprintf(&string[wrote], ")");
+    break;
+  }
+  return wrote;
+}
+
 void print_data_type(struct DataType *data_type) {
   if (data_type == NULL) {
     printf("[null data_type]");
@@ -1728,7 +1908,6 @@ void print_data_type(struct DataType *data_type) {
     case P_FLOAT:
       printf("<float, unimplemented>");
       break;
-      ;
     }
     break;
   case DTK_POINTER:

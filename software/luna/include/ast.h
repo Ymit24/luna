@@ -119,6 +119,7 @@ struct ArrayInitializerExpressionNode {
 
 struct ExpressionNode {
   enum ExpressionType type;
+  struct Span span;
   union {
     struct IntegerLiteralNode *integer;
     struct ScopedSymbolLiteralNode *scoped_symbol;
@@ -145,11 +146,13 @@ struct IntegerLiteralNode {
 
 struct SymbolLiteralNode {
   struct LunaString value;
+  struct Span span;
 };
 
 struct ScopedSymbolLiteralNode {
   struct SymbolLiteralNode *symbol;
   struct ScopedSymbolLiteralNode *next;
+  struct Span span;
   uint8_t remaining;
 };
 
@@ -170,7 +173,7 @@ struct StructDefinitionExpressionNode {
 };
 
 struct StructFieldAccessInnerExpressionNode {
-  struct LunaString symbol;
+  struct SymbolLiteralNode symbol;
   struct StructFieldAccessInnerExpressionNode *next;
 };
 
@@ -240,4 +243,5 @@ void *ast_promote(struct ArenaAllocator *allocator, void *src, uint8_t size);
 size_t count_array_initializer_length(
     struct ArrayInitializerExpressionNode *initiailzier);
 
+char *binary_expression_type_to_string(enum BinaryExpressionType type);
 #endif

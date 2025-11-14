@@ -1,3 +1,8 @@
+const a = struct { x: i32 };
+
 const main = fn() {
-    const foo = 13;
+    const foo: i32 = 13;
+    const bar = .a { x: 10 };
+
+    const baz = foo + bar;
 };
