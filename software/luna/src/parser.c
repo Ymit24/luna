@@ -96,7 +96,7 @@ struct FunctionCallExpressionNode *
 parse_function_call_expression(struct Parser *parser,
                                struct ScopedSymbolLiteralNode *symbol) {
 
-  assert(parser_peek(parser).type == T_LPAREN);
+  parser_expect(parser, T_LPAREN);
   parser->position++;
 
   struct FunctionCallArgumentExpressionsNode *root_argument = NULL;
@@ -130,7 +130,7 @@ parse_function_call_expression(struct Parser *parser,
     }
   }
 
-  assert(parser_peek(parser).type == T_RPAREN);
+  parser_expect(parser, T_RPAREN);
   parser->position++;
 
   return ast_promote(parser->allocator,
@@ -175,7 +175,7 @@ struct FunctionArgumentNode *parse_function_argument(struct Parser *parser) {
   assert(symbol != NULL);
 
   puts("taking the colon.");
-  assert(parser_peek(parser).type == T_COLON);
+  parser_expect(parser, T_COLON);
   parser->position++;
 
   struct DataType *type = parse_data_type(parser);
@@ -226,7 +226,7 @@ parse_struct_field_definition(struct Parser *parser) {
   struct LunaString name = parser_peek(parser).value.symbol;
   parser->position++;
 
-  assert(parser_peek(parser).type == T_COLON);
+  parser_expect(parser, T_COLON);
   parser->position++;
 
   struct DataType *data_type = parse_data_type(parser);
@@ -248,11 +248,11 @@ parse_struct_field_initializer(struct Parser *parser) {
     return NULL;
   }
 
-  assert(parser_peek(parser).type == T_SYMBOL);
+  parser_expect(parser, T_SYMBOL);
   struct LunaString name = parser_peek(parser).value.symbol;
   parser->position++;
 
-  assert(parser_peek(parser).type == T_COLON);
+  parser_expect(parser, T_COLON);
   parser->position++;
 
   struct ExpressionNode *initialization_expression =
@@ -281,7 +281,7 @@ parse_struct_field_access(struct Parser *parser) {
   }
   parser->position++;
 
-  assert(parser_peek(parser).type == T_SYMBOL);
+  parser_expect(parser, T_SYMBOL);
   struct LunaString symbol = parser_peek(parser).value.symbol;
   printf("Got symbol: '%s'\n", symbol.data);
   parser->position++;
@@ -356,7 +356,7 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
 
       struct ExpressionNode *indexing_expr = parse_expression(parser, 0);
 
-      assert(parser_peek(parser).type == T_RBRACK);
+      parser_expect(parser, T_RBRACK);
       parser->position++;
 
       return ast_promote(
@@ -399,7 +399,7 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
   case T_AMPERSAND: {
     parser->position++;
 
-    assert(parser_peek(parser).type == T_SYMBOL);
+    parser_expect(parser, T_SYMBOL);
     struct ScopedSymbolLiteralNode *symbol =
         parse_scoped_symbol_literal(parser);
 
@@ -432,12 +432,12 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
   }
   case T_VALUESIZE:
     parser->position++;
-    assert(parser_peek(parser).type == T_LPAREN);
+    parser_expect(parser, T_LPAREN);
     parser->position++;
 
     struct ExpressionNode *expr = parse_expression(parser, 0);
 
-    assert(parser_peek(parser).type == T_RPAREN);
+    parser_expect(parser, T_RPAREN);
     parser->position++;
 
     return ast_promote_expression_node(
@@ -445,12 +445,12 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
                                                    .node.valuesize = expr});
   case T_TYPESIZE:
     parser->position++;
-    assert(parser_peek(parser).type == T_LPAREN);
+    parser_expect(parser, T_LPAREN);
     parser->position++;
 
     struct DataType *dt = parse_data_type(parser);
 
-    assert(parser_peek(parser).type == T_RPAREN);
+    parser_expect(parser, T_RPAREN);
     parser->position++;
 
     return ast_promote_expression_node(
@@ -459,17 +459,17 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
   case T_CAST: {
     parser->position++;
 
-    assert(parser_peek(parser).type == T_LPAREN);
+    parser_expect(parser, T_LPAREN);
     parser->position++;
 
     struct DataType *type = parse_data_type(parser);
 
-    assert(parser_peek(parser).type == T_COMMA);
+    parser_expect(parser, T_COMMA);
     parser->position++;
 
     struct ExpressionNode *expr = parse_expression(parser, 0);
 
-    assert(parser_peek(parser).type == T_RPAREN);
+    parser_expect(parser, T_RPAREN);
     parser->position++;
 
     return ast_promote_expression_node(
@@ -482,10 +482,10 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
                 sizeof(struct CastExpressionNode))});
   }
   case T_LPAREN: {
-    assert(parser_peek(parser).type == T_LPAREN);
+    parser_expect(parser, T_LPAREN);
     parser->position++;
     struct ExpressionNode *result = parse_expression(parser, 0);
-    assert(parser_peek(parser).type == T_RPAREN);
+    parser_expect(parser, T_RPAREN);
     parser->position++; // consume the close paren.
     return result;
   }
@@ -497,16 +497,16 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
     if (parser_peek(parser).type == T_EXTERN) {
       parser->position++;
 
-      assert(parser_peek(parser).type == T_LBRACK);
+      parser_expect(parser, T_LBRACK);
       parser->position++;
 
-      assert(parser_peek(parser).type == T_STRING);
+      parser_expect(parser, T_STRING);
       struct LunaString name = parser_peek(parser).value.symbol;
       extern_name =
           ast_promote(parser->allocator, &name, sizeof(struct LunaString));
       parser->position++;
 
-      assert(parser_peek(parser).type == T_RBRACK);
+      parser_expect(parser, T_RBRACK);
       parser->position++;
 
       if (parser_peek(parser).type == T_VARIADIC) {
@@ -514,10 +514,10 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
         is_variadic = true;
       }
     }
-    assert(parser_peek(parser).type == T_LPAREN);
+    parser_expect(parser, T_LPAREN);
     parser->position++;
     struct FunctionArgumentNode *arguments = parse_function_arguments(parser);
-    assert(parser_peek(parser).type == T_RPAREN);
+    parser_expect(parser, T_RPAREN);
     parser->position++;
     printf("a. next token is: %d\n", parser_peek(parser).type);
     if (parser_peek(parser).type == T_COLON) {
@@ -546,10 +546,10 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
           },
           sizeof(struct ExpressionNode));
     }
-    assert(parser_peek(parser).type == T_LBRACE);
+    parser_expect(parser, T_LBRACE);
     parser->position++;
     struct FunctionStatementNode *result = parse_function_statements(parser);
-    assert(parser_peek(parser).type == T_RBRACE);
+    parser_expect(parser, T_RBRACE);
     parser->position++; // consume the close brace.
     printf("return type IS NULL?: %d\n", return_type == NULL);
     return ast_promote(parser->allocator,
@@ -574,13 +574,13 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
     struct ScopedSymbolLiteralNode *scoped_symbol =
         parse_scoped_symbol_literal(parser);
 
-    assert(parser_peek(parser).type == T_LBRACE);
+    parser_expect(parser, T_LBRACE);
     parser->position++;
 
     struct StructFieldInitializerExpressionNode *fields =
         parse_struct_field_initializer(parser);
 
-    assert(parser_peek(parser).type == T_RBRACE);
+    parser_expect(parser, T_RBRACE);
     parser->position++; // consume the close brace.
 
     return ast_promote_expression_node(
@@ -602,12 +602,12 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
 
     struct StructDefinitionExpressionNode struct_def;
 
-    assert(parser_peek(parser).type == T_LBRACE);
+    parser_expect(parser, T_LBRACE);
     parser->position++;
 
     struct_def.fields = parse_struct_field_definition(parser);
 
-    assert(parser_peek(parser).type == T_RBRACE);
+    parser_expect(parser, T_RBRACE);
     parser->position++;
 
     return ast_promote(parser->allocator,
@@ -623,13 +623,13 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
     puts("Found module definition");
     parser->position++;
 
-    assert(parser_peek(parser).type == T_LBRACE);
+    parser_expect(parser, T_LBRACE);
     parser->position++;
 
     struct ModuleStatementNode *module_statements =
         parse_module_statements(parser);
 
-    assert(parser_peek(parser).type == T_RBRACE);
+    parser_expect(parser, T_RBRACE);
     parser->position++;
 
     return ast_promote(parser->allocator,
@@ -653,7 +653,7 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
     struct ArrayInitializerExpressionNode *initializers =
         parse_array_initializer(parser);
 
-    assert(parser_peek(parser).type == T_RBRACK);
+    parser_expect(parser, T_RBRACK);
     parser->position++;
 
     return ast_promote_expression_node(
@@ -784,7 +784,7 @@ struct ExpressionNode *parse_expression(struct Parser *parser,
 
 struct IntegerLiteralNode *parse_integer_literal(struct Parser *parser) {
   struct Token token = parser_peek(parser);
-  assert(token.type == T_INTEGER);
+  parser_expect(parser, T_INTEGER);
 
   parser->position++;
 
@@ -793,7 +793,7 @@ struct IntegerLiteralNode *parse_integer_literal(struct Parser *parser) {
 
 struct SymbolLiteralNode *parse_symbol_literal(struct Parser *parser) {
   struct Token token = parser_peek(parser);
-  assert(token.type == T_SYMBOL);
+  parser_expect(parser, T_SYMBOL);
 
   parser->position++;
 
@@ -804,13 +804,13 @@ struct SymbolLiteralNode *parse_symbol_literal(struct Parser *parser) {
 
 struct ScopedSymbolLiteralNode *
 parse_scoped_symbol_literal(struct Parser *parser) {
-  assert(parser_peek(parser).type == T_SYMBOL);
+  parser_expect(parser, T_SYMBOL);
 
   struct SymbolLiteralNode *symbol = parse_symbol_literal(parser);
 
   if (parser_peek(parser).type == T_COLON) {
     parser->position++;
-    assert(parser_peek(parser).type == T_COLON);
+    parser_expect(parser, T_COLON);
     parser->position++;
 
     struct ScopedSymbolLiteralNode *next = parse_scoped_symbol_literal(parser);
@@ -966,16 +966,16 @@ struct DataType *parse_data_type(struct Parser *parser) {
     if (parser_peek(parser).type == T_EXTERN) {
       parser->position++;
 
-      assert(parser_peek(parser).type == T_LBRACK);
+      parser_expect(parser, T_LBRACK);
       parser->position++;
 
-      assert(parser_peek(parser).type == T_STRING);
+      parser_expect(parser, T_STRING);
       struct LunaString name = parser_peek(parser).value.symbol;
       extern_name =
           ast_promote(parser->allocator, &name, sizeof(struct LunaString));
       parser->position++;
 
-      assert(parser_peek(parser).type == T_RBRACK);
+      parser_expect(parser, T_RBRACK);
       parser->position++;
 
       if (parser_peek(parser).type == T_VARIADIC) {
@@ -983,10 +983,10 @@ struct DataType *parse_data_type(struct Parser *parser) {
         is_variadic = true;
       }
     }
-    assert(parser_peek(parser).type == T_LPAREN);
+    parser_expect(parser, T_LPAREN);
     parser->position++;
     struct FunctionArgumentNode *arguments = parse_function_arguments(parser);
-    assert(parser_peek(parser).type == T_RPAREN);
+    parser_expect(parser, T_RPAREN);
     parser->position++;
     struct DataType *return_type = NULL;
     if (parser_peek(parser).type == T_COLON) {
@@ -1011,7 +1011,7 @@ struct DataType *parse_data_type(struct Parser *parser) {
 
     struct DataType *element_type = parse_data_type(parser);
 
-    assert(parser_peek(parser).type == T_SEMICOLON);
+    parser_expect(parser, T_SEMICOLON);
     parser->position++;
 
     printf("About to parse integer for array length, next token is type: %d\n",
@@ -1019,7 +1019,7 @@ struct DataType *parse_data_type(struct Parser *parser) {
 
     uint64_t length = parse_integer_literal(parser)->value;
 
-    assert(parser_peek(parser).type == T_RBRACK);
+    parser_expect(parser, T_RBRACK);
     parser->position++;
 
     return make_array_data_type(parser->allocator, element_type, length);
@@ -1111,7 +1111,7 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
     parser->position++;
     struct ReturnStatementNode *ret = parse_ret_statement(parser);
 
-    assert(parser_peek(parser).type == T_SEMICOLON);
+    parser_expect(parser, T_SEMICOLON);
     parser->position++;
 
     puts("parsed ret");
@@ -1132,18 +1132,18 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
 
     struct ExpressionNode *conditional = parse_expression(parser, 0);
 
-    assert(parser_peek(parser).type == T_LBRACE);
+    parser_expect(parser, T_LBRACE);
     parser->position++;
 
     struct FunctionStatementNode *body = parse_function_statements(parser);
 
-    assert(parser_peek(parser).type == T_RBRACE);
+    parser_expect(parser, T_RBRACE);
     parser->position++;
 
     while_stmt.condition = conditional;
     while_stmt.body = body;
 
-    assert(parser_peek(parser).type == T_SEMICOLON);
+    parser_expect(parser, T_SEMICOLON);
     parser->position++;
 
     return ast_promote(
@@ -1170,11 +1170,11 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
       puts("starting layer");
       struct ExpressionNode *conditional = parse_expression(parser, 0);
 
-      assert(parser_peek(parser).type == T_LBRACE);
+      parser_expect(parser, T_LBRACE);
       parser->position++;
       struct FunctionStatementNode *body = parse_function_statements(parser);
 
-      assert(parser_peek(parser).type == T_RBRACE);
+      parser_expect(parser, T_RBRACE);
       parser->position++;
 
       current->condition = conditional;
@@ -1193,12 +1193,12 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
           continue;
         } else {
           puts("found else not if case");
-          assert(parser_peek(parser).type == T_LBRACE);
+          parser_expect(parser, T_LBRACE);
           parser->position++;
           struct FunctionStatementNode *body =
               parse_function_statements(parser);
 
-          assert(parser_peek(parser).type == T_RBRACE);
+          parser_expect(parser, T_RBRACE);
           parser->position++;
 
           current->next =
@@ -1215,7 +1215,7 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
       }
     }
 
-    assert(parser_peek(parser).type == T_SEMICOLON);
+    parser_expect(parser, T_SEMICOLON);
     parser->position++;
 
     return ast_promote(
@@ -1239,7 +1239,7 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
     case EXPR_FN_CALL:
       assert(expr->node.fn_call != NULL);
 
-      assert(parser_peek(parser).type == T_SEMICOLON);
+      parser_expect(parser, T_SEMICOLON);
       parser->position++;
 
       return ast_promote(parser->allocator,
@@ -1251,13 +1251,13 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
                          },
                          sizeof(struct FunctionStatementNode));
     case EXPR_DEREF: {
-      assert(parser_peek(parser).type == T_EQUALS);
+      parser_expect(parser, T_EQUALS);
       parser->position++;
 
       struct ExpressionNode *result_expression = parse_expression(parser, 0);
       assert(result_expression != NULL);
 
-      assert(parser_peek(parser).type == T_SEMICOLON);
+      parser_expect(parser, T_SEMICOLON);
       parser->position++;
 
       return ast_promote(parser->allocator,
@@ -1274,13 +1274,13 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
                          sizeof(struct FunctionStatementNode));
     }
     case EXPR_FIELD_ACCESS:
-      assert(parser_peek(parser).type == T_EQUALS);
+      parser_expect(parser, T_EQUALS);
       parser->position++;
 
       struct ExpressionNode *result_expression = parse_expression(parser, 0);
       assert(result_expression != NULL);
 
-      assert(parser_peek(parser).type == T_SEMICOLON);
+      parser_expect(parser, T_SEMICOLON);
       parser->position++;
 
       return ast_promote(parser->allocator,
@@ -1298,7 +1298,7 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
     case EXPR_SYMBOL_LITERAL: {
       puts("plain symbol assignment.");
 
-      assert(parser_peek(parser).type == T_EQUALS);
+      parser_expect(parser, T_EQUALS);
       parser->position++;
 
       struct ExpressionNode *result_expression = parse_expression(parser, 0);
@@ -1306,7 +1306,7 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
       printf("in assign, parsed expression of type: %d\n",
              result_expression->type);
 
-      assert(parser_peek(parser).type == T_SEMICOLON);
+      parser_expect(parser, T_SEMICOLON);
       parser->position++;
 
       return ast_promote(parser->allocator,
