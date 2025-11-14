@@ -40,7 +40,7 @@ struct LineMapEntry *line_map_build(struct ArenaAllocator *allocator,
 
   while (index < source.length) {
     if (source.data[index] == '\n') {
-      tail->next = line_map_make_entry(allocator, *entry_count + 1, index);
+      tail->next = line_map_make_entry(allocator, *entry_count + 1, index + 1);
       tail = tail->next;
       *entry_count += 1;
     }
@@ -57,12 +57,12 @@ struct LineMap line_map_make(struct ArenaAllocator *allocator,
   uint32_t entries;
   struct LineMapEntry *head = line_map_build(allocator, source, &entries);
 
-  // struct LineMapEntry *tail = head;
-  // printf("entry count: %d\n", (int)entries);
-  // for (int i = 0; i < (int)entries; i++) {
-  //   printf("\t%d: %d,%d\n", i, tail->line, tail->start_byte);
-  //   tail = tail->next;
-  // }
+  struct LineMapEntry *tail = head;
+  printf("entry count: %d\n", (int)entries);
+  for (int i = 0; i < (int)entries; i++) {
+    printf("\t%d: %d,%d\n", i, tail->line, tail->start_byte);
+    tail = tail->next;
+  }
 
   return (struct LineMap){
       .entries = entries,
@@ -76,9 +76,12 @@ bool line_map_query(struct LineMap *line_map, uint32_t offset,
                     uint32_t *line_end_offset) {
   assert(line_map != NULL);
 
+  printf("[query] looking for offset: %d\n", offset);
+
   struct LineMapEntry *current = line_map->head;
 
   if (offset == 0 && current != NULL) {
+    printf("[query] found match for line %d\n", current->line);
     *line_number = current->line;
     *line_start_offset = current->start_byte;
     if (current->next == NULL) {
@@ -90,8 +93,9 @@ bool line_map_query(struct LineMap *line_map, uint32_t offset,
   }
 
   while (current != NULL) {
-    if (offset > current->start_byte &&
+    if (offset >= current->start_byte &&
         (current->next == NULL || offset < current->next->start_byte)) {
+      printf("[query] found match for line %d\n", current->line);
       *line_number = current->line;
       *line_start_offset = current->start_byte;
       if (current->next == NULL) {
@@ -103,6 +107,7 @@ bool line_map_query(struct LineMap *line_map, uint32_t offset,
     }
     current = current->next;
   }
+  printf("[query] found NO match for line.\n");
   return false;
 }
 

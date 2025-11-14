@@ -89,11 +89,12 @@ void diagnostic_print_single_line(struct Diagnostic *diagnostic,
 
   printf(" %s |", buf);
 
-  int source_snippet_len = line_number_end_offset - line_number_start_offset;
+  int source_snippet_len = line_number_end_offset - line_number_start_offset - 1;
   char source_snippet[source_snippet_len + 1];
 
-  memcpy(source_snippet,
-         &diagnostic->source->content.data[line_number_start_offset],
+  int source_start =
+      diagnostic_line_start_offset > 0 ? line_number_start_offset + 1 : line_number_start_offset;
+  memcpy(source_snippet, &diagnostic->source->content.data[source_start],
          source_snippet_len);
   source_snippet[source_snippet_len + 1] = '\0';
 
@@ -125,16 +126,19 @@ void diagnostic_print(struct Diagnostic *diagnostic) {
   line_map_query(&diagnostic->source->line_map, diagnostic->end_offset,
                  &end_line, &end_line_offset, &end_line_end_offset);
 
-  // printf("start line: %d\n", start_line);
-  // printf("start line offset: %d\n", (int)start_line_offset);
-  // printf("start line end offset line offset: %d\n", start_line_end_offset);
-  //
-  // printf("end line: %d\n", end_line);
-  // printf("end line offset: %d\n", end_line_offset);
-  // printf("end line end offset line offset: %d\n", end_line_end_offset);
-  //
-  // printf("start line offset: %d\n", start_line_offset);
-  int start_diagnostic_offset = diagnostic->start_offset - start_line_offset;
+  uint32_t start_diagnostic_offset =
+      diagnostic->start_offset - start_line_offset;
+
+  printf("start line: %d\n", start_line);
+  printf("start line offset: %d\n", (int)start_line_offset);
+  printf("start line end offset line offset: %d\n", start_line_end_offset);
+
+  printf("end line: %d\n", end_line);
+  printf("end line offset: %d\n", end_line_offset);
+  printf("end line end offset line offset: %d\n", end_line_end_offset);
+  printf("diagnostic offset: %d (%llu) (%d) -- (%llu)\n",
+         start_diagnostic_offset, diagnostic->start_offset,
+         start_line_offset, diagnostic->start_offset - start_line_offset);
 
   int length = snprintf(NULL, 0, "%d", start_line);
   int num_spaces = length + 2;
