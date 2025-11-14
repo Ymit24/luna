@@ -23,6 +23,15 @@ struct SourceFile {
   struct LineMap line_map;
 };
 
+struct Span {
+  struct SourceFile *source;
+  uint32_t start_offset;
+  uint32_t end_offset;
+};
+
+struct Span span_make(struct SourceFile *source, uint32_t start_offset,
+                      uint32_t end_offset);
+
 struct SourceFile source_file_make(struct ArenaAllocator *allocator,
                                    struct LunaString filepath,
                                    struct LunaString content);

@@ -94,3 +94,12 @@ bool line_map_query(struct LineMap *line_map, uint32_t offset,
   }
   return false;
 }
+
+struct Span span_make(struct SourceFile *source, uint32_t start_offset,
+                      uint32_t end_offset) {
+  return (struct Span){
+      .source = source,
+      .start_offset = start_offset,
+      .end_offset = end_offset,
+  };
+}

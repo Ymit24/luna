@@ -2,6 +2,7 @@
 #define TOKEN_H
 
 #include "luna_string.h"
+#include "source_spans.h"
 #include <stdint.h>
 
 enum TokenType {
@@ -51,6 +52,7 @@ enum TokenType {
 
 struct Token {
   enum TokenType type;
+  struct Span span;
   union {
     uint16_t integer;
     struct LunaString symbol;

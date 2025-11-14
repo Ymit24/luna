@@ -40,10 +40,11 @@ struct LunaString read_file(const char *path, struct ArenaAllocator *alloc) {
 
 struct ModuleStatementNode *parse_source_file(struct ArenaAllocator *allocator,
                                               struct Diagnostics *diagnostics,
-                                              char *source_file) {
-
-  struct LunaString src = read_file(source_file, allocator);
-  struct Lexer lexer = lexer_make(allocator, src);
+                                              char *source_file_path) {
+  struct LunaString src = read_file(source_file_path, allocator);
+  struct SourceFile source_file =
+      source_file_make(allocator, string_make(source_file_path), src);
+  struct Lexer lexer = lexer_make(allocator, source_file);
 
   struct Token toks[4096];
   uint16_t tok_index = 0;
@@ -51,7 +52,7 @@ struct ModuleStatementNode *parse_source_file(struct ArenaAllocator *allocator,
   puts("tokens:");
   while (lexer_next(&lexer, &toks[tok_index++])) {
     if (false) {
-      printf("\t%d\n", toks[tok_index - 1].type);
+      printf("\t%d (%d-%d)\n", toks[tok_index - 1].type, toks[tok_index-1].span.start_offset, toks[tok_index-1].span.end_offset);
     }
   }
   puts("");
@@ -59,9 +60,7 @@ struct ModuleStatementNode *parse_source_file(struct ArenaAllocator *allocator,
   printf("Found a total of %d tokens.\n", tok_index - 1);
 
   struct Parser parser =
-      parser_make(allocator, diagnostics,
-                  source_file_make(allocator, string_make(source_file), src),
-                  toks, tok_index);
+      parser_make(allocator, diagnostics, source_file, toks, tok_index);
 
   struct ModuleStatementNode *stmt = parse_module_statements(&parser);
 

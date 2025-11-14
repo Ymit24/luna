@@ -1,6 +1,7 @@
 #include "lexer.h"
 #include "arena_allocator.h"
 #include "luna_string.h"
+#include "source_spans.h"
 #include "token.h"
 
 #include <assert.h>
@@ -10,17 +11,17 @@
 #include <string.h>
 
 struct Lexer lexer_make(struct ArenaAllocator *allocator,
-                        struct LunaString source) {
+                        struct SourceFile source) {
   return (struct Lexer){
       .allocator = allocator, .source = source, .position = 0};
 }
 
 char lexer_peek(struct Lexer *lexer) {
-  if (lexer->position > lexer->source.length) {
+  if (lexer->position > lexer->source.content.length) {
     return 0;
   }
 
-  return lexer->source.data[lexer->position];
+  return lexer->source.content.data[lexer->position];
 }
 
 uint16_t lexer_read_integer(struct Lexer *lexer) {
@@ -119,6 +120,8 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
 
   if (current == 0) {
     out_token->type = T_EOF;
+    out_token->span =
+        span_make(&lexer->source, lexer->position, lexer->position);
     return false;
   }
 
@@ -146,6 +149,9 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
       }
       return lexer_next(lexer, out_token);
     }
+
+    out_token->span =
+        span_make(&lexer->source, lexer->position - 1, lexer->position - 1);
     out_token->type = T_SLASH;
     return true;
   case '(':
@@ -171,7 +177,13 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
     lexer->position++;
     if (lexer_peek(lexer) == '=') {
       out_token->type = T_NTEQ;
+
+      out_token->span =
+          span_make(&lexer->source, lexer->position - 1, lexer->position);
       lexer->position++;
+    } else {
+      out_token->span =
+          span_make(&lexer->source, lexer->position - 1, lexer->position - 1);
     }
     return true;
   case '<':
@@ -179,7 +191,12 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
     lexer->position++;
     if (lexer_peek(lexer) == '=') {
       out_token->type = T_LEQ;
+      out_token->span =
+          span_make(&lexer->source, lexer->position - 1, lexer->position);
       lexer->position++;
+    } else {
+      out_token->span =
+          span_make(&lexer->source, lexer->position - 1, lexer->position - 1);
     }
     return true;
   case '>':
@@ -187,7 +204,12 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
     lexer->position++;
     if (lexer_peek(lexer) == '=') {
       out_token->type = T_GEQ;
+      out_token->span =
+          span_make(&lexer->source, lexer->position - 1, lexer->position);
       lexer->position++;
+    } else {
+      out_token->span =
+          span_make(&lexer->source, lexer->position - 1, lexer->position - 1);
     }
     return true;
   case ';':
@@ -207,45 +229,65 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
     lexer->position++;
     if (lexer_peek(lexer) == '=') {
       out_token->type = T_EQEQ;
+      out_token->span =
+          span_make(&lexer->source, lexer->position - 1, lexer->position);
       lexer->position++;
+    } else {
+      out_token->span =
+          span_make(&lexer->source, lexer->position - 1, lexer->position - 1);
     }
     return true;
   case '"':
     out_token->type = T_STRING;
+
+    uint32_t start = lexer->position;
     lexer->position++;
 
     out_token->value.symbol = lexer_read_string(lexer);
     assert(lexer_peek(lexer) == '"');
+    out_token->span = span_make(&lexer->source, start, lexer->position);
     lexer->position++;
     return true;
   case '@':
     lexer->position++;
-    if (lexer->source.length - lexer->position >= 6 &&
-        strncmp("extern", &lexer->source.data[lexer->position], 6) == 0) {
+    if (lexer->source.content.length - lexer->position >= 6 &&
+        strncmp("extern", &lexer->source.content.data[lexer->position], 6) ==
+            0) {
       out_token->type = T_EXTERN;
+      out_token->span =
+          span_make(&lexer->source, lexer->position - 1, lexer->position + 6);
       lexer->position += 6;
       return true;
-    } else if (lexer->source.length - lexer->position >= 8 &&
-               strncmp("variadic", &lexer->source.data[lexer->position], 8) ==
-                   0) {
+    } else if (lexer->source.content.length - lexer->position >= 8 &&
+               strncmp("variadic", &lexer->source.content.data[lexer->position],
+                       8) == 0) {
       out_token->type = T_VARIADIC;
+      out_token->span =
+          span_make(&lexer->source, lexer->position - 1, lexer->position + 8);
       lexer->position += 8;
       return true;
-    } else if (lexer->source.length - lexer->position >= 4 &&
-               strncmp("cast", &lexer->source.data[lexer->position], 4) == 0) {
+    } else if (lexer->source.content.length - lexer->position >= 4 &&
+               strncmp("cast", &lexer->source.content.data[lexer->position],
+                       4) == 0) {
       out_token->type = T_CAST;
+      out_token->span =
+          span_make(&lexer->source, lexer->position - 1, lexer->position + 4);
       lexer->position += 4;
       return true;
-    } else if (lexer->source.length - lexer->position >= 9 &&
-               strncmp("valuesize", &lexer->source.data[lexer->position], 9) ==
-                   0) {
+    } else if (lexer->source.content.length - lexer->position >= 9 &&
+               strncmp("valuesize",
+                       &lexer->source.content.data[lexer->position], 9) == 0) {
       out_token->type = T_VALUESIZE;
+      out_token->span =
+          span_make(&lexer->source, lexer->position - 1, lexer->position + 9);
       lexer->position += 9;
       return true;
-    } else if (lexer->source.length - lexer->position >= 8 &&
-               strncmp("typesize", &lexer->source.data[lexer->position], 8) ==
-                   0) {
+    } else if (lexer->source.content.length - lexer->position >= 8 &&
+               strncmp("typesize", &lexer->source.content.data[lexer->position],
+                       8) == 0) {
       out_token->type = T_TYPESIZE;
+      out_token->span =
+          span_make(&lexer->source, lexer->position - 1, lexer->position + 8);
       lexer->position += 8;
       return true;
     }
@@ -253,69 +295,96 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
   default: {
     if (isdigit(current)) {
       out_token->type = T_INTEGER;
+      uint32_t start = lexer->position;
       out_token->value.integer = lexer_read_integer(lexer);
+      out_token->span = span_make(&lexer->source, start, lexer->position - 1);
       return true;
     } else {
-      if (lexer->source.length - lexer->position >= 3 &&
-          strncmp("let", &lexer->source.data[lexer->position], 3) == 0) {
+      if (lexer->source.content.length - lexer->position >= 3 &&
+          strncmp("let", &lexer->source.content.data[lexer->position], 3) ==
+              0) {
         out_token->type = T_LET;
+        out_token->span =
+            span_make(&lexer->source, lexer->position, lexer->position + 3);
         lexer->position += 3;
         return true;
-      } else if (lexer->source.length - lexer->position >= 5 &&
-                 strncmp("const", &lexer->source.data[lexer->position], 5) ==
-                     0) {
+      } else if (lexer->source.content.length - lexer->position >= 5 &&
+                 strncmp("const", &lexer->source.content.data[lexer->position],
+                         5) == 0) {
         out_token->type = T_CONST;
+        out_token->span =
+            span_make(&lexer->source, lexer->position, lexer->position + 5);
         lexer->position += 5;
         return true;
-      } else if (lexer->source.length - lexer->position >= 2 &&
-                 strncmp("fn", &lexer->source.data[lexer->position], 2) == 0) {
+      } else if (lexer->source.content.length - lexer->position >= 2 &&
+                 strncmp("fn", &lexer->source.content.data[lexer->position],
+                         2) == 0) {
         out_token->type = T_FN;
+        out_token->span =
+            span_make(&lexer->source, lexer->position, lexer->position + 2);
         lexer->position += 2;
         return true;
-      } else if (lexer->source.length - lexer->position >= 2 &&
-                 strncmp("if", &lexer->source.data[lexer->position], 2) == 0) {
+      } else if (lexer->source.content.length - lexer->position >= 2 &&
+                 strncmp("if", &lexer->source.content.data[lexer->position],
+                         2) == 0) {
         out_token->type = T_IF;
+        out_token->span =
+            span_make(&lexer->source, lexer->position, lexer->position + 2);
         lexer->position += 2;
         return true;
-      } else if (lexer->source.length - lexer->position >= 4 &&
-                 strncmp("else", &lexer->source.data[lexer->position], 4) ==
-                     0) {
+      } else if (lexer->source.content.length - lexer->position >= 4 &&
+                 strncmp("else", &lexer->source.content.data[lexer->position],
+                         4) == 0) {
         out_token->type = T_ELSE;
+        out_token->span =
+            span_make(&lexer->source, lexer->position, lexer->position + 4);
         lexer->position += 4;
         return true;
-      } else if (lexer->source.length - lexer->position >= 6 &&
-                 strncmp("return", &lexer->source.data[lexer->position], 6) ==
-                     0) {
+      } else if (lexer->source.content.length - lexer->position >= 6 &&
+                 strncmp("return", &lexer->source.content.data[lexer->position],
+                         6) == 0) {
         out_token->type = T_RETURN;
+        out_token->span =
+            span_make(&lexer->source, lexer->position, lexer->position + 6);
         lexer->position += 6;
         return true;
-      } else if (lexer->source.length - lexer->position >= 6 &&
-                 strncmp("struct", &lexer->source.data[lexer->position], 6) ==
-                     0) {
+      } else if (lexer->source.content.length - lexer->position >= 6 &&
+                 strncmp("struct", &lexer->source.content.data[lexer->position],
+                         6) == 0) {
         out_token->type = T_STRUCT;
+        out_token->span =
+            span_make(&lexer->source, lexer->position, lexer->position + 6);
         lexer->position += 6;
         return true;
-      } else if (lexer->source.length - lexer->position >= 5 &&
-                 strncmp("while", &lexer->source.data[lexer->position], 5) ==
-                     0) {
+      } else if (lexer->source.content.length - lexer->position >= 5 &&
+                 strncmp("while", &lexer->source.content.data[lexer->position],
+                         5) == 0) {
         out_token->type = T_WHILE;
+        out_token->span =
+            span_make(&lexer->source, lexer->position, lexer->position + 5);
         lexer->position += 5;
         return true;
-      } else if (lexer->source.length - lexer->position >= 3 &&
-                 strncmp("mod", &lexer->source.data[lexer->position], 3) == 0) {
+      } else if (lexer->source.content.length - lexer->position >= 3 &&
+                 strncmp("mod", &lexer->source.content.data[lexer->position],
+                         3) == 0) {
         out_token->type = T_MOD;
+        out_token->span =
+            span_make(&lexer->source, lexer->position, lexer->position + 3);
         lexer->position += 3;
         return true;
       } else {
         out_token->type = T_SYMBOL;
+        uint32_t start = lexer->position;
         out_token->value.symbol = lexer_read_symbol(lexer);
+        out_token->span = span_make(&lexer->source, start, lexer->position);
         return true;
       }
     }
   }
   }
 
-  lexer->position++;
+  out_token->span = span_make(&lexer->source, lexer->position, lexer->position);
 
+  lexer->position++;
   return true;
 }

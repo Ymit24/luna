@@ -2,7 +2,6 @@
 #define LEXER_H
 
 #include "arena_allocator.h"
-#include "luna_string.h"
 #include "token.h"
 
 #include <stdbool.h>
@@ -10,12 +9,12 @@
 
 struct Lexer {
   struct ArenaAllocator *allocator;
-  struct LunaString source;
+  struct SourceFile source;
   uint16_t position;
 };
 
 struct Lexer lexer_make(struct ArenaAllocator *allocator,
-                        struct LunaString source);
+                        struct SourceFile source);
 
 char lexer_peek(struct Lexer *lexer);
 
