@@ -103,3 +103,14 @@ struct Span span_make(struct SourceFile *source, uint32_t start_offset,
       .end_offset = end_offset,
   };
 }
+
+struct Span span_union(struct Span span1, struct Span span2) {
+  assert(span1.source == span2.source);
+
+  uint32_t start = span1.start_offset < span2.start_offset ? span1.start_offset
+                                                           : span2.start_offset;
+  uint32_t end =
+      span1.end_offset > span2.end_offset ? span1.end_offset : span2.end_offset;
+
+  return span_make(span1.source, start, end);
+}

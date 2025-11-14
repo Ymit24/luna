@@ -7,6 +7,7 @@
 #include "annotator.h"
 #include "arena_allocator.h"
 #include "luna_string.h"
+#include "source_spans.h"
 
 enum ModuleStatementType {
   MOD_STMT_LET,
@@ -33,6 +34,7 @@ struct DeclarationStatementNode {
   struct LunaString symbol;
   struct DataType *data_type; // NOTE: May be unused (e.g. uninitialized)
   struct ExpressionNode *expression;
+  struct Span span;
   bool has_type;
   bool is_const;
 };
@@ -52,6 +54,7 @@ struct ModuleStatementNode {
   union {
     struct DeclarationStatementNode *decl;
   } node;
+  struct Span span;
   struct ModuleStatementNode *next;
 };
 

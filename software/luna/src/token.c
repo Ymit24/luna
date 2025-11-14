@@ -1,0 +1,95 @@
+#include "token.h"
+#include <assert.h>
+
+char *token_to_string(enum TokenType type) {
+  switch (type) {
+  case T_ILLEGAL:
+    return "Illegal";
+  case T_EOF:
+    return "Eof";
+  case T_INTEGER:
+    return "Integer";
+  case T_PLUS:
+    return "Plus";
+  case T_MINUS:
+    return "Minus";
+  case T_STAR:
+    return "Star";
+  case T_AMPERSAND:
+    return "Ampersand";
+  case T_SLASH:
+    return "Slash";
+  case T_LPAREN:
+    return "Lparen";
+  case T_RPAREN:
+    return "Rparen";
+  case T_LBRACE:
+    return "Lbrace";
+  case T_RBRACE:
+    return "Rbrace";
+  case T_LBRACK:
+    return "Lbrack";
+  case T_RBRACK:
+    return "Rbrack";
+  case T_LANGLE:
+    return "Langle";
+  case T_RANGLE:
+    return "Rangle";
+  case T_SEMICOLON:
+    return "Semicolon";
+  case T_COLON:
+    return "Colon";
+  case T_COMMA:
+    return "Comma";
+  case T_PERIOD:
+    return "Period";
+  case T_LET:
+    return "Let";
+  case T_CONST:
+    return "Const";
+  case T_EXCLAMATION:
+    return "Exclamation";
+  case T_EQUALS:
+    return "Equals";
+  case T_EQEQ:
+    return "Eqeq";
+  case T_NTEQ:
+    return "Nteq";
+  case T_LEQ:
+    return "Leq";
+  case T_GEQ:
+    return "Geq";
+  case T_SYMBOL:
+    return "Symbol";
+  case T_FN:
+    return "Fn";
+  case T_RETURN:
+    return "Return";
+  case T_CAST:
+    return "Cast";
+  case T_EXTERN:
+    return "Extern";
+  case T_VARIADIC:
+    return "Variadic";
+  case T_VALUESIZE:
+    return "Valuesize";
+  case T_TYPESIZE:
+    return "Typesize";
+  case T_STRING:
+    return "String";
+  case T_IF:
+    return "If";
+  case T_ELSE:
+    return "Else";
+  case T_STRUCT:
+    return "Struct";
+  case T_WHILE:
+    return "While";
+  case T_MOD:
+    return "Mod";
+    break;
+  }
+
+  assert(0);
+  return NULL;
+}

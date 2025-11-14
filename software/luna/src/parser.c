@@ -41,11 +41,19 @@ struct Token parser_peek(struct Parser *parser) {
 }
 
 void parser_expect(struct Parser *parser, enum TokenType type) {
-  if (parser_peek(parser).type != type) {
-    struct Diagnostic diagnostic = diagnostic_make(
-        &parser->source_file, string_make("Expected type"), 3, 4);
+  struct Token tok = parser_peek(parser);
+  if (tok.type != type) {
+    char buf[256];
+    size_t wrote =
+        sprintf(buf, "Expected token of type '%s', found token of type '%s'\n",
+                token_to_string(type), token_to_string(tok.type));
+    buf[wrote] = 0;
+    struct Diagnostic diagnostic =
+        diagnostic_make(&parser->source_file, string_make(buf),
+                        tok.span.start_offset, tok.span.end_offset);
     diagnostic_emit(parser->allocator, parser->diagnostics, &diagnostic);
     diagnostic_print(&diagnostic);
+    assert(0); // TODO: Eventually remove this.
   }
 }
 
@@ -989,10 +997,11 @@ struct DataType *parse_data_type(struct Parser *parser) {
 
 struct DeclarationStatementNode *parse_decl_statement(struct Parser *parser,
                                                       bool is_const) {
-  assert(parser_peek(parser).type == (is_const ? T_CONST : T_LET));
+  struct Span start = parser_peek(parser).span;
+  parser_expect(parser, (is_const ? T_CONST : T_LET));
   parser->position++;
 
-  assert(parser_peek(parser).type == T_SYMBOL);
+  parser_expect(parser, T_SYMBOL);
   struct LunaString symbol = parser_peek(parser).value.symbol;
   parser->position++;
 
@@ -1008,21 +1017,23 @@ struct DeclarationStatementNode *parse_decl_statement(struct Parser *parser,
   printf("next tok is now: %d\n", parser_peek(parser).type);
 
   parser_expect(parser, T_EQUALS);
-  assert(parser_peek(parser).type == T_EQUALS);
   parser->position++;
 
   struct ExpressionNode *expr = parse_expression(parser, 0);
 
-  assert(parser_peek(parser).type == T_SEMICOLON);
+  parser_expect(parser, T_SEMICOLON);
+  struct Span end = parser_peek(parser).span;
   parser->position++;
 
-  return ast_promote(parser->allocator,
-                     &(struct DeclarationStatementNode){.symbol = symbol,
-                                                        .expression = expr,
-                                                        .is_const = is_const,
-                                                        .has_type = has_type,
-                                                        .data_type = data_type},
-                     sizeof(struct DeclarationStatementNode));
+  return ast_promote(
+      parser->allocator,
+      &(struct DeclarationStatementNode){.symbol = symbol,
+                                         .expression = expr,
+                                         .is_const = is_const,
+                                         .has_type = has_type,
+                                         .data_type = data_type,
+                                         .span = span_union(start, end)},
+      sizeof(struct DeclarationStatementNode));
 }
 
 struct ReturnStatementNode *parse_ret_statement(struct Parser *parser) {
@@ -1321,13 +1332,15 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
 }
 
 struct ModuleStatementNode *parse_module_statement(struct Parser *parser) {
-  switch (parser_peek(parser).type) {
+  struct Token tok = parser_peek(parser);
+  switch (tok.type) {
   case T_LET: {
     struct DeclarationStatementNode *decl = parse_decl_statement(parser, false);
     return ast_promote(parser->allocator,
                        &(struct ModuleStatementNode){
                            .type = MOD_STMT_LET,
                            .node.decl = decl,
+                           .span = decl->span,
                            .next = NULL,
                        },
                        sizeof(struct ModuleStatementNode));
@@ -1338,6 +1351,7 @@ struct ModuleStatementNode *parse_module_statement(struct Parser *parser) {
                        &(struct ModuleStatementNode){
                            .type = MOD_STMT_CONST,
                            .node.decl = decl,
+                           .span = decl->span,
                            .next = NULL,
                        },
                        sizeof(struct ModuleStatementNode));

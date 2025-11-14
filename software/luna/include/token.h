@@ -59,4 +59,6 @@ struct Token {
   } value;
 };
 
+char* token_to_string(enum TokenType type);
+
 #endif

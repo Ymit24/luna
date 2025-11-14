@@ -102,7 +102,8 @@ void diagnostic_print_single_line(struct Diagnostic *diagnostic,
   print_n_times(num_spaces, ' ');
   printf("|");
   print_n_times(diagnostic_line_start_offset - 1, ' ');
-  print_n_times(diagnostic->end_offset - diagnostic->start_offset, '^');
+  uint32_t len = diagnostic->end_offset - diagnostic->start_offset;
+  print_n_times(len < 1 ? 1 : len, '^');
   puts("");
   print_n_times(num_spaces, ' ');
   puts("|");

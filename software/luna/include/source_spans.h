@@ -29,9 +29,6 @@ struct Span {
   uint32_t end_offset;
 };
 
-struct Span span_make(struct SourceFile *source, uint32_t start_offset,
-                      uint32_t end_offset);
-
 struct SourceFile source_file_make(struct ArenaAllocator *allocator,
                                    struct LunaString filepath,
                                    struct LunaString content);
@@ -42,5 +39,10 @@ struct LineMap line_map_make(struct ArenaAllocator *allocator,
 bool line_map_query(struct LineMap *line_map, uint32_t offset,
                     uint32_t *line_number, uint32_t *line_start_offset,
                     uint32_t *line_end_offset);
+
+struct Span span_make(struct SourceFile *source, uint32_t start_offset,
+                      uint32_t end_offset);
+
+struct Span span_union(struct Span span1, struct Span span2);
 
 #endif
