@@ -32,7 +32,7 @@ struct LineMapEntry *line_map_make_entry(struct ArenaAllocator *allocator,
 struct LineMapEntry *line_map_build(struct ArenaAllocator *allocator,
                                     struct LunaString source,
                                     uint32_t *entry_count) {
-  struct LineMapEntry *head = line_map_make_entry(allocator, 0, 0);
+  struct LineMapEntry *head = line_map_make_entry(allocator, 1, 0);
   struct LineMapEntry *tail = head;
   *entry_count = 1;
 
@@ -77,6 +77,17 @@ bool line_map_query(struct LineMap *line_map, uint32_t offset,
   assert(line_map != NULL);
 
   struct LineMapEntry *current = line_map->head;
+
+  if (offset == 0 && current != NULL) {
+    *line_number = current->line;
+    *line_start_offset = current->start_byte;
+    if (current->next == NULL) {
+      *line_end_offset = line_map->source_length;
+    } else {
+      *line_end_offset = current->next->start_byte - 1;
+    }
+    return current;
+  }
 
   while (current != NULL) {
     if (offset > current->start_byte &&

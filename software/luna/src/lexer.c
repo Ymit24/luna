@@ -305,7 +305,7 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
               0) {
         out_token->type = T_LET;
         out_token->span =
-            span_make(&lexer->source, lexer->position, lexer->position + 3);
+            span_make(&lexer->source, lexer->position + 1, lexer->position + 4);
         lexer->position += 3;
         return true;
       } else if (lexer->source.content.length - lexer->position >= 5 &&
@@ -313,7 +313,7 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
                          5) == 0) {
         out_token->type = T_CONST;
         out_token->span =
-            span_make(&lexer->source, lexer->position, lexer->position + 5);
+            span_make(&lexer->source, lexer->position + 1, lexer->position + 6);
         lexer->position += 5;
         return true;
       } else if (lexer->source.content.length - lexer->position >= 2 &&
@@ -321,7 +321,7 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
                          2) == 0) {
         out_token->type = T_FN;
         out_token->span =
-            span_make(&lexer->source, lexer->position, lexer->position + 2);
+            span_make(&lexer->source, lexer->position + 1, lexer->position + 3);
         lexer->position += 2;
         return true;
       } else if (lexer->source.content.length - lexer->position >= 2 &&
@@ -329,7 +329,7 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
                          2) == 0) {
         out_token->type = T_IF;
         out_token->span =
-            span_make(&lexer->source, lexer->position, lexer->position + 2);
+            span_make(&lexer->source, lexer->position + 1, lexer->position + 3);
         lexer->position += 2;
         return true;
       } else if (lexer->source.content.length - lexer->position >= 4 &&
@@ -337,7 +337,7 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
                          4) == 0) {
         out_token->type = T_ELSE;
         out_token->span =
-            span_make(&lexer->source, lexer->position, lexer->position + 4);
+            span_make(&lexer->source, lexer->position + 1, lexer->position + 5);
         lexer->position += 4;
         return true;
       } else if (lexer->source.content.length - lexer->position >= 6 &&
@@ -345,7 +345,7 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
                          6) == 0) {
         out_token->type = T_RETURN;
         out_token->span =
-            span_make(&lexer->source, lexer->position, lexer->position + 6);
+            span_make(&lexer->source, lexer->position + 1, lexer->position + 7);
         lexer->position += 6;
         return true;
       } else if (lexer->source.content.length - lexer->position >= 6 &&
@@ -353,7 +353,7 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
                          6) == 0) {
         out_token->type = T_STRUCT;
         out_token->span =
-            span_make(&lexer->source, lexer->position, lexer->position + 6);
+            span_make(&lexer->source, lexer->position + 1, lexer->position + 7);
         lexer->position += 6;
         return true;
       } else if (lexer->source.content.length - lexer->position >= 5 &&
@@ -361,7 +361,7 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
                          5) == 0) {
         out_token->type = T_WHILE;
         out_token->span =
-            span_make(&lexer->source, lexer->position, lexer->position + 5);
+            span_make(&lexer->source, lexer->position + 1, lexer->position + 6);
         lexer->position += 5;
         return true;
       } else if (lexer->source.content.length - lexer->position >= 3 &&
@@ -369,7 +369,7 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
                          3) == 0) {
         out_token->type = T_MOD;
         out_token->span =
-            span_make(&lexer->source, lexer->position, lexer->position + 3);
+            span_make(&lexer->source, lexer->position + 1, lexer->position + 4);
         lexer->position += 3;
         return true;
       } else {

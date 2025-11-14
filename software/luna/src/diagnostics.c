@@ -93,7 +93,7 @@ void diagnostic_print_single_line(struct Diagnostic *diagnostic,
   char source_snippet[source_snippet_len + 1];
 
   memcpy(source_snippet,
-         &diagnostic->source->content.data[line_number_start_offset + 1],
+         &diagnostic->source->content.data[line_number_start_offset],
          source_snippet_len);
   source_snippet[source_snippet_len + 1] = '\0';
 
@@ -126,13 +126,14 @@ void diagnostic_print(struct Diagnostic *diagnostic) {
                  &end_line, &end_line_offset, &end_line_end_offset);
 
   // printf("start line: %d\n", start_line);
-  // printf("start line offset: %d\n", start_line_offset);
+  // printf("start line offset: %d\n", (int)start_line_offset);
   // printf("start line end offset line offset: %d\n", start_line_end_offset);
   //
   // printf("end line: %d\n", end_line);
   // printf("end line offset: %d\n", end_line_offset);
   // printf("end line end offset line offset: %d\n", end_line_end_offset);
-
+  //
+  // printf("start line offset: %d\n", start_line_offset);
   int start_diagnostic_offset = diagnostic->start_offset - start_line_offset;
 
   int length = snprintf(NULL, 0, "%d", start_line);
@@ -143,6 +144,9 @@ void diagnostic_print(struct Diagnostic *diagnostic) {
                                  start_line_end_offset, start_diagnostic_offset,
                                  num_spaces);
   } else {
+    printf("Found diagnostic with span %llu-%llu. Spanning %d-%d lines\n",
+           diagnostic->start_offset, diagnostic->end_offset, start_line,
+           end_line);
     assert(0);
     // diagnostic_print_multi_line(
     //     diagnostic, start_line, start_line_offset, start_diagnostic_offset,

@@ -40,6 +40,41 @@ struct Token parser_peek(struct Parser *parser) {
   return parser->tokens[parser->position];
 }
 
+void parser_expect_any(struct Parser *parser, enum TokenType *types,
+                       size_t type_count) {
+  struct Token tok = parser_peek(parser);
+
+  bool found = false;
+  for (size_t i = 0; i < type_count; i++) {
+    if (tok.type == types[i]) {
+      found = true;
+      break;
+    }
+  }
+
+  if (!found) {
+    char buf[1024];
+    size_t index = 0;
+    index += sprintf(&buf[index], "Expected token of type in [");
+    for (size_t i = 0; i < type_count; i++) {
+      index += sprintf(&buf[index], "'%s'", token_to_string(types[i]));
+      if (i + 1 < type_count) {
+        index += sprintf(&buf[index], ", ");
+      }
+    }
+    index += sprintf(&buf[index], "], found token of type '%s'\n",
+                     token_to_string(tok.type));
+    buf[index] = 0;
+    assert(index < 1024);
+    struct Diagnostic diagnostic =
+        diagnostic_make(&parser->source_file, string_make(buf),
+                        tok.span.start_offset, tok.span.end_offset);
+    diagnostic_emit(parser->allocator, parser->diagnostics, &diagnostic);
+    diagnostic_print(&diagnostic);
+    assert(0); // TODO: Eventually remove this.
+  }
+}
+
 void parser_expect(struct Parser *parser, enum TokenType type) {
   struct Token tok = parser_peek(parser);
   if (tok.type != type) {
@@ -1358,6 +1393,8 @@ struct ModuleStatementNode *parse_module_statement(struct Parser *parser) {
   }
   default: {
     puts("Unexpected token in module.");
+    enum TokenType types[] = {T_CONST, T_LET};
+    parser_expect_any(parser, types, 2);
     assert(0);
     break;
   }
