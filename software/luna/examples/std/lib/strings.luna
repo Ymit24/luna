@@ -42,21 +42,59 @@ const append = mod {
         return;
     };
 
-    const cstr = fn(str: *string, cstr: *i8) {
-        ensure_heap(str);
-        const cstr_len = cstd::strlen(cstr);
-
-        // NOTE: Grow str data
-        const needed_cap = str.len + cstr_len;
+    const ensure_cap = fn(str: *string, added_len: i32) {
+        const needed_cap = str.len + added_len;
         if needed_cap >= str.cap {
             str.cap = needed_cap;
             str.data = cstd::realloc(str.data, needed_cap);
             *(str.data + str.cap) = 0;
         };
 
-        cstd::memcpy((str.data + str.len), cstr, cstr_len);
-        str.len = needed_cap;
+        return;
+    };
+
+    const cstr = fn(str: *string, cstr: *i8) {
+        ensure_heap(str);
+        const cstr_len = cstd::strlen(cstr);
+
+        ensure_cap(str, cstr_len);
+
+        cstd::memcpy(str.data + str.len, cstr, cstr_len);
+        str.len = str.len + cstr_len;
 
         return;
     };
+
+    const char = fn(str: *string, char: i8) {
+        ensure_heap(str);
+        ensure_cap(str, 1);
+
+        *(str.data + str.len) = char;
+        str.len = str.len + 1;
+
+        return;
+    };
+};
+
+const split = fn(source: string, delimeter: i8): lists::list {
+    const result = lists::make(@typesize(string));
+
+    let current = make_from("");
+
+    let index: i64 = 0;
+    while index < source.len {
+        const data = source.data;
+        const char = data[index];
+
+        if char == delimeter {
+            lists::push(&result, std::promote(&current, @valuesize(current)));
+            current = make_from("");
+        } else {
+            append::char(&current, char);
+        };
+
+        index = index + 1;
+    };
+
+    return result;
 };
