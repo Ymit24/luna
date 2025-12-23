@@ -392,6 +392,20 @@ LLVMValueRef cg_visit_struct_field_access_expr(
   return NULL;
 }
 
+struct StructFieldInitializerExpressionNode *
+find_field_initializer(struct StructFieldInitializerExpressionNode *root,
+                       struct LunaString name) {
+  struct StructFieldInitializerExpressionNode *field_init = root;
+  while (field_init != NULL) {
+    if (strings_equal(name, field_init->name)) {
+      return field_init;
+    }
+    field_init = field_init->next;
+  }
+
+  return NULL;
+}
+
 struct FindFieldDefinitionResult
 find_field_definition(struct StructFieldDefinitionNode *root,
                       struct LunaString name) {
@@ -822,7 +836,7 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
     struct StructFieldDefinitionNode *field_def =
         entry->type->value.structure_definition.definition->fields;
 
-    struct StructFieldInitializerExpressionNode *field_init =
+    struct StructFieldInitializerExpressionNode *root_field_init =
         expr->node.struct_init->fields;
 
     puts("counting fields..");
@@ -832,9 +846,16 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
     LLVMValueRef local_struct =
         LLVMBuildAlloca(code_generator->builder, struct_type, "");
 
+    puts("Generating memset(0) to clear the struct to zero");
+
     puts("Generating field initializers.");
     size_t field_index = 0;
     while (field_def != NULL) {
+      struct StructFieldInitializerExpressionNode *field_init =
+          find_field_initializer(root_field_init, field_def->name);
+
+      printf("Did find? %d (%s)\n", field_init != NULL, field_def->name.data);
+
       LLVMValueRef indicies[2] = {
           LLVMConstInt(LLVMInt32Type(), 0, 0),
           LLVMConstInt(LLVMInt32Type(), field_index++, 0)};
@@ -843,16 +864,25 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
       LLVMValueRef field_ptr = LLVMBuildGEP2(
           code_generator->builder, struct_type, local_struct, indicies, 2, "");
 
-      LLVMValueRef coereced = cg_coerce(
-          code_generator, cg_visit_expr(code_generator, field_init->expression),
-          cg_get_type(code_generator, field_def->type));
+      LLVMValueRef coereced;
+      LLVMTypeRef field_type = cg_get_type(code_generator, field_def->type);
+
+      if (field_init == NULL) {
+        uint64_t size =
+            LLVMABISizeOfType(code_generator->target_data, field_type);
+        coereced = LLVMConstInt(LLVMIntType(size * 8), 0, false);
+      } else {
+        coereced = cg_coerce(
+            code_generator,
+            cg_visit_expr(code_generator, field_init->expression),
+            field_type);
+      }
 
       puts("Building store..");
       LLVMBuildStore(code_generator->builder, coereced, field_ptr);
 
       puts("Advancing pointers..");
       field_def = field_def->next;
-      field_init = field_init->next;
     }
     puts("Done.");
 

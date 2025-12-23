@@ -1,0 +1,22 @@
+const puts = fn@extern["puts"](fmt: *i8)
+const printf = fn@extern["printf"]@variadic(fmt: *i8): i32
+
+const other = struct {
+  a: i32,
+  b: i32,
+}
+
+const point = struct {
+  x: i32,
+  y: i32,
+  stuff: other
+  z: i32,
+}
+
+const main = fn() {
+  puts("partial init")
+
+  let my_point = .point { z: 8, y: 200, stuff: .other { b: 1 } }
+
+  printf("my_point: %d %d %d (%d)\n", my_point.x, my_point.y, my_point.z, my_point.stuff.b)
+}

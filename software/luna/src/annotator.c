@@ -937,9 +937,11 @@ void annotator_visit_expr(struct Annotator *annotator,
       struct StructFieldInitializerExpressionNode *field_init =
           expr->node.struct_init->fields;
 
-      while (field_def != NULL) {
-        assert(field_init != NULL);
-        assert(strings_equal(field_def->name, field_init->name));
+      while (field_init != NULL) {
+        assert(field_def != NULL);
+        // TODO: Ensure this works
+        // assert(strings_equal(field_def->name, field_init->name));
+
         struct DataType *inferred_type =
             infer_type(annotator, field_init->expression);
 
