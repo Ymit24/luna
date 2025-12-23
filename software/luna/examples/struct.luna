@@ -1,81 +1,81 @@
-const puts = fn@extern["puts"](fmt: *i8):i32;
-const printf = fn@extern["printf"]@variadic(fmt: *i8): i32;
+const puts = fn@extern["puts"](fmt: *i8):i32
+const printf = fn@extern["printf"]@variadic(fmt: *i8): i32
 
 const pair = struct {
-    a: i32,
-    b: i32
-};
+  a: i32,
+  b: i32
+}
 
 const triple = struct {
-    x: i32,
-    y: i32,
-    z: i32
-};
+  x: i32,
+  y: i32,
+  z: i32
+}
 
 const sum = fn(x: i32, y: i32): i32 {
-    return x + y;
-};
+  return x + y
+}
 
 const main = fn(): i32 {
-    puts("hello world");
-    let p: pair = .pair {
-        a: sum(1,9),
-        b: 8
-    };
+  puts("hello world")
+  let p: pair = .pair {
+    a: sum(1,9),
+    b: 8
+  }
 
-    printf("pair: %d,%d\n", p.a, p.b);
+  printf("pair: %d,%d\n", p.a, p.b)
 
-    let t: triple = .triple {
-        x: 5,
-        y: sum(2,2),
-        z: 9
-    };
+  let t: triple = .triple {
+    x: 5,
+    y: sum(2,2),
+    z: 9
+  }
 
-    // let foo = 10;
+  // let foo = 10
 
-    // p.a = 10;
-    printf("triple: %d,%d,%d\n", t.x, t.y, t.z);
+  // p.a = 10
+  printf("triple: %d,%d,%d\n", t.x, t.y, t.z)
 
-    // p.x.y.z.w;
-    return 0;
-};
+  // p.x.y.z.w
+  return 0
+}
 
-// const malloc = fn@extern["malloc"](size: i32): *i8;
+// const malloc = fn@extern["malloc"](size: i32): *i8
 //
 // const core = mod {
 //     const Box = struct<T> {
-//         data: *T
-//     };
+//       data: *T
+//     }
 //
 //     const box = fn<T>(data: T): Box<T> {
-//         const heap = @cast(T, malloc(@size(T)));
-//         memcpy(&data, heap, @size(T));
-//         return .Box{data: heap};
+//       const heap = @cast(T, malloc(@size(T)))
+//       memcpy(&data, heap, @size(T))
+//       return .Box{data: heap}
 //     }
 // }
 
 // const parse_function_statement = fn(context: *Context, expression: Box<Expression>): Box<FunctionStatementNode> {
 //     switch expression.type {
-//         case EXPR::FIELD_ACCESS:
-//             take_token(context, TOK::EQUALS);
+//       case EXPR::FIELD_ACCESS:
+//         take_token(context, TOK::EQUALS)
 //
-//             const result_expr = parse_root_expression(context);
-//             compiler_assert(result_expr!=null);
+//         const result_expr = parse_root_expression(context)
+//         compiler_assert(result_expr!=null)
 //
-//             take_token(context, TOK::SEMICOLON);
+//         take_token(context, TOK::SEMICOLON)
 //
-//             const f = box<FunctionStatementNode>(.FunctionStatementNode{
-//                 assign: box<AssignStatementNode>(.AssignStatementNode{
-//                     source: expression,
-//                     result: result_expr
-//                 })
-//             });
+//         const f = box<FunctionStatementNode>(.FunctionStatementNode{
+//           assign: box<AssignStatementNode>(.AssignStatementNode{
+//             source: expression,
+//             result: result_expr
+//           })
+//         })
 //
-//             const g: *Expression = f.data.assign.data.source.data;
-//             const g: *Expression = f->assign->source;
+//         const g: *Expression = f.data.assign.data.source.data
+//         const g: *Expression = f->assign->source
 //
-//             return f;
+//         return f
 //     }
 //
-//     return null;
-// };
+//     return null
+// }

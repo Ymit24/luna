@@ -1,29 +1,29 @@
-let a = 5 - (2 + 1);
-let x = 3 - a;
-let y = x;
-let g: int = 5;
-let other = 100;
+let a = 5 - (2 + 1)
+let x = 3 - a
+let y = x
+let g: int = 5
+let other = 100
 let getseven = fn(): int {
-  return 300;
-};
-const test = "foo";
-let putsa = fn@extern["puts"](): int;
-let bigger: int = getseven();
+  return 300
+}
+const test = "foo"
+let putsa = fn@extern["puts"](): int
+let bigger: int = getseven()
 let main = fn() {
-  const two = getseven();
-  const three = puts();
-  const thing = 10;
+  const two = getseven()
+  const three = puts()
+  const thing = 10
   const inner = fn() {
-    const otheragain = 20;
+    const otheragain = 20
     const deepinner = fn(): int {
-      const foo = 1;
-      return foo;
-    };
-    const abcab = deepinner();
+      const foo = 1
+      return foo
+    }
+    const abcab = deepinner()
     const deepinnerother = fn(): int {
-      let foo = 2;
-      return 10;
-    };
-  };
-  const next = 9;
-};
+      let foo = 2
+      return 10
+    }
+  }
+  const next = 9
+}

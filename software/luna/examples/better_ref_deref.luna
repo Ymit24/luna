@@ -1,54 +1,53 @@
-const puts = fn@extern["puts"](fmt: *i8):i32;
-const printf = fn@extern["printf"]@variadic(fmt: *i8): i32;
-const malloc = fn@extern["malloc"](size: i32): *i8;
+const puts = fn@extern["puts"](fmt: *i8):i32
+const printf = fn@extern["printf"]@variadic(fmt: *i8): i32
+const malloc = fn@extern["malloc"](size: i32): *i8
 
-const foo = struct { x: *i32, y: i32, z: **i32 };
+const foo = struct { x: *i32, y: i32, z: **i32 }
 
-const string = struct { data: *i8, len: i32 };
+const string = struct { data: *i8, len: i32 }
 
 const printstring = fn(s: string) {
-    printf("string: '%s' len: %d\n", s.data, s.len);
-    return;
-};
+    printf("string: '%s' len: %d\n", s.data, s.len)
+}
 
 const make_string = fn(d: *i8): string {
     return .string {
         data: d,
         len: 0,
-    };
-};
+    }
+}
 
 const make_heap_string = fn(d: *i8): *string {
-    const s: *string = @cast(*string, malloc(8));
-    s.data=d;
-    s.len=1;
-    return s;
-};
+    const s: *string = @cast(*string, malloc(8))
+    s.data=d
+    s.len=1
+    return s
+}
 
 const main = fn(): i32 {
-    puts("hello world");
+    puts("hello world")
 
-    const bar: i32 = 21;
-    const baz: *i32 = &bar;
+    const bar: i32 = 21
+    const baz: *i32 = &bar
 
-    const f = .foo { x: &bar, y: bar, z: &baz };
+    const f = .foo { x: &bar, y: bar, z: &baz }
 
-    printf("f: %d %p %d %d %d\n", f.x, *f.x, f.y, bar, **f.z);
+    printf("f: %d %p %d %d %d\n", f.x, *f.x, f.y, bar, **f.z)
 
-    const s = .string { data: "hi", len: 2 };
+    const s = .string { data: "hi", len: 2 }
 
-    printstring(s);
-    printstring(.string { data: "oh", len: 2});
+    printstring(s)
+    printstring(.string { data: "oh", len: 2})
 
-    printstring(make_string("abc"));
+    printstring(make_string("abc"))
 
-    printf("address of f.x: %p %d\n", &f.y, *&f.y);
+    printf("address of f.x: %p %d\n", &f.y, *&f.y)
 
-    const ss = make_heap_string("fooo");
+    const ss = make_heap_string("fooo")
 
-    printf("ss len: %d\n", ss.len);
-    printstring(*ss);
+    printf("ss len: %d\n", ss.len)
+    printstring(*ss)
 
-    return 0;
-};
+    return 0
+}
 

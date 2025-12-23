@@ -1,36 +1,34 @@
-const puts = fn@extern["puts"](str: *i8);
-const getchar = fn@extern["getchar"](): i8;
-const putchar = fn@extern["putchar"](c: i8): i8;
+const puts = fn@extern["puts"](str: *i8)
+const getchar = fn@extern["getchar"](): i8
+const putchar = fn@extern["putchar"](c: i8): i8
 
 const func = fn(): *i8 {
-    const a = 10;
-    const str = "abc";
-    puts("hello world!");
-    return str;
-};
+    const a = 10
+    const str = "abc"
+    puts("hello world!")
+    return str
+}
 
 const sum = fn(x: i32, y: i32): i32 {
-    return x + y;
-};
+    return x + y
+}
 
 const main = fn(): i32 {
-    func();
+    func()
     const inner = fn() {
         const deepinner = fn() {
-            puts("deepinner");
-            return;
-        };
-        deepinner();
-        return;
-    };
-    const a = 10;
-    const b: *i32 = &a;
-    inner();
-    puts(func());
-    puts("computing..");
-    const result = sum(2,3);
-    putchar(48 + 4);
-    puts("sum of 2+3=");
-    putchar(result+48);
-    return 1;
-};
+            puts("deepinner")
+        }
+        deepinner()
+    }
+    const a = 10
+    const b: *i32 = &a
+    inner()
+    puts(func())
+    puts("computing..")
+    const result = sum(2,3)
+    putchar(48 + 4)
+    puts("sum of 2+3=")
+    putchar(result+48)
+    return 1
+}
