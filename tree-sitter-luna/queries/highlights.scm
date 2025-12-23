@@ -8,7 +8,10 @@
 
 (comment) @comment
 
-(function_macro) @function.macro
+[
+ (function_macro)
+ (macro_expression)
+ ] @function.macro
 
 [
   "="

@@ -23,7 +23,7 @@ module.exports = grammar({
 
     if_statement: $ => seq('if', $.expression, $.function_body),
     while_statement: $ => seq('while', $.expression, $.function_body),
-    return_statement: $ => seq('return', $.expression),
+    return_statement: $ => seq('return', $.expression, optional(';')),
 
     decl_statement: $ => seq(
       choice('let', 'const'), $.symbol, optional(seq(':', $.data_type)), '=', $.expression
@@ -45,6 +45,7 @@ module.exports = grammar({
     leaf_expression: $ => choice(
       $.qualified_symbol,
       $.number,
+      $.string_literal,
     ),
 
     unary_expression: $ => choice(
@@ -66,6 +67,7 @@ module.exports = grammar({
       prec.left(200, seq($.expression, '++')),
       prec.left(200, seq($.expression, '--')),
       prec.left(200, seq($.qualified_symbol, '(', repeat(seq($.expression, ')')), ')')),
+      prec.left(200, $.macro_expression),
     ),
 
     binary_expression: $ => choice(
@@ -90,6 +92,12 @@ module.exports = grammar({
       prec.left(2, seq($.expression, ',', $.expression)),
       prec.left(1, seq($.expression, '=', $.expression)),
     ),
+
+    macro_expression: $ => seq('@', choice(
+      seq('cast', '(', $.data_type, $.expression, ')'),
+      seq('valuesize', '(', $.expression, ')'),
+      seq('typesize', '(', $.expression, ')'),
+    )),
 
     struct_initialization_expression: $ => seq(
       '.',
