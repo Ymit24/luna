@@ -38,3 +38,5 @@
 
 (data_type) @type
 (number) @number
+
+(string_literal) @string
