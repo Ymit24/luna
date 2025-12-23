@@ -189,4 +189,16 @@ void insert_symbol_entry(struct Annotator *annotator,
 void insert_symbol_entry_in(struct Annotator *annotator,
                             struct SymbolTable *symbol_table,
                             struct SymbolTableEntry entry);
+
+struct FindFieldDefinitionResult {
+  struct StructFieldDefinitionNode *field_definition;
+  size_t index;
+};
+struct FindFieldDefinitionResult
+find_field_definition(struct StructFieldDefinitionNode *root,
+                      struct LunaString name);
+
+struct StructFieldInitializerExpressionNode *
+find_field_initializer(struct StructFieldInitializerExpressionNode *root,
+                       struct LunaString name);
 #endif

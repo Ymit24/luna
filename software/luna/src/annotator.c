@@ -933,13 +933,17 @@ void annotator_visit_expr(struct Annotator *annotator,
     if (def->fields != NULL) {
       assert(expr->node.struct_init->fields != NULL);
 
-      struct StructFieldDefinitionNode *field_def = def->fields;
+      struct StructFieldDefinitionNode *root_field_def = def->fields;
       struct StructFieldInitializerExpressionNode *field_init =
           expr->node.struct_init->fields;
 
-      while (field_def != NULL) {
-        assert(field_init != NULL);
-        assert(strings_equal(field_def->name, field_init->name));
+      while (field_init != NULL) {
+        struct StructFieldDefinitionNode *field_def =
+            find_field_definition(root_field_def, field_init->name)
+                .field_definition;
+        assert(field_def != NULL);
+        printf("[def]: %s\n", field_def->name.data);
+
         struct DataType *inferred_type =
             infer_type(annotator, field_init->expression);
 
@@ -1819,4 +1823,41 @@ bool scoped_symbols_equal(struct ScopedSymbolLiteralNode *left,
   }
 
   return scoped_symbols_equal(left->next, right->next);
+}
+
+struct StructFieldInitializerExpressionNode *
+find_field_initializer(struct StructFieldInitializerExpressionNode *root,
+                       struct LunaString name) {
+  struct StructFieldInitializerExpressionNode *field_init = root;
+  while (field_init != NULL) {
+    if (strings_equal(name, field_init->name)) {
+      printf("found %s\n", field_init->name.data);
+      return field_init;
+    } else {
+      printf("checked %s..\n", field_init->name.data);
+    }
+    field_init = field_init->next;
+  }
+
+  return NULL;
+}
+
+struct FindFieldDefinitionResult
+find_field_definition(struct StructFieldDefinitionNode *root,
+                      struct LunaString name) {
+  size_t field_index = 0;
+  struct StructFieldDefinitionNode *field_def = root;
+  while (field_def != NULL) {
+    if (strings_equal(name, field_def->name)) {
+      return (struct FindFieldDefinitionResult){.index = field_index,
+                                                .field_definition = field_def};
+    }
+    field_index++;
+    field_def = field_def->next;
+  }
+
+  return (struct FindFieldDefinitionResult){
+      .field_definition = NULL,
+      .index = 0,
+  };
 }
