@@ -931,8 +931,6 @@ void annotator_visit_expr(struct Annotator *annotator,
     assert(def != NULL);
 
     if (def->fields != NULL) {
-      assert(expr->node.struct_init->fields != NULL);
-
       struct StructFieldDefinitionNode *root_field_def = def->fields;
       struct StructFieldInitializerExpressionNode *field_init =
           expr->node.struct_init->fields;

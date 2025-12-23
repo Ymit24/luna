@@ -16,7 +16,7 @@ const point = struct {
 const main = fn() {
   puts("partial init")
 
-  let my_point = .point { z: 8, y: 200, stuff: .other { b: 1 } }
+  let my_point = .point {}
 
   printf("my_point: %d %d %d (%d)\n", my_point.x, my_point.y, my_point.z, my_point.stuff.b)
 }
