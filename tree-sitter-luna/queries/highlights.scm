@@ -3,6 +3,8 @@
 "mod" @keyword
 "struct" @keyword
 "return" @keyword
+"while" @keyword
+"if" @keyword
 "union" @keyword
 "enum" @keyword
 "let" @keyword
