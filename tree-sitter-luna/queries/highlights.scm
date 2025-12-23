@@ -1,15 +1,42 @@
+"const" @keyword
 "fn" @keyword
-"if" @keyword
-"return" @keyword
-"+" @operator
-"*" @operator
-"/" @operator
-"-" @operator
-"!" @operator
-(string_literal) @string
+"mod" @keyword
+"struct" @keyword
+"union" @keyword
+"enum" @keyword
+"let" @keyword
+
 (comment) @comment
-(function) @function
-(statement) @statement
-(identifier) @tag
-(type) @type
+
+(function_macro) @function.macro
+
+[
+  "="
+  "-"
+  "*"
+  "/"
+  "+"
+  "++"
+  "--"
+  "|"
+  "&"
+  "^"
+  "<<"
+  ">>"
+  "<"
+  "<="
+  ">="
+  ">"
+  "=="
+  "!="
+  "&&"
+  "||"
+  "!"
+  "["
+  "]"
+] @operator
+
+(data_type) @type
 (number) @number
+
+(string_literal) @string
