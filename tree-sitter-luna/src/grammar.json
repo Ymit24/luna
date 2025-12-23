@@ -1,6 +1,7 @@
 {
   "$schema": "https://tree-sitter.github.io/tree-sitter/assets/schemas/grammar.schema.json",
   "name": "luna",
+  "word": "symbol",
   "rules": {
     "source_file": {
       "type": "REPEAT",
@@ -447,20 +448,37 @@
                 "value": "("
               },
               {
-                "type": "REPEAT",
-                "content": {
-                  "type": "SEQ",
-                  "members": [
-                    {
-                      "type": "SYMBOL",
-                      "name": "expression"
-                    },
-                    {
-                      "type": "STRING",
-                      "value": ")"
-                    }
-                  ]
-                }
+                "type": "CHOICE",
+                "members": [
+                  {
+                    "type": "SEQ",
+                    "members": [
+                      {
+                        "type": "SYMBOL",
+                        "name": "expression"
+                      },
+                      {
+                        "type": "REPEAT",
+                        "content": {
+                          "type": "SEQ",
+                          "members": [
+                            {
+                              "type": "STRING",
+                              "value": ","
+                            },
+                            {
+                              "type": "SYMBOL",
+                              "name": "expression"
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "type": "BLANK"
+                  }
+                ]
               },
               {
                 "type": "STRING",
@@ -928,6 +946,10 @@
                 {
                   "type": "SYMBOL",
                   "name": "data_type"
+                },
+                {
+                  "type": "STRING",
+                  "value": ","
                 },
                 {
                   "type": "SYMBOL",
@@ -1518,10 +1540,6 @@
         }
       ]
     },
-    "symbol": {
-      "type": "PATTERN",
-      "value": "[a-zA-Z_][a-zA-Z0-9_]*"
-    },
     "number": {
       "type": "PATTERN",
       "value": "\\d+"
@@ -1542,7 +1560,7 @@
               "members": [
                 {
                   "type": "PATTERN",
-                  "value": "[^\"\\\\\\n]"
+                  "value": "[^\"]"
                 },
                 {
                   "type": "PATTERN",
@@ -1595,6 +1613,10 @@
           }
         ]
       }
+    },
+    "symbol": {
+      "type": "PATTERN",
+      "value": "[a-zA-Z_][a-zA-Z0-9_]*"
     }
   },
   "extras": [

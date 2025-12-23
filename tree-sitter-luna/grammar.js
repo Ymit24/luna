@@ -2,6 +2,8 @@
 module.exports = grammar({
   name: 'luna',
 
+  word: $ => $.symbol,
+
   extras: $ => [
     $.comment,
     /\s/ // Usually you also want to ignore whitespace
@@ -66,7 +68,7 @@ module.exports = grammar({
       prec.right(200, seq($.expression, '[', $.expression, ']')),
       prec.left(200, seq($.expression, '++')),
       prec.left(200, seq($.expression, '--')),
-      prec.left(200, seq($.qualified_symbol, '(', repeat(seq($.expression, ')')), ')')),
+      prec.left(200, seq($.qualified_symbol, '(', optional(seq($.expression, repeat(seq(',', $.expression)))), ')')),
       prec.left(200, $.macro_expression),
     ),
 
@@ -94,7 +96,7 @@ module.exports = grammar({
     ),
 
     macro_expression: $ => seq('@', choice(
-      seq('cast', '(', $.data_type, $.expression, ')'),
+      seq('cast', '(', $.data_type, ',', $.expression, ')'),
       seq('valuesize', '(', $.expression, ')'),
       seq('typesize', '(', $.expression, ')'),
     )),
@@ -168,12 +170,11 @@ module.exports = grammar({
 
     qualified_symbol: $ => seq($.symbol, repeat(seq('::', $.symbol))),
 
-    symbol: $ => /[a-zA-Z_][a-zA-Z0-9_]*/,
     number: $ => /\d+/,
     string_literal: $ => token(seq(
       '"',
       repeat(choice(
-        /[^"\\\n]/,      // Any character except quote, backslash, or newline
+        /[^"]/,      // Any character except quote, backslash, or newline
         /\\./            // Escape sequences starting with a backslash
       )),
       '"'
@@ -187,5 +188,7 @@ module.exports = grammar({
         '/'
       )
     )),
+
+    symbol: $ => /[a-zA-Z_][a-zA-Z0-9_]*/,
   }
 });
