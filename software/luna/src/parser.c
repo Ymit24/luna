@@ -977,6 +977,9 @@ struct DeclarationStatementNode *parse_decl_statement(struct Parser *parser,
   assert(parser_peek(parser).type == (is_const ? T_CONST : T_LET));
   parser->position++;
 
+  printf("[parse_decl_statement]: is_const: %d. Found: %d\n", is_const,
+         parser_peek(parser).type);
+
   assert(parser_peek(parser).type == T_SYMBOL);
   struct LunaString symbol = parser_peek(parser).value.symbol;
   parser->position++;
@@ -997,8 +1000,9 @@ struct DeclarationStatementNode *parse_decl_statement(struct Parser *parser,
 
   struct ExpressionNode *expr = parse_expression(parser, 0);
 
-  assert(parser_peek(parser).type == T_SEMICOLON);
-  parser->position++;
+  if (parser_peek(parser).type == T_SEMICOLON) {
+    parser->position++;
+  }
 
   return ast_promote(parser->allocator,
                      &(struct DeclarationStatementNode){.symbol = symbol,
@@ -1011,7 +1015,6 @@ struct DeclarationStatementNode *parse_decl_statement(struct Parser *parser,
 
 struct ReturnStatementNode *parse_ret_statement(struct Parser *parser) {
   if (parser_peek(parser).type == T_SEMICOLON) {
-
     return ast_promote(parser->allocator,
                        &(struct ReturnStatementNode){.expression = NULL},
                        sizeof(struct DeclarationStatementNode));
@@ -1049,8 +1052,9 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
     parser->position++;
     struct ReturnStatementNode *ret = parse_ret_statement(parser);
 
-    assert(parser_peek(parser).type == T_SEMICOLON);
-    parser->position++;
+    if (parser_peek(parser).type == T_SEMICOLON) {
+      parser->position++;
+    }
 
     puts("parsed ret");
     return ast_promote(parser->allocator,
@@ -1081,8 +1085,9 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
     while_stmt.condition = conditional;
     while_stmt.body = body;
 
-    assert(parser_peek(parser).type == T_SEMICOLON);
-    parser->position++;
+    if (parser_peek(parser).type == T_SEMICOLON) {
+      parser->position++;
+    }
 
     return ast_promote(
         parser->allocator,
@@ -1153,8 +1158,9 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
       }
     }
 
-    assert(parser_peek(parser).type == T_SEMICOLON);
-    parser->position++;
+    if (parser_peek(parser).type == T_SEMICOLON) {
+      parser->position++;
+    }
 
     return ast_promote(
         parser->allocator,
@@ -1177,8 +1183,9 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
     case EXPR_FN_CALL:
       assert(expr->node.fn_call != NULL);
 
-      assert(parser_peek(parser).type == T_SEMICOLON);
-      parser->position++;
+      if (parser_peek(parser).type == T_SEMICOLON) {
+        parser->position++;
+      }
 
       return ast_promote(parser->allocator,
                          &(struct FunctionStatementNode){
@@ -1195,8 +1202,9 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
       struct ExpressionNode *result_expression = parse_expression(parser, 0);
       assert(result_expression != NULL);
 
-      assert(parser_peek(parser).type == T_SEMICOLON);
-      parser->position++;
+      if (parser_peek(parser).type == T_SEMICOLON) {
+        parser->position++;
+      }
 
       return ast_promote(parser->allocator,
                          &(struct FunctionStatementNode){
@@ -1218,8 +1226,9 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
       struct ExpressionNode *result_expression = parse_expression(parser, 0);
       assert(result_expression != NULL);
 
-      assert(parser_peek(parser).type == T_SEMICOLON);
-      parser->position++;
+      if (parser_peek(parser).type == T_SEMICOLON) {
+        parser->position++;
+      }
 
       return ast_promote(parser->allocator,
                          &(struct FunctionStatementNode){
@@ -1244,8 +1253,9 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
       printf("in assign, parsed expression of type: %d\n",
              result_expression->type);
 
-      assert(parser_peek(parser).type == T_SEMICOLON);
-      parser->position++;
+      if (parser_peek(parser).type == T_SEMICOLON) {
+        parser->position++;
+      }
 
       return ast_promote(parser->allocator,
                          &(struct FunctionStatementNode){

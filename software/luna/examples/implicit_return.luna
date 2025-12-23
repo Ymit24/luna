@@ -1,7 +1,7 @@
 const greet = fn () {
-    cstd::puts("hello world!");
-};
+  cstd::puts("hello world!")
+}
 
 const main = fn() {
-    greet();
-};
+  greet()
+}

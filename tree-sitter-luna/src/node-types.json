@@ -292,6 +292,29 @@
         {
           "type": "qualified_symbol",
           "named": true
+        },
+        {
+          "type": "string_literal",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "macro_expression",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "data_type",
+          "named": true
+        },
+        {
+          "type": "expression",
+          "named": true
         }
       ]
     }
@@ -351,6 +374,10 @@
       "types": [
         {
           "type": "expression",
+          "named": true
+        },
+        {
+          "type": "macro_expression",
           "named": true
         },
         {
@@ -679,6 +706,10 @@
     "named": false
   },
   {
+    "type": "cast",
+    "named": false
+  },
+  {
     "type": "comment",
     "named": true,
     "extra": true
@@ -732,7 +763,15 @@
     "named": true
   },
   {
+    "type": "typesize",
+    "named": false
+  },
+  {
     "type": "union",
+    "named": false
+  },
+  {
+    "type": "valuesize",
     "named": false
   },
   {
