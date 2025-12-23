@@ -2,6 +2,7 @@
 "fn" @keyword
 "mod" @keyword
 "struct" @keyword
+"return" @keyword
 "union" @keyword
 "enum" @keyword
 "let" @keyword
