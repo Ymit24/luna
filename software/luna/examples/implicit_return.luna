@@ -1,0 +1,7 @@
+const greet = fn () {
+    cstd::puts("hello world!");
+};
+
+const main = fn() {
+    greet();
+};

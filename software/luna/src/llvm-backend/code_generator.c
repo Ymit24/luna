@@ -741,6 +741,13 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
 
       cg_visit_function_statements(code_generator, expr->node.fn_def->body);
 
+      if (LLVMGetBasicBlockTerminator(code_generator->current_block) == NULL) {
+        assert(expr->node.fn_def->function_type->value.function.return_type
+                   ->kind == DTK_VOID);
+
+        LLVMBuildRetVoid(code_generator->builder);
+      }
+
       code_generator->current_symbol_table = old_current;
       code_generator->current_block = previous_block;
 
