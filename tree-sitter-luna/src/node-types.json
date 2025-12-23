@@ -12,11 +12,7 @@
           "named": true
         },
         {
-          "type": "field_accessor_expression",
-          "named": true
-        },
-        {
-          "type": "qualified_symbol",
+          "type": "symbol",
           "named": true
         }
       ]
@@ -120,21 +116,6 @@
         },
         {
           "type": "unary_expression",
-          "named": true
-        }
-      ]
-    }
-  },
-  {
-    "type": "field_accessor_expression",
-    "named": true,
-    "fields": {},
-    "children": {
-      "multiple": false,
-      "required": true,
-      "types": [
-        {
-          "type": "symbol",
           "named": true
         }
       ]
@@ -361,12 +342,6 @@
     }
   },
   {
-    "type": "multi_line_commment",
-    "named": true,
-    "extra": true,
-    "fields": {}
-  },
-  {
     "type": "postfix_expression",
     "named": true,
     "fields": {},
@@ -414,12 +389,6 @@
         }
       ]
     }
-  },
-  {
-    "type": "single_line_comment",
-    "named": true,
-    "extra": true,
-    "fields": {}
   },
   {
     "type": "source_file",
@@ -650,14 +619,6 @@
     "named": false
   },
   {
-    "type": "/*",
-    "named": false
-  },
-  {
-    "type": "//",
-    "named": false
-  },
-  {
     "type": ":",
     "named": false
   },
@@ -716,6 +677,11 @@
   {
     "type": "^",
     "named": false
+  },
+  {
+    "type": "comment",
+    "named": true,
+    "extra": true
   },
   {
     "type": "const",

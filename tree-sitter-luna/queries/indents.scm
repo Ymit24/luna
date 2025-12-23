@@ -1,7 +1,6 @@
-[(module_body) (function_body) (struct_definition_body) (struct_initialization_body) (enum_definition_body) (multi_line_commment)] @indent.begin
+[(module_body) (function_body) (struct_definition_body) (struct_initialization_body) (enum_definition_body)] @indent.begin
 
-(single_line_comment) @indent.auto
-(multi_line_commment "*/" @indent.end)
+(comment) @indent.auto
 
 "}" @indent.branch
 (module_body "}" @indent.end)

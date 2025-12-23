@@ -6,8 +6,7 @@
 "enum" @keyword
 "let" @keyword
 
-(single_line_comment) @comment
-(multi_line_commment) @comment
+(comment) @comment
 
 (function_macro) @function.macro
 
