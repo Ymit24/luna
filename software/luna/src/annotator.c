@@ -938,9 +938,6 @@ void annotator_visit_expr(struct Annotator *annotator,
           expr->node.struct_init->fields;
 
       while (field_init != NULL) {
-        // TODO: Ensure this works
-        // assert(strings_equal(field_def->name, field_init->name));
-
         struct StructFieldDefinitionNode *field_def =
             find_field_definition(root_field_def, field_init->name)
                 .field_definition;
