@@ -392,40 +392,6 @@ LLVMValueRef cg_visit_struct_field_access_expr(
   return NULL;
 }
 
-struct StructFieldInitializerExpressionNode *
-find_field_initializer(struct StructFieldInitializerExpressionNode *root,
-                       struct LunaString name) {
-  struct StructFieldInitializerExpressionNode *field_init = root;
-  while (field_init != NULL) {
-    if (strings_equal(name, field_init->name)) {
-      return field_init;
-    }
-    field_init = field_init->next;
-  }
-
-  return NULL;
-}
-
-struct FindFieldDefinitionResult
-find_field_definition(struct StructFieldDefinitionNode *root,
-                      struct LunaString name) {
-  size_t field_index = 0;
-  struct StructFieldDefinitionNode *field_def = root;
-  while (field_def != NULL) {
-    if (strings_equal(name, field_def->name)) {
-      return (struct FindFieldDefinitionResult){.index = field_index,
-                                                .field_definition = field_def};
-    }
-    field_index++;
-    field_def = field_def->next;
-  }
-
-  return (struct FindFieldDefinitionResult){
-      .field_definition = NULL,
-      .index = 0,
-  };
-}
-
 void cg_visit_field_inner_access_expr(
     struct StructFieldAccessInnerExpressionNode *field_access_expr,
     LLVMValueRef **field_indicies, size_t *index,

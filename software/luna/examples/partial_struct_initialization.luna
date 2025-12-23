@@ -9,7 +9,7 @@ const other = struct {
 const point = struct {
   x: i32,
   y: i32,
-  stuff: other
+  stuff: other,
   z: i32,
 }
 
