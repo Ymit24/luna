@@ -1,0 +1,20 @@
+const point = struct { x: i32, y: i32 }
+
+const Place = struct { rating: i32, location: point }
+
+const make_point = fn(x: i32, y: i32): point {
+  return .point { x: x, y: y }
+}
+
+const main = fn() {
+  const my_point = make_point(20, 30)
+  const x = my_point.x
+
+  const places = [
+    .Place { rating: 2, location: my_point },
+    .Place { rating: 7, location: .point { x: 3, y: 9}}
+  ]
+
+  cstd::printf("X: %d\n", x)
+  cstd::printf("X of place 2: %d\n", places[1].location.y)
+}

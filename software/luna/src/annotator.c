@@ -399,66 +399,6 @@ get_or_resolve_struct_definition_from_type(struct DataType *type,
   // return struct_type->definition;
 }
 
-struct DataType *infer_type_of_inner_field_access(
-    struct StructFieldAccessInnerExpressionNode *field_accessor,
-    struct SymbolTable *symbol_table, struct Annotator *annotator) {
-  assert(field_accessor != NULL);
-
-  struct SymbolTableEntry *entry =
-      lookup_symbol_in(field_accessor->symbol, symbol_table);
-
-  printf("about to check symbol for inner field access: %s\n",
-         field_accessor->symbol.data);
-  puts("");
-
-  assert(entry != NULL);
-  assert(entry->type != NULL);
-  if (field_accessor->next == NULL) {
-    return entry->type;
-  }
-
-  struct StructDefinitionExpressionNode *definition =
-      get_or_resolve_struct_definition_from_type(entry->type, annotator);
-
-  assert(definition != NULL);
-
-  struct DataType *next = infer_type_of_inner_field_access(
-      field_accessor->next, &definition->symbol_table, annotator);
-
-  return next;
-}
-
-struct DataType *infer_type_of_field_access(
-    struct StructFieldAccessExpressionNode *field_accessor,
-    struct Annotator *annotator) {
-  assert(field_accessor != NULL);
-
-  struct SymbolTableEntry *entry = lookup_scoped_symbol_in(
-      field_accessor->root_symbol, annotator->current_symbol_table);
-
-  assert(entry != NULL);
-  assert(entry->type != NULL);
-  if (field_accessor->next == NULL) {
-    return entry->type;
-  }
-
-  struct StructDefinitionExpressionNode *definition =
-      get_or_resolve_struct_definition_from_type(entry->type, annotator);
-
-  puts("infer_type_of_field_access: found struct def, entry type is:");
-  print_symbol_table(string_make("StructDef"), &definition->symbol_table);
-  puts("");
-
-  // assert(0);
-
-  assert(definition != NULL);
-
-  struct DataType *next = infer_type_of_inner_field_access(
-      field_accessor->next, &definition->symbol_table, annotator);
-
-  return next;
-}
-
 struct DataType *infer_type(struct Annotator *annotator,
                             struct ExpressionNode *expr) {
   assert(expr != NULL);
@@ -467,15 +407,16 @@ struct DataType *infer_type(struct Annotator *annotator,
   case EXPR_INTEGER_LITERAL:
     // TODO: Do we want to auto downsize to I8? we need to handle implicit
     // casting
-    if (labs(expr->node.integer->value) < UINT8_MAX) {
-      puts("infered i/u8");
-      return make_integer_primitive_data_type(annotator->allocator, 8,
-                                              expr->node.integer->value < 0);
-    } else if (labs(expr->node.integer->value) < UINT16_MAX) {
-      puts("infered i/u16");
-      return make_integer_primitive_data_type(annotator->allocator, 16,
-                                              expr->node.integer->value < 0);
-    } else if (labs(expr->node.integer->value) < UINT32_MAX) {
+    // if (labs(expr->node.integer->value) < UINT8_MAX) {
+    //   puts("infered i/u8");
+    //   return make_integer_primitive_data_type(annotator->allocator, 8,
+    //                                           expr->node.integer->value < 0);
+    // } else if (labs(expr->node.integer->value) < UINT16_MAX) {
+    //   puts("infered i/u16");
+    //   return make_integer_primitive_data_type(annotator->allocator, 16,
+    //                                           expr->node.integer->value < 0);
+    // } else
+    if (labs(expr->node.integer->value) < UINT32_MAX) {
       puts("infered i/u32");
       return make_integer_primitive_data_type(annotator->allocator, 32,
                                               expr->node.integer->value < 0);
@@ -556,9 +497,8 @@ struct DataType *infer_type(struct Annotator *annotator,
     return entry->type->value.function.return_type;
   }
   case EXPR_REF: {
-    return make_pointer_data_type(
-        annotator->allocator,
-        infer_type_of_field_access(expr->node.struct_field_access, annotator));
+    return make_pointer_data_type(annotator->allocator,
+                                  infer_type(annotator, expr->node.ref));
   }
   case EXPR_DEREF: {
     puts("doing deref");
@@ -661,12 +601,27 @@ struct DataType *infer_type(struct Annotator *annotator,
     return data_type;
   case EXPR_FIELD_ACCESS:
     puts("expr field access");
-    struct DataType *field_accessor_type =
-        infer_type_of_field_access(expr->node.struct_field_access, annotator);
+
+    assert(expr->node.struct_field_access != NULL);
+
+    struct DataType *struct_type =
+        infer_type(annotator, expr->node.struct_field_access->expression);
+
+    assert(struct_type != NULL);
+
+    struct StructDefinitionExpressionNode *struct_def =
+        get_or_resolve_struct_definition_from_type(struct_type, annotator);
+
+    struct SymbolTableEntry *field_entry = lookup_symbol_in(
+        expr->node.struct_field_access->symbol, &struct_def->symbol_table);
+
+    assert(field_entry != NULL);
+
     printf("found field accessor of type: ");
-    print_data_type(field_accessor_type);
+    print_data_type(field_entry->type);
     puts("");
-    return field_accessor_type;
+    assert(field_entry->type != NULL);
+    return field_entry->type;
   case EXPR_CAST:
     assert(expr->node.cast != NULL);
     return expr->node.cast->type;
@@ -840,14 +795,34 @@ void annotator_visit_expr(struct Annotator *annotator,
     // TODO: Do we need to do anything here?
     break;
   case EXPR_REF: {
-    puts("deleteme: (fn_ref) Got to this spot and not sure if needed.");
-    struct SymbolTableEntry *entry = lookup_scoped_symbol_in(
-        expr->node.ref_symbol->root_symbol, annotator->current_symbol_table);
+    assert(expr->node.ref != NULL);
 
-    assert(entry != NULL);
-    assert(entry->type != NULL);
-
-    // TODO: Do we need to do anything here?
+    switch (expr->node.ref->type) {
+    case EXPR_SYMBOL_LITERAL:
+    case EXPR_DEREF:
+    case EXPR_STRUCT_INIT:
+    case EXPR_FIELD_ACCESS:
+      printf("Taking reference to expression of type (%d).\n",
+             expr->node.ref->type);
+      break;
+    case EXPR_REF:
+    case EXPR_BINARY:
+    case EXPR_INTEGER_LITERAL:
+    case EXPR_STRING_LITERAL:
+    case EXPR_FN_DEF: // TODO: Maybe this is valid? Need to figure out syntax
+                      // for getting ref of function
+    case EXPR_FN_CALL:
+    case EXPR_STRUCT_DEF:
+    case EXPR_CAST:
+    case EXPR_ARRAY_INITIALIZER:
+    case EXPR_MOD_DEF:
+    case EXPR_VALUESIZE:
+    case EXPR_TYPESIZE:
+      printf("Can't take reference to expression of type (%d).\n",
+             expr->node.ref->type);
+      assert(0);
+      break;
+    }
     break;
   }
   case EXPR_DEREF: {

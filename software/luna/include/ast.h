@@ -123,7 +123,7 @@ struct ExpressionNode {
     struct BinaryExpressionNode *binary;
     struct FunctionDefinitionExpressionNode *fn_def;
     struct FunctionCallExpressionNode *fn_call;
-    struct StructFieldAccessExpressionNode *ref_symbol;
+    struct ExpressionNode *ref;
     struct ExpressionNode *deref;
     struct StructDefinitionExpressionNode *struct_def;
     struct StructInitializationExpressionNode *struct_init;
@@ -166,14 +166,9 @@ struct StructDefinitionExpressionNode {
   LLVMTypeRef llvm_structure_type;
 };
 
-struct StructFieldAccessInnerExpressionNode {
-  struct LunaString symbol;
-  struct StructFieldAccessInnerExpressionNode *next;
-};
-
 struct StructFieldAccessExpressionNode {
-  struct ScopedSymbolLiteralNode *root_symbol;
-  struct StructFieldAccessInnerExpressionNode *next;
+  struct ExpressionNode *expression;
+  struct LunaString symbol;
 };
 
 struct StructFieldInitializerExpressionNode {

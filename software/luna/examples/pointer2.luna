@@ -2,24 +2,29 @@ const printf = fn@extern["printf"]@variadic(fmt: *i8)
 const puts = fn@extern["puts"](fmt: *i8)
 
 const main = fn(): i32 {
-    puts("hello world")
-    let foo:i32 = 21
-    let a: *i32 = &foo
-    let c = &a
+  puts("hello world")
+  let foo:i32 = 21
+  let a: *i32 = &foo
+  let c = &a
 
-    printf("a: %p -- %d -- %p -- %p ( %d )\n", a, *a, &a, &foo, foo)
+  printf("a: %p -- %d -- %p -- %p ( %d )\n", a, *a, &a, &foo, foo)
 
-    puts("test")
-    printf("1. a: %p %d\n", a, *a)
-    *a = 102
-    printf("2. a: %d %d\n", a, *a)
-    a = 101
-    printf("3. a: %d\n", a)
-    printf("foo: %d\n", foo)
+  puts("test")
+  printf("1. a: %p %d\n", a, *a);
 
-    let b: i32 = 200
-    printf("b: %d -- %p\n", b, &b)
-    printf("b: %d -- %p\n", b, &b)
+  // TODO/NOTE: This syntax is problematic. Having * at the beginning of the line
+  // confuses the parser into thinking it is the bin op * between a and the 
+  // previous printf call. So we add ';' after printf on prior line.
 
-    return 1
+  *a = 102
+  printf("2. a: %d %d\n", a, *a)
+  a = @cast(*i32, 101)
+  printf("3. a: %d\n", a)
+  printf("foo: %d\n", foo)
+
+  let b: i32 = 200
+  printf("b: %d -- %p\n", b, &b)
+  printf("b: %d -- %p\n", b, &b)
+
+  return 1
 }

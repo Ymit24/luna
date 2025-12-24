@@ -28,8 +28,11 @@ void cg_visit_function_statements(struct CodeGenerator *code_generator,
 size_t
 cg_count_structure_definition_fields(struct StructFieldDefinitionNode *field);
 
-size_t
-cg_count_field_access_depth(struct StructFieldAccessExpressionNode *field);
+LLVMValueRef cg_visit_ref_expr(struct CodeGenerator *code_generator,
+                               struct ExpressionNode *expr);
+
+// size_t
+// cg_count_field_access_depth(struct StructFieldAccessExpressionNode *field);
 
 void cg_visit_struct_definition(
     struct CodeGenerator *code_generator,
@@ -48,31 +51,31 @@ size_t count_function_arguments(struct FunctionArgumentNode *argument) {
   return count;
 }
 
-size_t cg_count_field_inner_access_depth(
-    struct StructFieldAccessInnerExpressionNode *field) {
-  if (field == NULL) {
-    return 0;
-  }
+// size_t cg_count_field_inner_access_depth(
+//     struct StructFieldAccessInnerExpressionNode *field) {
+//   if (field == NULL) {
+//     return 0;
+//   }
+//
+//   if (field->next) {
+//     return 1 + cg_count_field_inner_access_depth(field->next);
+//   }
+//
+//   return 1;
+// }
 
-  if (field->next) {
-    return 1 + cg_count_field_inner_access_depth(field->next);
-  }
-
-  return 1;
-}
-
-size_t
-cg_count_field_access_depth(struct StructFieldAccessExpressionNode *field) {
-  if (field == NULL) {
-    return 0;
-  }
-
-  if (field->next) {
-    return 1 + cg_count_field_inner_access_depth(field->next);
-  }
-
-  return 1;
-}
+// size_t
+// cg_count_field_access_depth(struct StructFieldAccessExpressionNode *field) {
+//   if (field == NULL) {
+//     return 0;
+//   }
+//
+//   if (field->next) {
+//     return 1 + cg_count_field_inner_access_depth(field->next);
+//   }
+//
+//   return 1;
+// }
 
 size_t count_function_call_arguments(
     struct FunctionCallArgumentExpressionsNode *argument) {
@@ -375,140 +378,309 @@ struct DataType *cg_infer_type(struct CodeGenerator *code_generator,
   return type;
 }
 
-LLVMValueRef cg_visit_struct_field_access_expr(
-    struct CodeGenerator *cg,
-    struct StructFieldAccessExpressionNode *field_access_expr) {
-  assert(field_access_expr != NULL);
+// LLVMValueRef cg_visit_struct_field_access_expr(
+//     struct CodeGenerator *cg,
+//     struct StructFieldAccessExpressionNode *field_access_expr) {
+//   assert(field_access_expr != NULL);
+//
+//   struct SymbolTableEntry *entry = lookup_scoped_symbol_in(
+//       field_access_expr->root_symbol, cg->current_symbol_table);
+//   assert(entry != NULL);
+//
+//   if (field_access_expr->next == NULL) {
+//     return entry->llvm_value;
+//   }
+//
+//   assert(0);
+//   return NULL;
+// }
 
-  struct SymbolTableEntry *entry = lookup_scoped_symbol_in(
-      field_access_expr->root_symbol, cg->current_symbol_table);
-  assert(entry != NULL);
-
-  if (field_access_expr->next == NULL) {
-    return entry->llvm_value;
-  }
-
-  assert(0);
-  return NULL;
-}
-
-void cg_visit_field_inner_access_expr(
-    struct StructFieldAccessInnerExpressionNode *field_access_expr,
-    LLVMValueRef **field_indicies, size_t *index,
-    struct StructFieldDefinitionNode *field_defs) {
-  // field_access_expr = field_access_expr->next;
-  while (field_access_expr != NULL) {
-    printf("looking for field %s (%zu)..\n", field_access_expr->symbol.data,
-           *index);
-    struct StructFieldDefinitionNode *field_def = field_defs;
-
-    struct FindFieldDefinitionResult result =
-        find_field_definition(field_def, field_access_expr->symbol);
-    assert(result.field_definition != NULL);
-
-    puts("Found field.");
-    printf("\tindex: %zu\n", result.index);
-
-    (*field_indicies)[*index] = LLVMConstInt(LLVMInt32Type(), result.index, 0);
-    *index += 1;
-
-    puts("did weird stuff.");
-
-    if (field_access_expr->next != NULL) {
-      puts("still have further stuff.");
-      field_def = result.field_definition;
-      printf("Field def kind: %d\n", field_def->type->kind);
-      puts("");
-      assert(field_def->type->kind == DTK_RESOLVABLE);
-      assert(field_def->type->value.resolvable.resolved_type != NULL);
-      assert(field_def->type->value.resolvable.resolved_type->kind ==
-             DTK_STRUCTURE_DEF);
-      field_defs = field_def->type->value.resolvable.resolved_type->value
-                       .structure_definition.definition->fields;
-
-      // NOTE: If field is pointer, add extra deref for the pointer. We dont
-      // do this for last field though.
-      if (result.field_definition->type->kind == DTK_POINTER) {
-        puts("symbol is pointer, adding extra deref.");
-        *field_indicies[*index] = LLVMConstInt(LLVMInt32Type(), 0, 0);
-        *index += 1;
-      }
-    } else {
-      puts("has no next.");
-    }
-
-    field_access_expr = field_access_expr->next;
-  }
-}
+// void cg_visit_field_inner_access_expr(
+//     struct StructFieldAccessInnerExpressionNode *field_access_expr,
+//     LLVMValueRef **field_indicies, size_t *index,
+//     struct StructFieldDefinitionNode *field_defs) {
+//   // field_access_expr = field_access_expr->next;
+//   while (field_access_expr != NULL) {
+//     printf("looking for field %s (%zu)..\n", field_access_expr->symbol.data,
+//            *index);
+//     struct StructFieldDefinitionNode *field_def = field_defs;
+//
+//     struct FindFieldDefinitionResult result =
+//         find_field_definition(field_def, field_access_expr->symbol);
+//     assert(result.field_definition != NULL);
+//
+//     puts("Found field.");
+//     printf("\tindex: %zu\n", result.index);
+//
+//     (*field_indicies)[*index] = LLVMConstInt(LLVMInt32Type(), result.index,
+//     0); *index += 1;
+//
+//     puts("did weird stuff.");
+//
+//     if (field_access_expr->next != NULL) {
+//       puts("still have further stuff.");
+//       field_def = result.field_definition;
+//       printf("Field def kind: %d\n", field_def->type->kind);
+//       puts("");
+//       assert(field_def->type->kind == DTK_RESOLVABLE);
+//       assert(field_def->type->value.resolvable.resolved_type != NULL);
+//       assert(field_def->type->value.resolvable.resolved_type->kind ==
+//              DTK_STRUCTURE_DEF);
+//       field_defs = field_def->type->value.resolvable.resolved_type->value
+//                        .structure_definition.definition->fields;
+//
+//       // NOTE: If field is pointer, add extra deref for the pointer. We dont
+//       // do this for last field though.
+//       if (result.field_definition->type->kind == DTK_POINTER) {
+//         puts("symbol is pointer, adding extra deref.");
+//         *field_indicies[*index] = LLVMConstInt(LLVMInt32Type(), 0, 0);
+//         *index += 1;
+//       }
+//     } else {
+//       puts("has no next.");
+//     }
+//
+//     field_access_expr = field_access_expr->next;
+//   }
+// }
 
 LLVMValueRef cg_visit_field_access_expr(
     struct CodeGenerator *code_generator,
     struct StructFieldAccessExpressionNode *field_access_expr) {
+  // LLVMValueRef lhs =
+  //     cg_visit_expr(code_generator, field_access_expr->expression);
 
-  struct SymbolTableEntry *entry = lookup_scoped_symbol_in(
-      field_access_expr->root_symbol, code_generator->current_symbol_table);
+  LLVMValueRef lhs =
+      cg_visit_ref_expr(code_generator, field_access_expr->expression);
 
-  assert(entry != NULL);
-  puts("Found symbol.");
-  assert(entry->type != NULL);
+  struct DataType *lhs_data_type =
+      cg_infer_type(code_generator, field_access_expr->expression);
 
-  printf("next: %d\n", field_access_expr->next == NULL);
-  puts("..");
+  assert(lhs_data_type != NULL);
 
-  if (field_access_expr->next == NULL) {
-    puts("Returning field access.");
-    return entry->llvm_value;
+  if (lhs_data_type->kind == DTK_POINTER) {
+    lhs = LLVMBuildLoad2(code_generator->builder,
+                         cg_get_type(code_generator, lhs_data_type), lhs, "");
+    lhs_data_type = lhs_data_type->value.pointer_inner;
   }
 
-  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-  struct SymbolTable *old_symbol_table = code_generator->current_symbol_table;
-
-  code_generator->annotator->current_symbol_table =
-      code_generator->current_symbol_table;
-
-  struct StructDefinitionExpressionNode *definition =
-      get_or_resolve_struct_definition_from_type(entry->type,
+  struct StructDefinitionExpressionNode *struct_def =
+      get_or_resolve_struct_definition_from_type(lhs_data_type,
                                                  code_generator->annotator);
 
-  code_generator->annotator->current_symbol_table = old_symbol_table;
+  assert(struct_def != NULL);
 
-  assert(definition != NULL);
+  LLVMTypeRef lhs_type = cg_get_type(code_generator, lhs_data_type);
 
-  size_t field_depth = cg_count_field_access_depth(field_access_expr);
-
-  printf("field depth: %zu\n", field_depth);
-
-  // NOTE: the * 2 is so each field could be a pointer so we may need up to
-  // double the derefs
-  LLVMValueRef *field_indicies = arena_alloc(
-      code_generator->allocator, sizeof(LLVMValueRef) * field_depth * 2);
-
-  field_indicies[0] = LLVMConstInt(LLVMInt32Type(), 0, 0);
-
-  size_t index = 1;
-
-  LLVMValueRef source = entry->llvm_value;
-  LLVMTypeRef source_type = cg_get_type(code_generator, entry->type);
-
-  // NOTE: if base field is a struct pointer we need an initial extra deref.
-  if (entry->type->kind == DTK_POINTER) {
-    puts("root symbol is pointer, adding extra deref.");
-    source =
-        LLVMBuildLoad2(code_generator->builder,
-                       cg_get_type(code_generator, entry->type), source, "");
-    source_type = cg_get_type(code_generator, entry->type->value.pointer_inner);
+  size_t field_index = 0;
+  struct StructFieldDefinitionNode *field_def = struct_def->fields;
+  while (field_def != NULL) {
+    if (strings_equal(field_def->name, field_access_expr->symbol)) {
+      break;
+    }
+    field_index++;
+    field_def = field_def->next;
   }
 
-  ////////////////
+  LLVMValueRef field_indicies[] = {
+      LLVMConstInt(LLVMInt32Type(), 0, 0),
+      LLVMConstInt(LLVMInt32Type(), field_index, 0),
+  };
 
-  cg_visit_field_inner_access_expr(field_access_expr->next, &field_indicies,
-                                   &index, definition->fields);
-
-  LLVMValueRef field_ptr = LLVMBuildGEP2(code_generator->builder, source_type,
-                                         source, field_indicies, index, "");
-
+  LLVMValueRef field_ptr = LLVMBuildGEP2(code_generator->builder, lhs_type, lhs,
+                                         field_indicies, 2, "");
   return field_ptr;
+
+  // //-------------------------------
+  //
+  // struct SymbolTableEntry *entry = lookup_scoped_symbol_in(
+  //     field_access_expr->root_symbol, code_generator->current_symbol_table);
+  //
+  // assert(entry != NULL);
+  // puts("Found symbol.");
+  // assert(entry->type != NULL);
+  //
+  // printf("next: %d\n", field_access_expr->next == NULL);
+  // puts("..");
+  //
+  // if (field_access_expr->next == NULL) {
+  //   puts("Returning field access.");
+  //   return entry->llvm_value;
+  // }
+  //
+  // ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  //
+  // struct SymbolTable *old_symbol_table =
+  // code_generator->current_symbol_table;
+  //
+  // code_generator->annotator->current_symbol_table =
+  //     code_generator->current_symbol_table;
+  //
+  // struct StructDefinitionExpressionNode *definition =
+  //     get_or_resolve_struct_definition_from_type(entry->type,
+  //                                                code_generator->annotator);
+  //
+  // code_generator->annotator->current_symbol_table = old_symbol_table;
+  //
+  // assert(definition != NULL);
+  //
+  // size_t field_depth = cg_count_field_access_depth(field_access_expr);
+  //
+  // printf("field depth: %zu\n", field_depth);
+  //
+  // // NOTE: the * 2 is so each field could be a pointer so we may need up to
+  // // double the derefs
+  // LLVMValueRef *field_indicies = arena_alloc(
+  //     code_generator->allocator, sizeof(LLVMValueRef) * field_depth * 2);
+  //
+  // field_indicies[0] = LLVMConstInt(LLVMInt32Type(), 0, 0);
+  //
+  // size_t index = 1;
+  //
+  // LLVMValueRef source = entry->llvm_value;
+  // LLVMTypeRef source_type = cg_get_type(code_generator, entry->type);
+  //
+  // // NOTE: if base field is a struct pointer we need an initial extra deref.
+  // if (entry->type->kind == DTK_POINTER) {
+  //   puts("root symbol is pointer, adding extra deref.");
+  //   source =
+  //       LLVMBuildLoad2(code_generator->builder,
+  //                      cg_get_type(code_generator, entry->type), source, "");
+  //   lhs_type = cg_get_type(code_generator, entry->type->value.pointer_inner);
+  // }
+  //
+  // ////////////////
+  //
+  // cg_visit_field_inner_access_expr(field_access_expr->next, &field_indicies,
+  //                                  &index, definition->fields);
+  //
+  // LLVMValueRef field_ptr = LLVMBuildGEP2(code_generator->builder, lhs_type,
+  //                                        source, field_indicies, index, "");
+  //
+  // return field_ptr;
+}
+
+struct LLVMValueAndTypeRefs
+cg_visit_struct_init_expression(struct CodeGenerator *code_generator,
+                                struct ExpressionNode *expr) {
+  struct SymbolTableEntry *entry = lookup_scoped_symbol_in(
+      expr->node.struct_init->name, code_generator->current_symbol_table);
+
+  assert(entry->type != NULL);
+  assert(entry->type->kind == DTK_STRUCTURE_DEF);
+  assert(entry->type->value.structure_definition.definition != NULL);
+  assert(
+      entry->type->value.structure_definition.definition->llvm_structure_type !=
+      NULL);
+
+  LLVMTypeRef struct_type =
+      entry->type->value.structure_definition.definition->llvm_structure_type;
+
+  // assert(0);
+
+  assert(entry != NULL);
+  assert(struct_type != NULL);
+
+  struct StructFieldDefinitionNode *field_def =
+      entry->type->value.structure_definition.definition->fields;
+
+  struct StructFieldInitializerExpressionNode *root_field_init =
+      expr->node.struct_init->fields;
+
+  puts("counting fields..");
+  size_t field_count = cg_count_structure_definition_fields(field_def);
+  printf("found %zu fields\n", field_count);
+
+  LLVMValueRef local_struct =
+      LLVMBuildAlloca(code_generator->builder, struct_type, "");
+
+  puts("Generating memset(0) to clear the struct to zero");
+
+  puts("Generating field initializers.");
+  size_t field_index = 0;
+  while (field_def != NULL) {
+    struct StructFieldInitializerExpressionNode *field_init =
+        find_field_initializer(root_field_init, field_def->name);
+
+    printf("Did find? %d (%s)\n", field_init != NULL, field_def->name.data);
+
+    LLVMValueRef indicies[2] = {
+        LLVMConstInt(LLVMInt32Type(), 0, 0),
+        LLVMConstInt(LLVMInt32Type(), field_index++, 0)};
+
+    puts("Building field ptr..");
+    LLVMValueRef field_ptr = LLVMBuildGEP2(code_generator->builder, struct_type,
+                                           local_struct, indicies, 2, "");
+
+    LLVMValueRef coereced;
+    LLVMTypeRef field_type = cg_get_type(code_generator, field_def->type);
+
+    if (field_init == NULL) {
+      uint64_t size =
+          LLVMABISizeOfType(code_generator->target_data, field_type);
+      coereced = LLVMConstInt(LLVMIntType(size * 8), 0, false);
+    } else {
+      coereced = cg_coerce(
+          code_generator, cg_visit_expr(code_generator, field_init->expression),
+          field_type);
+    }
+
+    puts("Building store..");
+    LLVMBuildStore(code_generator->builder, coereced, field_ptr);
+
+    puts("Advancing pointers..");
+    field_def = field_def->next;
+  }
+  puts("Done.");
+
+  return (struct LLVMValueAndTypeRefs){
+      .value = local_struct,
+      .type = struct_type,
+  };
+}
+
+LLVMValueRef cg_visit_ref_expr(struct CodeGenerator *code_generator,
+                               struct ExpressionNode *expr) {
+  switch (expr->type) {
+  case EXPR_SYMBOL_LITERAL: {
+    assert(expr->node.scoped_symbol != NULL);
+
+    struct SymbolTableEntry *symbol = lookup_scoped_symbol_in(
+        expr->node.scoped_symbol, code_generator->current_symbol_table);
+
+    assert(symbol != NULL);
+    assert(symbol->llvm_value != NULL);
+
+    return symbol->llvm_value;
+  }
+  case EXPR_DEREF:
+    assert(expr->node.deref != NULL);
+
+    return cg_visit_expr(code_generator, expr->node.deref);
+  case EXPR_STRUCT_INIT:
+    return cg_visit_struct_init_expression(code_generator, expr->node.ref)
+        .value;
+  case EXPR_FIELD_ACCESS:
+    return cg_visit_field_access_expr(code_generator,
+                                      expr->node.struct_field_access);
+  case EXPR_REF:
+  case EXPR_BINARY:
+  case EXPR_INTEGER_LITERAL:
+  case EXPR_STRING_LITERAL:
+  case EXPR_FN_DEF:
+  case EXPR_FN_CALL:
+  case EXPR_STRUCT_DEF:
+  case EXPR_CAST:
+    // NOTE: Maybe?? Do we need to do anything with the new type from cast?
+    return cg_visit_ref_expr(code_generator, expr->node.cast->expr);
+  case EXPR_ARRAY_INITIALIZER:
+  case EXPR_MOD_DEF:
+  case EXPR_VALUESIZE:
+  case EXPR_TYPESIZE:
+  default:
+    assert(0);
+    return NULL;
+  }
 }
 
 LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
@@ -743,14 +915,7 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
   case EXPR_FN_CALL:
     return cg_visit_function_call(code_generator, expr->node.fn_call);
   case EXPR_REF: {
-    // struct SymbolTableEntry *symbol = lookup_symbol_in(
-    //     expr->node.ref_symbol->value, code_generator->current_symbol_table);
-
-    return cg_visit_field_access_expr(code_generator, expr->node.ref_symbol);
-    // assert(symbol != NULL);
-    // assert(symbol->llvm_value != NULL);
-    //
-    // return symbol->llvm_value;
+    return cg_visit_ref_expr(code_generator, expr->node.ref);
   }
   case EXPR_DEREF: {
     LLVMValueRef inner = cg_visit_expr(code_generator, expr->node.deref);
@@ -782,79 +947,14 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
     assert(0);
     break;
   case EXPR_STRUCT_INIT: {
-    struct SymbolTableEntry *entry = lookup_scoped_symbol_in(
-        expr->node.struct_init->name, code_generator->current_symbol_table);
+    struct LLVMValueAndTypeRefs value_and_type =
+        cg_visit_struct_init_expression(code_generator, expr);
 
-    assert(entry->type != NULL);
-    assert(entry->type->kind == DTK_STRUCTURE_DEF);
-    assert(entry->type->value.structure_definition.definition != NULL);
-    assert(entry->type->value.structure_definition.definition
-               ->llvm_structure_type != NULL);
-
-    LLVMTypeRef struct_type =
-        entry->type->value.structure_definition.definition->llvm_structure_type;
-
-    // assert(0);
-
-    assert(entry != NULL);
-    assert(struct_type != NULL);
-
-    struct StructFieldDefinitionNode *field_def =
-        entry->type->value.structure_definition.definition->fields;
-
-    struct StructFieldInitializerExpressionNode *root_field_init =
-        expr->node.struct_init->fields;
-
-    puts("counting fields..");
-    size_t field_count = cg_count_structure_definition_fields(field_def);
-    printf("found %zu fields\n", field_count);
-
-    LLVMValueRef local_struct =
-        LLVMBuildAlloca(code_generator->builder, struct_type, "");
-
-    puts("Generating memset(0) to clear the struct to zero");
-
-    puts("Generating field initializers.");
-    size_t field_index = 0;
-    while (field_def != NULL) {
-      struct StructFieldInitializerExpressionNode *field_init =
-          find_field_initializer(root_field_init, field_def->name);
-
-      printf("Did find? %d (%s)\n", field_init != NULL, field_def->name.data);
-
-      LLVMValueRef indicies[2] = {
-          LLVMConstInt(LLVMInt32Type(), 0, 0),
-          LLVMConstInt(LLVMInt32Type(), field_index++, 0)};
-
-      puts("Building field ptr..");
-      LLVMValueRef field_ptr = LLVMBuildGEP2(
-          code_generator->builder, struct_type, local_struct, indicies, 2, "");
-
-      LLVMValueRef coereced;
-      LLVMTypeRef field_type = cg_get_type(code_generator, field_def->type);
-
-      if (field_init == NULL) {
-        uint64_t size =
-            LLVMABISizeOfType(code_generator->target_data, field_type);
-        coereced = LLVMConstInt(LLVMIntType(size * 8), 0, false);
-      } else {
-        coereced = cg_coerce(
-            code_generator,
-            cg_visit_expr(code_generator, field_init->expression),
-            field_type);
-      }
-
-      puts("Building store..");
-      LLVMBuildStore(code_generator->builder, coereced, field_ptr);
-
-      puts("Advancing pointers..");
-      field_def = field_def->next;
-    }
-    puts("Done.");
-
-    return LLVMBuildLoad2(code_generator->builder, struct_type, local_struct,
-                          "");
+    // TODO: May not work with `TypeOf`, may need to return it explicitly
+    return LLVMBuildLoad2(code_generator->builder, value_and_type.type,
+                          value_and_type.value, "");
   }
+
   case EXPR_FIELD_ACCESS: {
     puts("cg visit expr for struct field access.");
 
@@ -1299,14 +1399,9 @@ void cg_visit_function_statement(struct CodeGenerator *code_generator,
       break;
     } else if (node->source_expression->type == EXPR_FIELD_ACCESS) {
       puts("in field access");
-      struct SymbolTable *old_symbol_table =
-          code_generator->annotator->current_symbol_table;
-      code_generator->annotator->current_symbol_table =
-          code_generator->current_symbol_table;
-      struct DataType *source_type = infer_type_of_field_access(
-          node->source_expression->node.struct_field_access,
-          code_generator->annotator);
-      code_generator->annotator->current_symbol_table = old_symbol_table;
+
+      struct DataType *source_type =
+          cg_infer_type(code_generator, node->source_expression);
 
       puts("about to gen assignment");
 

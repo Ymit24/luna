@@ -30,7 +30,6 @@ const free = fn(str: string) {
     std::assert(str.is_heap);
     cstd::free(str.data);
     str.data = @cast(*i8, 0);
-    return;
 };
 
 const append = mod {
@@ -39,7 +38,6 @@ const append = mod {
         const new_str = make_from(str.data);
         str.data = new_str.data;
         str.is_heap = 1;
-        return;
     };
 
     const ensure_cap = fn(str: *string, added_len: i32) {
@@ -49,8 +47,6 @@ const append = mod {
             str.data = cstd::realloc(str.data, needed_cap);
             *(str.data + str.cap) = 0;
         };
-
-        return;
     };
 
     const cstr = fn(str: *string, cstr: *i8) {
@@ -61,18 +57,14 @@ const append = mod {
 
         cstd::memcpy(str.data + str.len, cstr, cstr_len);
         str.len = str.len + cstr_len;
-
-        return;
     };
 
     const char = fn(str: *string, char: i8) {
         ensure_heap(str);
         ensure_cap(str, 1);
 
-        *(str.data + str.len) = char;
+        str.data[str.len] = char;
         str.len = str.len + 1;
-
-        return;
     };
 };
 

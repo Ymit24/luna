@@ -35,7 +35,6 @@ const make = fn(element_size: i32): list {
 const grow = fn(l: *list, new_cap: i32) {
     l.cap = new_cap;
     l.data = @cast(**i8, cstd::realloc(l.data, new_cap * l.size));
-    return;
 };
 
 const push = fn(l: *list, data: *i8) {
@@ -43,30 +42,22 @@ const push = fn(l: *list, data: *i8) {
       grow(l, l.cap + 10);
   };
 
-  const ptr = l.data;
-  ptr[l.len] = data;
+  l.data[l.len] = data;
   l.len = l.len + 1;
-
-  return;
 };
 
 const each = fn(l: *list, f: fn(index: i32, value: *i8)) {
-  let index: i32 = 0;
+  let index = 0;
 
   while index < l.len {
-      const ptr = l.data;
-      f(index, ptr[index]);
+      f(index, l.data[index]);
       index = index + 1;
   };
-
-  return;
 };
 
 const print = fn(l: *list) {
   cstd::printf("list (%d/%d):\n", l.len, l.cap);
   each(l, fn(index:i32, value: *i8) {
       cstd::printf("\t%d: %d\n", index, *value);
-      return;
   });
-  return;
 };
