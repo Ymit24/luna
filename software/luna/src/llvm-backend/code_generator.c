@@ -450,10 +450,11 @@ LLVMValueRef cg_visit_field_access_expr(
   // LLVMValueRef lhs =
   //     cg_visit_expr(code_generator, field_access_expr->expression);
 
-  LLVMValueRef lhs = cg_visit_ref_expr(code_generator,field_access_expr->expression);
+  LLVMValueRef lhs =
+      cg_visit_ref_expr(code_generator, field_access_expr->expression);
 
-      struct DataType *lhs_data_type =
-          cg_infer_type(code_generator, field_access_expr->expression);
+  struct DataType *lhs_data_type =
+      cg_infer_type(code_generator, field_access_expr->expression);
 
   assert(lhs_data_type != NULL);
 
@@ -559,7 +560,7 @@ LLVMValueRef cg_visit_field_access_expr(
   // return field_ptr;
 }
 
-LLVMValueRef
+struct LLVMValueAndTypeRefs
 cg_visit_struct_init_expression(struct CodeGenerator *code_generator,
                                 struct ExpressionNode *expr) {
   struct SymbolTableEntry *entry = lookup_scoped_symbol_in(
@@ -632,7 +633,10 @@ cg_visit_struct_init_expression(struct CodeGenerator *code_generator,
   }
   puts("Done.");
 
-  return local_struct;
+  return (struct LLVMValueAndTypeRefs){
+      .value = local_struct,
+      .type = struct_type,
+  };
 }
 
 LLVMValueRef cg_visit_ref_expr(struct CodeGenerator *code_generator,
@@ -654,7 +658,8 @@ LLVMValueRef cg_visit_ref_expr(struct CodeGenerator *code_generator,
 
     return cg_visit_expr(code_generator, expr->node.deref);
   case EXPR_STRUCT_INIT:
-    return cg_visit_struct_init_expression(code_generator, expr->node.ref);
+    return cg_visit_struct_init_expression(code_generator, expr->node.ref)
+        .value;
   case EXPR_FIELD_ACCESS:
     return cg_visit_field_access_expr(code_generator,
                                       expr->node.struct_field_access);
@@ -940,12 +945,12 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
     assert(0);
     break;
   case EXPR_STRUCT_INIT: {
-    LLVMValueRef struct_ref =
+    struct LLVMValueAndTypeRefs value_and_type =
         cg_visit_struct_init_expression(code_generator, expr);
 
     // TODO: May not work with `TypeOf`, may need to return it explicitly
-    return LLVMBuildLoad2(code_generator->builder, LLVMTypeOf(struct_ref),
-                          struct_ref, "");
+    return LLVMBuildLoad2(code_generator->builder, value_and_type.type,
+                          value_and_type.value, "");
   }
 
   case EXPR_FIELD_ACCESS: {
