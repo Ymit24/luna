@@ -298,32 +298,32 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
     //                           sizeof(struct
     //                           StructFieldAccessExpressionNode))});
     // }
-    case T_LBRACK:
-      puts("Found index operation");
-      parser->position++;
-
-      struct ExpressionNode *indexing_expr = parse_expression(parser, 0);
-
-      assert(parser_peek(parser).type == T_RBRACK);
-      parser->position++;
-
-      return ast_promote(
-          parser->allocator,
-          &(struct ExpressionNode){
-              .type = EXPR_DEREF,
-              .node.deref = ast_promote_expression_node(
-                  parser->allocator,
-                  (struct ExpressionNode){
-                      .type = EXPR_BINARY,
-                      .node.binary = ast_make_binary_expression(
-                          parser->allocator, BIN_EXPR_ADD,
-                          ast_promote_expression_node(
-                              parser->allocator,
-                              (struct ExpressionNode){
-                                  .type = EXPR_SYMBOL_LITERAL,
-                                  .node.scoped_symbol = scoped_symbol}),
-                          indexing_expr)})},
-          sizeof(struct ExpressionNode));
+    // case T_LBRACK:
+    //   puts("Found index operation");
+    //   parser->position++;
+    //
+    //   struct ExpressionNode *indexing_expr = parse_expression(parser, 0);
+    //
+    //   assert(parser_peek(parser).type == T_RBRACK);
+    //   parser->position++;
+    //
+    //   return ast_promote(
+    //       parser->allocator,
+    //       &(struct ExpressionNode){
+    //           .type = EXPR_DEREF,
+    //           .node.deref = ast_promote_expression_node(
+    //               parser->allocator,
+    //               (struct ExpressionNode){
+    //                   .type = EXPR_BINARY,
+    //                   .node.binary = ast_make_binary_expression(
+    //                       parser->allocator, BIN_EXPR_ADD,
+    //                       ast_promote_expression_node(
+    //                           parser->allocator,
+    //                           (struct ExpressionNode){
+    //                               .type = EXPR_SYMBOL_LITERAL,
+    //                               .node.scoped_symbol = scoped_symbol}),
+    //                       indexing_expr)})},
+    //       sizeof(struct ExpressionNode));
     default:
       printf("did not find lparen after symbol, found: %d\n",
              parser_peek(parser).type);
@@ -660,6 +660,26 @@ struct ExpressionNode *parse_expression(struct Parser *parser,
                   parser->allocator, BIN_EXPR_DIV, left,
                   parse_expression(parser, precedence_for_token(T_SLASH)))});
       break;
+    case T_LBRACK: {
+      struct ExpressionNode *indexing_expr =
+          parse_expression(parser, precedence_for_token(0));
+
+      assert(parser_peek(parser).type == T_RBRACK);
+      parser->position++;
+
+      left = ast_promote(parser->allocator,
+                         &(struct ExpressionNode){
+                             .type = EXPR_DEREF,
+                             .node.deref = ast_promote_expression_node(
+                                 parser->allocator,
+                                 (struct ExpressionNode){
+                                     .type = EXPR_BINARY,
+                                     .node.binary = ast_make_binary_expression(
+                                         parser->allocator, BIN_EXPR_ADD, left,
+                                         indexing_expr)})},
+                         sizeof(struct ExpressionNode));
+      break;
+    }
     case T_LANGLE:
       left = ast_promote_expression_node(
           parser->allocator,
@@ -1320,7 +1340,8 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
     case EXPR_MOD_DEF:
     case EXPR_VALUESIZE:
     case EXPR_TYPESIZE:
-      printf("illegal expression type as function statement (%d).\n", expr->type);
+      printf("illegal expression type as function statement (%d).\n",
+             expr->type);
       assert(0);
       return NULL;
     }
