@@ -103,6 +103,10 @@ uint8_t precedence_for_token(enum TokenType type) {
     return 3;
   case T_NTEQ:
     return 3;
+  case T_LBRACK:
+    return 4;
+  case T_PERIOD:
+    return 5;
   case T_RPAREN:
     return 0;
   case T_RBRACE:
@@ -216,24 +220,24 @@ parse_struct_field_initializer(struct Parser *parser) {
                      sizeof(struct StructFieldInitializerExpressionNode));
 }
 
-struct StructFieldAccessInnerExpressionNode *
-parse_struct_field_access(struct Parser *parser) {
-  if (parser_peek(parser).type != T_PERIOD) {
-    return NULL;
-  }
-  parser->position++;
-
-  assert(parser_peek(parser).type == T_SYMBOL);
-  struct LunaString symbol = parser_peek(parser).value.symbol;
-  printf("Got symbol: '%s'\n", symbol.data);
-  parser->position++;
-
-  return ast_promote(
-      parser->allocator,
-      &(struct StructFieldAccessInnerExpressionNode){
-          .symbol = symbol, .next = parse_struct_field_access(parser)},
-      sizeof(struct StructFieldAccessInnerExpressionNode));
-}
+// struct StructFieldAccessInnerExpressionNode *
+// parse_struct_field_access(struct Parser *parser) {
+//   if (parser_peek(parser).type != T_PERIOD) {
+//     return NULL;
+//   }
+//   parser->position++;
+//
+//   assert(parser_peek(parser).type == T_SYMBOL);
+//   struct LunaString symbol = parser_peek(parser).value.symbol;
+//   printf("Got symbol: '%s'\n", symbol.data);
+//   parser->position++;
+//
+//   return ast_promote(
+//       parser->allocator,
+//       &(struct StructFieldAccessInnerExpressionNode){
+//           .symbol = symbol, .next = parse_struct_field_access(parser)},
+//       sizeof(struct StructFieldAccessInnerExpressionNode));
+// }
 
 struct ArrayInitializerExpressionNode *
 parse_array_initializer(struct Parser *parser) {
@@ -275,23 +279,25 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
                                                   .node.fn_call = fn_call},
                          sizeof(struct ExpressionNode));
     }
-    case T_PERIOD: {
-      puts("found period, so this is field accessor");
-      printf("scoped symbol: ");
-      print_scoped_symbol(scoped_symbol);
-      puts("");
-
-      return ast_promote_expression_node(
-          parser->allocator,
-          (struct ExpressionNode){
-              .type = EXPR_FIELD_ACCESS,
-              .node.struct_field_access =
-                  ast_promote(parser->allocator,
-                              &(struct StructFieldAccessExpressionNode){
-                                  .root_symbol = scoped_symbol,
-                                  .next = parse_struct_field_access(parser)},
-                              sizeof(struct StructFieldAccessExpressionNode))});
-    }
+    // case T_PERIOD: {
+    //
+    //   puts("found period, so this is field accessor");
+    //   printf("scoped symbol: ");
+    //   print_scoped_symbol(scoped_symbol);
+    //   puts("");
+    //
+    //   return ast_promote_expression_node(
+    //       parser->allocator,
+    //       (struct ExpressionNode){
+    //           .type = EXPR_FIELD_ACCESS,
+    //           .node.struct_field_access =
+    //               ast_promote(parser->allocator,
+    //                           &(struct StructFieldAccessExpressionNode){
+    //                               .root_symbol = scoped_symbol,
+    //                               .next = parse_struct_field_access(parser)},
+    //                           sizeof(struct
+    //                           StructFieldAccessExpressionNode))});
+    // }
     case T_LBRACK:
       puts("Found index operation");
       parser->position++;
@@ -341,22 +347,16 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
   case T_AMPERSAND: {
     parser->position++;
 
-    assert(parser_peek(parser).type == T_SYMBOL);
-    struct ScopedSymbolLiteralNode *symbol =
-        parse_scoped_symbol_literal(parser);
-
-    puts("Looking for field access expr for ref");
-
-    return ast_promote(parser->allocator,
-                       &(struct ExpressionNode){
-                           .type = EXPR_REF,
-                           .node.ref_symbol = ast_promote(
-                               parser->allocator,
-                               &(struct StructFieldAccessExpressionNode){
-                                   .root_symbol = symbol,
-                                   .next = parse_struct_field_access(parser)},
-                               sizeof(struct StructFieldAccessExpressionNode))},
-                       sizeof(struct ExpressionNode));
+    return ast_promote(
+        parser->allocator,
+        &(struct ExpressionNode){
+            .type = EXPR_REF,
+            // NOTE: We want to make sure we let all the high prec operators go
+            // into this expr. E.g.
+            // `a + &foo.bar[100] + b` will want to parse the full
+            // `foo.bar[100]` part.
+            .node.ref = parse_expression(parser, precedence_for_token(T_PLUS))},
+        sizeof(struct ExpressionNode));
   }
   case T_STRING: {
     parser->position++;
@@ -713,6 +713,23 @@ struct ExpressionNode *parse_expression(struct Parser *parser,
               .node.binary = ast_make_binary_expression(
                   parser->allocator, BIN_EXPR_GEQ, left,
                   parse_expression(parser, precedence_for_token(T_GEQ)))});
+      break;
+    case T_PERIOD:
+      puts("Found field access operation.");
+      token = parser_peek(parser);
+
+      assert(token.type == T_SYMBOL);
+      parser->position++;
+
+      left = ast_promote_expression_node(
+          parser->allocator,
+          (struct ExpressionNode){
+              .type = EXPR_FIELD_ACCESS,
+              .node.struct_field_access = ast_promote(
+                  parser->allocator,
+                  &(struct StructFieldAccessExpressionNode){
+                      .expression = left, .symbol = token.value.symbol},
+                  sizeof(struct StructFieldAccessExpressionNode))});
       break;
     default:
       printf("Found unexpected token of type %d\n", token.type);
@@ -1303,7 +1320,7 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
     case EXPR_MOD_DEF:
     case EXPR_VALUESIZE:
     case EXPR_TYPESIZE:
-      puts("illegal expression type as function statement.");
+      printf("illegal expression type as function statement (%d).\n", expr->type);
       assert(0);
       return NULL;
     }
