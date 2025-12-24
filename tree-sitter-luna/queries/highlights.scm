@@ -9,6 +9,10 @@
 "enum" @keyword
 "let" @keyword
 
+"true" @constant
+"false" @constant
+"null" @constant
+
 (comment) @comment
 
 [

@@ -266,6 +266,64 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
     struct ScopedSymbolLiteralNode *scoped_symbol =
         parse_scoped_symbol_literal(parser);
 
+    if (scoped_symbol->next == NULL) {
+      if (strings_equal(scoped_symbol->symbol->value, string_make("true"))) {
+        return ast_promote_expression_node(
+            parser->allocator,
+            (struct ExpressionNode){
+                .type = EXPR_CAST,
+                .node.cast = ast_promote(
+                    parser->allocator,
+                    &(struct CastExpressionNode){
+                        .type = make_integer_primitive_data_type(
+                            parser->allocator, 8, 0),
+                        .expr = ast_promote_expression_node(
+                            parser->allocator,
+                            (struct ExpressionNode){
+                                .type = EXPR_INTEGER_LITERAL,
+                                .node.integer = ast_make_integer_literal(
+                                    parser->allocator, 1)})},
+                    sizeof(struct CastExpressionNode))});
+      } else if (strings_equal(scoped_symbol->symbol->value,
+                               string_make("false"))) {
+        return ast_promote_expression_node(
+            parser->allocator,
+            (struct ExpressionNode){
+                .type = EXPR_CAST,
+                .node.cast = ast_promote(
+                    parser->allocator,
+                    &(struct CastExpressionNode){
+                        .type = make_integer_primitive_data_type(
+                            parser->allocator, 8, 0),
+                        .expr = ast_promote_expression_node(
+                            parser->allocator,
+                            (struct ExpressionNode){
+                                .type = EXPR_INTEGER_LITERAL,
+                                .node.integer = ast_make_integer_literal(
+                                    parser->allocator, 0)})},
+                    sizeof(struct CastExpressionNode))});
+      } else if (strings_equal(scoped_symbol->symbol->value,
+                               string_make("null"))) {
+        return ast_promote_expression_node(
+            parser->allocator,
+            (struct ExpressionNode){
+                .type = EXPR_CAST,
+                .node.cast = ast_promote(
+                    parser->allocator,
+                    &(struct CastExpressionNode){
+                        .type = make_pointer_data_type(
+                            parser->allocator, make_integer_primitive_data_type(
+                                                   parser->allocator, 8, 0)),
+                        .expr = ast_promote_expression_node(
+                            parser->allocator,
+                            (struct ExpressionNode){
+                                .type = EXPR_INTEGER_LITERAL,
+                                .node.integer = ast_make_integer_literal(
+                                    parser->allocator, 0)})},
+                    sizeof(struct CastExpressionNode))});
+      }
+    }
+
     switch (parser_peek(parser).type) {
     case T_LPAREN: {
       puts("found lparen, is function call");
