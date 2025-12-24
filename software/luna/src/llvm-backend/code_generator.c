@@ -671,6 +671,8 @@ LLVMValueRef cg_visit_ref_expr(struct CodeGenerator *code_generator,
   case EXPR_FN_CALL:
   case EXPR_STRUCT_DEF:
   case EXPR_CAST:
+    // NOTE: Maybe?? Do we need to do anything with the new type from cast?
+    return cg_visit_ref_expr(code_generator, expr->node.cast->expr);
   case EXPR_ARRAY_INITIALIZER:
   case EXPR_MOD_DEF:
   case EXPR_VALUESIZE:

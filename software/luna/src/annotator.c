@@ -407,15 +407,16 @@ struct DataType *infer_type(struct Annotator *annotator,
   case EXPR_INTEGER_LITERAL:
     // TODO: Do we want to auto downsize to I8? we need to handle implicit
     // casting
-    if (labs(expr->node.integer->value) < UINT8_MAX) {
-      puts("infered i/u8");
-      return make_integer_primitive_data_type(annotator->allocator, 8,
-                                              expr->node.integer->value < 0);
-    } else if (labs(expr->node.integer->value) < UINT16_MAX) {
-      puts("infered i/u16");
-      return make_integer_primitive_data_type(annotator->allocator, 16,
-                                              expr->node.integer->value < 0);
-    } else if (labs(expr->node.integer->value) < UINT32_MAX) {
+    // if (labs(expr->node.integer->value) < UINT8_MAX) {
+    //   puts("infered i/u8");
+    //   return make_integer_primitive_data_type(annotator->allocator, 8,
+    //                                           expr->node.integer->value < 0);
+    // } else if (labs(expr->node.integer->value) < UINT16_MAX) {
+    //   puts("infered i/u16");
+    //   return make_integer_primitive_data_type(annotator->allocator, 16,
+    //                                           expr->node.integer->value < 0);
+    // } else
+    if (labs(expr->node.integer->value) < UINT32_MAX) {
       puts("infered i/u32");
       return make_integer_primitive_data_type(annotator->allocator, 32,
                                               expr->node.integer->value < 0);
