@@ -20,7 +20,7 @@ const add_src = fn(ctx: *context, path: strings::string) {
 
 const add_std = fn(ctx: *context) {
     const luna_std_home = cstd::getenv("LUNA_STD");
-    if luna_std_home == @cast(*i8, 0) {
+    if luna_std_home == null {
         cstd::puts("Missing LUNA_STD environment variable required to link with luna std lib.");
         std::assert(0);
         return;
@@ -43,7 +43,7 @@ const compile_with_exec = fn(l: *lists::list) {
 
             index = index + 1;
         };
-        args[index+1] = @cast(*i8, 0);
+        args[index+1] = null;
 
         const print_args = fn(args: **i8, argc: i32) {
             cstd::puts("about to print args:");

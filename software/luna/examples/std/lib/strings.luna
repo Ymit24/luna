@@ -29,7 +29,7 @@ const make_from = fn(src: *i8): string {
 const free = fn(str: string) {
     std::assert(str.is_heap);
     cstd::free(str.data);
-    str.data = @cast(*i8, 0);
+    str.data = null;
 };
 
 const append = mod {
