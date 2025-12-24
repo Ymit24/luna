@@ -262,6 +262,13 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
         parser->allocator,
         (struct ExpressionNode){.type = EXPR_INTEGER_LITERAL,
                                 .node.integer = parse_integer_literal(parser)});
+  case T_CHAR:
+    parser->position++;
+    return ast_promote_expression_node(
+        parser->allocator,
+        (struct ExpressionNode){.type = EXPR_INTEGER_LITERAL,
+                                .node.integer = ast_make_integer_literal(
+                                    parser->allocator, token.value.integer)});
   case T_SYMBOL: {
     struct ScopedSymbolLiteralNode *scoped_symbol =
         parse_scoped_symbol_literal(parser);

@@ -1,0 +1,7 @@
+const main = fn() {
+  const str = "hello world"
+  const mychar = '3'
+
+  cstd::printf("char: '%c'\n", mychar)
+  cstd::printf("str: '%s'\n", str)
+}

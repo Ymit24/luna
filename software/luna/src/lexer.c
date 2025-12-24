@@ -37,50 +37,54 @@ uint16_t lexer_read_integer(struct Lexer *lexer) {
   return atoi(buf);
 }
 
+char lexer_read_char(struct Lexer *lexer) {
+  char c = lexer_peek(lexer);
+  if (c == '\\') {
+    lexer->position++;
+    switch (lexer_peek(lexer)) {
+    case 'n':
+      c = '\n';
+      break;
+    case 't':
+      c = '\t';
+      break;
+    case 'r':
+      c = '\r';
+      break;
+    case 'b':
+      c = '\b';
+      break;
+    case 'f':
+      c = '\f';
+      break;
+    case 'v':
+      c = '\v';
+      break;
+    case 'a':
+      c = '\a';
+      break;
+    case '\\':
+      c = '\\';
+      break;
+    case '\'':
+      c = '\'';
+      break;
+    case '"':
+      c = '"';
+      break;
+    }
+  }
+
+  lexer->position++;
+  return c;
+}
+
 struct LunaString lexer_read_string(struct Lexer *lexer) {
   char *buf = arena_alloc(lexer->allocator, 256 * sizeof(char));
   uint16_t index = 0;
 
   while (lexer_peek(lexer) != '"' && index < 256) {
-    char c = lexer_peek(lexer);
-    if (c == '\\') {
-      lexer->position++;
-      switch (lexer_peek(lexer)) {
-      case 'n':
-        buf[index++] = '\n';
-        break;
-      case 't':
-        buf[index++] = '\t';
-        break;
-      case 'r':
-        buf[index++] = '\r';
-        break;
-      case 'b':
-        buf[index++] = '\b';
-        break;
-      case 'f':
-        buf[index++] = '\f';
-        break;
-      case 'v':
-        buf[index++] = '\v';
-        break;
-      case 'a':
-        buf[index++] = '\a';
-        break;
-      case '\\':
-        buf[index++] = '\\';
-        break;
-      case '\'':
-        buf[index++] = '\'';
-        break;
-      case '"':
-        buf[index++] = '"';
-        break;
-      }
-    } else {
-      buf[index++] = c;
-    }
-    lexer->position++;
+    buf[index++] = lexer_read_char(lexer);
   }
 
   if (index >= 256) {
@@ -89,6 +93,7 @@ struct LunaString lexer_read_string(struct Lexer *lexer) {
   }
 
   buf[index] = 0;
+  printf("lexed string: (%s)\n", buf);
   return (struct LunaString){.data = &buf[0], .length = index};
 }
 
@@ -209,6 +214,14 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
       out_token->type = T_EQEQ;
       lexer->position++;
     }
+    return true;
+  case '\'':
+    out_token->type = T_CHAR;
+    lexer->position++;
+
+    out_token->value.integer = lexer_read_char(lexer);
+    assert(lexer_peek(lexer) == '\'');
+    lexer->position++;
     return true;
   case '"':
     out_token->type = T_STRING;
