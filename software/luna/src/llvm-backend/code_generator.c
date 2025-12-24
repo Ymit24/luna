@@ -1508,10 +1508,6 @@ LLVMValueRef cg_visit_module_statements(struct CodeGenerator *code_generator,
 
   code_generator->current_block = block;
 
-  if (is_root) {
-    // NOTE: initialize global constants, e.g. true/false/null
-  }
-
   struct ModuleStatementNode *curr = stmt;
   while (curr != NULL) {
     cg_visit_module_statement(code_generator, curr);
