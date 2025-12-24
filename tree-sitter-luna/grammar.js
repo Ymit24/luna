@@ -51,6 +51,7 @@ module.exports = grammar({
       $.qualified_symbol,
       $.number,
       $.string_literal,
+      $.char_literal,
     ),
 
     unary_expression: $ => choice(
@@ -174,6 +175,12 @@ module.exports = grammar({
     qualified_symbol: $ => seq($.symbol, repeat(seq('::', $.symbol))),
 
     number: $ => /\d+/,
+    char_literal: $ => token(seq('\'',
+      choice(
+        /[^"]/,      // Any character except quote, backslash, or newline
+        /\\./            // Escape sequences starting with a backslash
+      ), '\'')),
+
     string_literal: $ => token(seq(
       '"',
       repeat(choice(

@@ -286,6 +286,10 @@
       "required": false,
       "types": [
         {
+          "type": "char_literal",
+          "named": true
+        },
+        {
           "type": "number",
           "named": true
         },
@@ -708,6 +712,10 @@
   {
     "type": "cast",
     "named": false
+  },
+  {
+    "type": "char_literal",
+    "named": true
   },
   {
     "type": "comment",
