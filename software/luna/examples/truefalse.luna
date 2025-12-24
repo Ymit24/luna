@@ -1,0 +1,12 @@
+const main = fn() {
+  cstd::printf("True: %d\n", true)
+  const a = 100
+  const b = &a
+  if b != null {
+    cstd::puts("TRUE");
+  }
+
+  if false == false {
+    cstd::puts("expected")
+  }
+}

@@ -231,6 +231,18 @@
       "type": "CHOICE",
       "members": [
         {
+          "type": "STRING",
+          "value": "true"
+        },
+        {
+          "type": "STRING",
+          "value": "false"
+        },
+        {
+          "type": "STRING",
+          "value": "null"
+        },
+        {
           "type": "SYMBOL",
           "name": "qualified_symbol"
         },

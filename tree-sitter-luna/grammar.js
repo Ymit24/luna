@@ -45,6 +45,9 @@ module.exports = grammar({
     ),
 
     leaf_expression: $ => choice(
+      'true',
+      'false',
+      'null',
       $.qualified_symbol,
       $.number,
       $.string_literal,

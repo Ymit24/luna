@@ -1054,7 +1054,7 @@ LLVMValueRef cg_coerce(struct CodeGenerator *cg, LLVMValueRef val,
       puts("need to trunc source");
       if (dest_width == 1) {
         puts("Converting to truthy i1");
-        return LLVMBuildICmp(cg->builder, LLVMIntSGT, val,
+        return LLVMBuildICmp(cg->builder, LLVMIntSGE, val,
                              LLVMConstInt(source_type, 1, 0), "");
       }
       return LLVMBuildTrunc(cg->builder, val, dest_type, "");
@@ -1507,6 +1507,10 @@ LLVMValueRef cg_visit_module_statements(struct CodeGenerator *code_generator,
   LLVMPositionBuilderAtEnd(code_generator->builder, block);
 
   code_generator->current_block = block;
+
+  if (is_root) {
+    // NOTE: initialize global constants, e.g. true/false/null
+  }
 
   struct ModuleStatementNode *curr = stmt;
   while (curr != NULL) {
