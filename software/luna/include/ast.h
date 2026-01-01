@@ -94,6 +94,7 @@ enum ExpressionType {
   EXPR_FN_CALL,
   EXPR_REF,
   EXPR_DEREF,
+  EXPR_NOT,
   EXPR_STRUCT_DEF,
   EXPR_STRUCT_INIT,
   EXPR_FIELD_ACCESS,
@@ -125,6 +126,7 @@ struct ExpressionNode {
     struct FunctionCallExpressionNode *fn_call;
     struct ExpressionNode *ref;
     struct ExpressionNode *deref;
+    struct ExpressionNode *not;
     struct StructDefinitionExpressionNode *struct_def;
     struct StructInitializationExpressionNode *struct_init;
     struct StructFieldAccessExpressionNode *struct_field_access;
@@ -203,12 +205,21 @@ enum BinaryExpressionType {
   BIN_EXPR_SUB,
   BIN_EXPR_MUL,
   BIN_EXPR_DIV,
+
+  BIN_EXPR_AND,
+  BIN_EXPR_OR,
+  BIN_EXPR_XOR,
+
+  BIN_EXPR_LSHIFT,
+  BIN_EXPR_RSHIFT,
+
   BIN_EXPR_LT,
   BIN_EXPR_GT,
   BIN_EXPR_EQ,
   BIN_EXPR_NEQ,
   BIN_EXPR_LEQ,
   BIN_EXPR_GEQ,
+
 };
 
 struct BinaryExpressionNode {

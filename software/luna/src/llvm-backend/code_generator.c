@@ -700,6 +700,30 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
     LLVMValueRef right =
         cg_visit_expr(code_generator, expr->node.binary->right);
     switch (expr->node.binary->type) {
+    case BIN_EXPR_AND:
+      puts("got bitwise and");
+      return LLVMBuildAnd(code_generator->builder,
+                          cg_coerce(code_generator, left, common),
+                          cg_coerce(code_generator, right, common), "");
+    case BIN_EXPR_OR:
+      puts("got bitwise or");
+      return LLVMBuildOr(code_generator->builder,
+                         cg_coerce(code_generator, left, common),
+                         cg_coerce(code_generator, right, common), "");
+    case BIN_EXPR_XOR:
+      puts("got bitwise xor");
+      return LLVMBuildXor(code_generator->builder,
+                          cg_coerce(code_generator, left, common),
+                          cg_coerce(code_generator, right, common), "");
+    case BIN_EXPR_LSHIFT:
+      puts("got bitwise lshift");
+      return LLVMBuildShl(code_generator->builder, left, right, "");
+    case BIN_EXPR_RSHIFT:
+      puts("got bitwise rshift");
+      if (left_type->value.primitive.is_signed) {
+        return LLVMBuildAShr(code_generator->builder, left, right, "");
+      }
+      return LLVMBuildLShr(code_generator->builder, left, right, "");
     case BIN_EXPR_ADD:
       puts("got add");
       LLVMValueRef pointer = NULL;
@@ -916,6 +940,10 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
     return cg_visit_function_call(code_generator, expr->node.fn_call);
   case EXPR_REF: {
     return cg_visit_ref_expr(code_generator, expr->node.ref);
+  }
+  case EXPR_NOT: {
+    return LLVMBuildNot(code_generator->builder,
+                        cg_visit_expr(code_generator, expr->node.not), "");
   }
   case EXPR_DEREF: {
     LLVMValueRef inner = cg_visit_expr(code_generator, expr->node.deref);

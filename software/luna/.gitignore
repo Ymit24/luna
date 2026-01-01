@@ -3,3 +3,4 @@ lunac
 .mise.toml
 out/
 bin/
+compile_commands.json

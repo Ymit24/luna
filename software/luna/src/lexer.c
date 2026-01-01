@@ -142,6 +142,15 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
   case '&':
     out_token->type = T_AMPERSAND;
     break;
+  case '|':
+    out_token->type = T_PIPE;
+    break;
+  case '^':
+    out_token->type = T_CARET;
+    break;
+  case '~':
+    out_token->type = T_TILDE;
+    break;
   case '/':
     lexer->position++;
     if (lexer_peek(lexer) == '/') {
@@ -185,6 +194,9 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
     if (lexer_peek(lexer) == '=') {
       out_token->type = T_LEQ;
       lexer->position++;
+    } else if (lexer_peek(lexer) == '<') {
+      out_token->type = T_LSHIFT;
+      lexer->position++;
     }
     return true;
   case '>':
@@ -192,6 +204,9 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
     lexer->position++;
     if (lexer_peek(lexer) == '=') {
       out_token->type = T_GEQ;
+      lexer->position++;
+    } else if (lexer_peek(lexer) == '>') {
+      out_token->type = T_RSHIFT;
       lexer->position++;
     }
     return true;
