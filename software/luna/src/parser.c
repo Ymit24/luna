@@ -83,30 +83,36 @@ parse_function_call_expression(struct Parser *parser,
 
 uint8_t precedence_for_token(enum TokenType type) {
   switch (type) {
+  case T_PIPE:
+    return 7;
+  case T_CARET:
+    return 8;
+  case T_AMPERSAND:
+    return 9;
   case T_PLUS:
-    return 1;
+    return 10;
   case T_MINUS:
-    return 1;
+    return 10;
   case T_STAR:
-    return 2;
+    return 20;
   case T_SLASH:
-    return 2;
+    return 20;
   case T_LANGLE:
-    return 3;
+    return 30;
   case T_RANGLE:
-    return 3;
+    return 30;
   case T_EQEQ:
-    return 3;
+    return 30;
   case T_LEQ:
-    return 3;
+    return 30;
   case T_GEQ:
-    return 3;
+    return 30;
   case T_NTEQ:
-    return 3;
+    return 30;
   case T_LBRACK:
-    return 4;
+    return 40;
   case T_PERIOD:
-    return 5;
+    return 50;
   case T_RPAREN:
     return 0;
   case T_RBRACE:
@@ -724,6 +730,33 @@ struct ExpressionNode *parse_expression(struct Parser *parser,
               .node.binary = ast_make_binary_expression(
                   parser->allocator, BIN_EXPR_DIV, left,
                   parse_expression(parser, precedence_for_token(T_SLASH)))});
+      break;
+    case T_AMPERSAND:
+      left = ast_promote_expression_node(
+          parser->allocator,
+          (struct ExpressionNode){
+              .type = EXPR_BINARY,
+              .node.binary = ast_make_binary_expression(
+                  parser->allocator, BIN_EXPR_AND, left,
+                  parse_expression(parser, precedence_for_token(T_AMPERSAND)))});
+      break;
+    case T_PIPE:
+      left = ast_promote_expression_node(
+          parser->allocator,
+          (struct ExpressionNode){
+              .type = EXPR_BINARY,
+              .node.binary = ast_make_binary_expression(
+                  parser->allocator, BIN_EXPR_OR, left,
+                  parse_expression(parser, precedence_for_token(T_PIPE)))});
+      break;
+    case T_CARET:
+      left = ast_promote_expression_node(
+          parser->allocator,
+          (struct ExpressionNode){
+              .type = EXPR_BINARY,
+              .node.binary = ast_make_binary_expression(
+                  parser->allocator, BIN_EXPR_XOR, left,
+                  parse_expression(parser, precedence_for_token(T_CARET)))});
       break;
     case T_LBRACK: {
       struct ExpressionNode *indexing_expr =

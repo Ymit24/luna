@@ -1489,7 +1489,7 @@ bool can_operate_data_types(struct DataType *left, struct DataType *right,
   assert(left != NULL);
   assert(right != NULL);
 
-  printf("[can_add_data_types]: Left Type: <");
+  printf("[can_operate_data_types]: Left Type: <");
   print_data_type(left);
   printf(">, Right Type: <");
   print_data_type(right);
@@ -1503,6 +1503,7 @@ bool can_operate_data_types(struct DataType *left, struct DataType *right,
       operation == BIN_EXPR_EQ || operation == BIN_EXPR_NEQ ||
       operation == BIN_EXPR_LEQ || operation == BIN_EXPR_GEQ;
 
+  // TODO: check if more narrow rules are needed for bitwise ops
   switch (left->kind) {
   case DTK_PRIMITIVE:
     switch (right->kind) {

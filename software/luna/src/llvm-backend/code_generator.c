@@ -700,6 +700,21 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
     LLVMValueRef right =
         cg_visit_expr(code_generator, expr->node.binary->right);
     switch (expr->node.binary->type) {
+    case BIN_EXPR_AND:
+      puts("got bitwise and");
+      return LLVMBuildAnd(code_generator->builder,
+                            cg_coerce(code_generator, left, common),
+                            cg_coerce(code_generator, right, common), "");
+    case BIN_EXPR_OR:
+      puts("got bitwise or");
+      return LLVMBuildOr(code_generator->builder,
+                            cg_coerce(code_generator, left, common),
+                            cg_coerce(code_generator, right, common), "");
+    case BIN_EXPR_XOR:
+      puts("got bitwise xor");
+      return LLVMBuildXor(code_generator->builder,
+                            cg_coerce(code_generator, left, common),
+                            cg_coerce(code_generator, right, common), "");
     case BIN_EXPR_ADD:
       puts("got add");
       LLVMValueRef pointer = NULL;

@@ -203,12 +203,18 @@ enum BinaryExpressionType {
   BIN_EXPR_SUB,
   BIN_EXPR_MUL,
   BIN_EXPR_DIV,
+
+  BIN_EXPR_AND,
+  BIN_EXPR_OR,
+  BIN_EXPR_XOR,
+
   BIN_EXPR_LT,
   BIN_EXPR_GT,
   BIN_EXPR_EQ,
   BIN_EXPR_NEQ,
   BIN_EXPR_LEQ,
   BIN_EXPR_GEQ,
+
 };
 
 struct BinaryExpressionNode {

@@ -1,9 +1,41 @@
+const puts = fn@extern["puts"](fmt: *i8):i32
+const printf = fn@extern["printf"]@variadic(fmt: *i8): i32
+
+const print_binary = fn(x: u32) {
+  let index = 31
+  while index >= 0 {
+    // if x & (1 << i) {
+    if true {
+      printf("1")
+    } else {
+      printf("0")
+    }
+    index = index - 1
+  }
+}
+
 const main = fn() {
-  const a = 100
+  const a = 101
   const b = 1
 
   const c = a & b
   const d = a | b
   const e = a ^ b
-  const f = ~a
+  // const f = ~a
+
+  printf("c: %d -- `0x%x`", c, c)
+  print_binary(c)
+  puts("")
+
+  printf("d: %d -- `0x%x`", d, d)
+  print_binary(d)
+  puts("")
+
+  printf("e: %d -- `0x%x`", e, e)
+  print_binary(e)
+  puts("")
+
+  // printf("f: 0x%x", f)
+  // print_binary(f)
+  // puts("")
 }
