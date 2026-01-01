@@ -496,6 +496,9 @@ struct DataType *infer_type(struct Annotator *annotator,
     puts("");
     return entry->type->value.function.return_type;
   }
+  case EXPR_NOT: {
+    return infer_type(annotator, expr->node.ref);
+  }
   case EXPR_REF: {
     return make_pointer_data_type(annotator->allocator,
                                   infer_type(annotator, expr->node.ref));
@@ -794,6 +797,14 @@ void annotator_visit_expr(struct Annotator *annotator,
     // assert(0);
     // TODO: Do we need to do anything here?
     break;
+  case EXPR_NOT:
+    assert(expr->node.not != NULL);
+
+    struct DataType *inner = infer_type(annotator, expr->node.not);
+
+    assert(inner != NULL);
+    assert(inner->kind == DTK_PRIMITIVE);
+    break;
   case EXPR_REF: {
     assert(expr->node.ref != NULL);
 
@@ -818,6 +829,7 @@ void annotator_visit_expr(struct Annotator *annotator,
     case EXPR_MOD_DEF:
     case EXPR_VALUESIZE:
     case EXPR_TYPESIZE:
+    case EXPR_NOT:
       printf("Can't take reference to expression of type (%d).\n",
              expr->node.ref->type);
       assert(0);

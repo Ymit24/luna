@@ -81,6 +81,7 @@ parse_function_call_expression(struct Parser *parser,
                      sizeof(struct FunctionCallExpressionNode));
 }
 
+// TODO: clean up these values once all operators are done
 uint8_t precedence_for_token(enum TokenType type) {
   switch (type) {
   case T_PIPE:
@@ -111,8 +112,10 @@ uint8_t precedence_for_token(enum TokenType type) {
     return 30;
   case T_LBRACK:
     return 40;
-  case T_PERIOD:
+  case T_TILDE:
     return 50;
+  case T_PERIOD:
+    return 99;
   case T_RPAREN:
     return 0;
   case T_RBRACE:
@@ -429,6 +432,16 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
             .node.ref = parse_expression(parser, precedence_for_token(T_PLUS))},
         sizeof(struct ExpressionNode));
   }
+  case T_TILDE: {
+    parser->position++;
+
+    return ast_promote(
+        parser->allocator,
+        &(struct ExpressionNode){.type = EXPR_NOT,
+                                 .node.not = parse_expression(
+                                     parser, precedence_for_token(T_TILDE))},
+        sizeof(struct ExpressionNode));
+  }
   case T_STRING: {
     parser->position++;
 
@@ -738,7 +751,8 @@ struct ExpressionNode *parse_expression(struct Parser *parser,
               .type = EXPR_BINARY,
               .node.binary = ast_make_binary_expression(
                   parser->allocator, BIN_EXPR_AND, left,
-                  parse_expression(parser, precedence_for_token(T_AMPERSAND)))});
+                  parse_expression(parser,
+                                   precedence_for_token(T_AMPERSAND)))});
       break;
     case T_PIPE:
       left = ast_promote_expression_node(
@@ -1434,6 +1448,7 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
     case EXPR_STRUCT_DEF:
     case EXPR_STRUCT_INIT:
     case EXPR_REF:
+    case EXPR_NOT:
     case EXPR_CAST:
     case EXPR_MOD_DEF:
     case EXPR_VALUESIZE:

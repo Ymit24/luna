@@ -21,7 +21,7 @@ const main = fn() {
   const c = a & b
   const d = a | b
   const e = a ^ b
-  // const f = ~a
+  const f = ~a
 
   printf("c: %d -- `0x%x`", c, c)
   print_binary(c)
@@ -35,7 +35,7 @@ const main = fn() {
   print_binary(e)
   puts("")
 
-  // printf("f: 0x%x", f)
-  // print_binary(f)
-  // puts("")
+  printf("f: %d -- `0x%x`", f)
+  print_binary(f)
+  puts("")
 }

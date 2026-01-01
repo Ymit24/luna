@@ -94,6 +94,7 @@ enum ExpressionType {
   EXPR_FN_CALL,
   EXPR_REF,
   EXPR_DEREF,
+  EXPR_NOT,
   EXPR_STRUCT_DEF,
   EXPR_STRUCT_INIT,
   EXPR_FIELD_ACCESS,
@@ -125,6 +126,7 @@ struct ExpressionNode {
     struct FunctionCallExpressionNode *fn_call;
     struct ExpressionNode *ref;
     struct ExpressionNode *deref;
+    struct ExpressionNode *not;
     struct StructDefinitionExpressionNode *struct_def;
     struct StructInitializationExpressionNode *struct_init;
     struct StructFieldAccessExpressionNode *struct_field_access;

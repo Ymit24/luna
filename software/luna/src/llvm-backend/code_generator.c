@@ -703,18 +703,18 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
     case BIN_EXPR_AND:
       puts("got bitwise and");
       return LLVMBuildAnd(code_generator->builder,
-                            cg_coerce(code_generator, left, common),
-                            cg_coerce(code_generator, right, common), "");
+                          cg_coerce(code_generator, left, common),
+                          cg_coerce(code_generator, right, common), "");
     case BIN_EXPR_OR:
       puts("got bitwise or");
       return LLVMBuildOr(code_generator->builder,
-                            cg_coerce(code_generator, left, common),
-                            cg_coerce(code_generator, right, common), "");
+                         cg_coerce(code_generator, left, common),
+                         cg_coerce(code_generator, right, common), "");
     case BIN_EXPR_XOR:
       puts("got bitwise xor");
       return LLVMBuildXor(code_generator->builder,
-                            cg_coerce(code_generator, left, common),
-                            cg_coerce(code_generator, right, common), "");
+                          cg_coerce(code_generator, left, common),
+                          cg_coerce(code_generator, right, common), "");
     case BIN_EXPR_ADD:
       puts("got add");
       LLVMValueRef pointer = NULL;
@@ -931,6 +931,10 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
     return cg_visit_function_call(code_generator, expr->node.fn_call);
   case EXPR_REF: {
     return cg_visit_ref_expr(code_generator, expr->node.ref);
+  }
+  case EXPR_NOT: {
+    return LLVMBuildNot(code_generator->builder,
+                        cg_visit_expr(code_generator, expr->node.not), "");
   }
   case EXPR_DEREF: {
     LLVMValueRef inner = cg_visit_expr(code_generator, expr->node.deref);
