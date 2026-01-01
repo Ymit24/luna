@@ -1,0 +1,12 @@
+const main = fn() {
+  let a = 5
+  let b = 10
+
+  cstd::printf("before -- a: %d, b: %d\n", a, b)
+
+  a ^= b
+  b ^= a
+  a ^= b
+
+  cstd::printf("after -- a: %d, b: %d\n", a, b)
+}
