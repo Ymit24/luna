@@ -23,7 +23,14 @@ module.exports = grammar({
       )
     ),
 
-    if_statement: $ => seq('if', $.expression, $.function_body),
+    if_statement: $ => seq(
+      'if',
+      $.expression,
+      $.function_body,
+      repeat(seq('else', 'if', $.expression, $.function_body)),
+      optional(seq('else', $.function_body))
+    ),
+
     while_statement: $ => seq('while', $.expression, $.function_body),
     return_statement: $ => seq('return', $.expression, optional(';')),
 
