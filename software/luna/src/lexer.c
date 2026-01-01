@@ -142,6 +142,15 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
   case '&':
     out_token->type = T_AMPERSAND;
     break;
+  case '|':
+    out_token->type = T_PIPE;
+    break;
+  case '^':
+    out_token->type = T_CARET;
+    break;
+  case '~':
+    out_token->type = T_TILDE;
+    break;
   case '/':
     lexer->position++;
     if (lexer_peek(lexer) == '/') {

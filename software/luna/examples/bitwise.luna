@@ -1,0 +1,9 @@
+const main = fn() {
+  const a = 100
+  const b = 1
+
+  const c = a & b
+  const d = a | b
+  const e = a ^ b
+  const f = ~a
+}
