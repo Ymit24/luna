@@ -210,6 +210,9 @@ enum BinaryExpressionType {
   BIN_EXPR_OR,
   BIN_EXPR_XOR,
 
+  BIN_EXPR_LSHIFT,
+  BIN_EXPR_RSHIFT,
+
   BIN_EXPR_LT,
   BIN_EXPR_GT,
   BIN_EXPR_EQ,

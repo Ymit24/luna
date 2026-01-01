@@ -715,6 +715,15 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
       return LLVMBuildXor(code_generator->builder,
                           cg_coerce(code_generator, left, common),
                           cg_coerce(code_generator, right, common), "");
+    case BIN_EXPR_LSHIFT:
+      puts("got bitwise lshift");
+      return LLVMBuildShl(code_generator->builder, left, right, "");
+    case BIN_EXPR_RSHIFT:
+      puts("got bitwise rshift");
+      if (left_type->value.primitive.is_signed) {
+        return LLVMBuildAShr(code_generator->builder, left, right, "");
+      }
+      return LLVMBuildLShr(code_generator->builder, left, right, "");
     case BIN_EXPR_ADD:
       puts("got add");
       LLVMValueRef pointer = NULL;

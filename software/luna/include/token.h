@@ -22,6 +22,8 @@ enum TokenType {
   T_RBRACK,
   T_LANGLE,
   T_RANGLE,
+  T_LSHIFT,
+  T_RSHIFT,
   T_SEMICOLON,
   T_PIPE,
   T_CARET,

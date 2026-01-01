@@ -90,10 +90,14 @@ uint8_t precedence_for_token(enum TokenType type) {
     return 8;
   case T_AMPERSAND:
     return 9;
+  case T_LSHIFT:
+    return 10;
+  case T_RSHIFT:
+    return 10;
   case T_PLUS:
-    return 10;
+    return 15;
   case T_MINUS:
-    return 10;
+    return 15;
   case T_STAR:
     return 20;
   case T_SLASH:
@@ -743,6 +747,24 @@ struct ExpressionNode *parse_expression(struct Parser *parser,
               .node.binary = ast_make_binary_expression(
                   parser->allocator, BIN_EXPR_DIV, left,
                   parse_expression(parser, precedence_for_token(T_SLASH)))});
+      break;
+    case T_RSHIFT:
+      left = ast_promote_expression_node(
+          parser->allocator,
+          (struct ExpressionNode){
+              .type = EXPR_BINARY,
+              .node.binary = ast_make_binary_expression(
+                  parser->allocator, BIN_EXPR_RSHIFT, left,
+                  parse_expression(parser, precedence_for_token(T_RSHIFT)))});
+      break;
+    case T_LSHIFT:
+      left = ast_promote_expression_node(
+          parser->allocator,
+          (struct ExpressionNode){
+              .type = EXPR_BINARY,
+              .node.binary = ast_make_binary_expression(
+                  parser->allocator, BIN_EXPR_LSHIFT, left,
+                  parse_expression(parser, precedence_for_token(T_LSHIFT)))});
       break;
     case T_AMPERSAND:
       left = ast_promote_expression_node(

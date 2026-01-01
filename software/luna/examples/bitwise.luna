@@ -4,8 +4,7 @@ const printf = fn@extern["printf"]@variadic(fmt: *i8): i32
 const print_binary = fn(x: u32) {
   let index = 31
   while index >= 0 {
-    // if x & (1 << i) {
-    if true {
+    if x & (1 << index) {
       printf("1")
     } else {
       printf("0")
@@ -22,6 +21,7 @@ const main = fn() {
   const d = a | b
   const e = a ^ b
   const f = ~a
+  const g = a << 1
 
   printf("c: %d -- `0x%x`", c, c)
   print_binary(c)
@@ -37,5 +37,9 @@ const main = fn() {
 
   printf("f: %d -- `0x%x`", f)
   print_binary(f)
+  puts("")
+
+  printf("g: %d -- `0x%x`", g)
+  print_binary(g)
   puts("")
 }
