@@ -192,6 +192,7 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
     } else if (lexer_peek(lexer) == '=') {
       out_token->type = T_SLASHEQUALS;
       lexer->position++;
+      return true;
     }
     out_token->type = T_SLASH;
     return true;
