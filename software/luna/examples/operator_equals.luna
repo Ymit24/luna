@@ -1,0 +1,39 @@
+// const puts = fn@extern["puts"](fmt: *i8):i32
+// const printf = fn@extern["printf"]@variadic(fmt: *i8): i32
+const a: i32 = 100
+
+const main = fn() {
+  cstd::puts("hello world")
+  let b: i32 = 30
+  cstd::printf("1. b: %d\n", b)
+  b = 25
+  cstd::printf("2. b: %d\n", b)
+  b += 5
+  cstd::printf("2b. b: %d\n", b)
+  b -= 15
+  cstd::printf("2c. b: %d\n", b)
+  b &= 5
+  cstd::printf("2d. b: %d\n", b)
+  let c = a + b
+  cstd::printf("3. c: %d\n", c)
+  let v = fn():i32 { return 3 }
+  let f = fn(s: fn():i32): i32 { 
+      cstd::puts("inner")
+      return 1+s()
+  }
+  cstd::printf("4. f: %d\n", f(fn():i32 { return 7}))
+  cstd::printf("5. %d\n", f(v))
+
+  const str = strings::make("foo")
+  cstd::printf("str: %s\n", str.data)
+  strings::append::cstr(&str, "bar")
+  cstd::printf("str 2: %s\n", str.data)
+
+  cstd::printf("str 3: `")
+  let index = 0
+  while index < str.len {
+    cstd::printf("%c", str.data[index])
+    index += 1
+  }
+  cstd::printf("`\n")
+}
