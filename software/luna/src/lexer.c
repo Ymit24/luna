@@ -132,22 +132,52 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
   switch (current) {
   case '+':
     out_token->type = T_PLUS;
-    break;
+    lexer->position++;
+    if (lexer_peek(lexer) == '=') {
+      out_token->type = T_PLUSEQUALS;
+      lexer->position++;
+    }
+    return true;
   case '-':
     out_token->type = T_MINUS;
-    break;
+    lexer->position++;
+    if (lexer_peek(lexer) == '=') {
+      out_token->type = T_MINUSEQUALS;
+      lexer->position++;
+    }
+    return true;
   case '*':
     out_token->type = T_STAR;
-    break;
+    lexer->position++;
+    if (lexer_peek(lexer) == '=') {
+      out_token->type = T_STAREQUALS;
+      lexer->position++;
+    }
+    return true;
   case '&':
     out_token->type = T_AMPERSAND;
-    break;
+    lexer->position++;
+    if (lexer_peek(lexer) == '=') {
+      out_token->type = T_AMPEQUALS;
+      lexer->position++;
+    }
+    return true;
   case '|':
     out_token->type = T_PIPE;
-    break;
+    lexer->position++;
+    if (lexer_peek(lexer) == '=') {
+      out_token->type = T_PIPEEQUALS;
+      lexer->position++;
+    }
+    return true;
   case '^':
     out_token->type = T_CARET;
-    break;
+    lexer->position++;
+    if (lexer_peek(lexer) == '=') {
+      out_token->type = T_CARETEQUALS;
+      lexer->position++;
+    }
+    return true;
   case '~':
     out_token->type = T_TILDE;
     break;
@@ -159,9 +189,14 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
         lexer->position++;
       }
       return lexer_next(lexer, out_token);
+    } else if (lexer_peek(lexer) == '=') {
+      out_token->type = T_SLASHEQUALS;
+      lexer->position++;
+      return true;
     }
     out_token->type = T_SLASH;
     return true;
+
   case '(':
     out_token->type = T_LPAREN;
     break;
@@ -197,6 +232,11 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
     } else if (lexer_peek(lexer) == '<') {
       out_token->type = T_LSHIFT;
       lexer->position++;
+
+      if (lexer_peek(lexer) == '=') {
+        out_token->type = T_LSHIFTEQUALS;
+        lexer->position++;
+      }
     }
     return true;
   case '>':
@@ -208,6 +248,11 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
     } else if (lexer_peek(lexer) == '>') {
       out_token->type = T_RSHIFT;
       lexer->position++;
+
+      if (lexer_peek(lexer) == '=') {
+        out_token->type = T_RSHIFTEQUALS;
+        lexer->position++;
+      }
     }
     return true;
   case ';':

@@ -1196,6 +1196,78 @@ struct ReturnStatementNode *parse_ret_statement(struct Parser *parser) {
       sizeof(struct DeclarationStatementNode));
 }
 
+struct FunctionStatementNode *
+parse_assignment_statement(struct Parser *parser, struct ExpressionNode *expr) {
+  enum TokenType assignment_type = parser_peek(parser).type;
+  switch (assignment_type) {
+  case T_EQUALS:
+  case T_PLUSEQUALS:
+  case T_MINUSEQUALS:
+  case T_STAREQUALS:
+  case T_SLASHEQUALS:
+  case T_LSHIFTEQUALS:
+  case T_RSHIFTEQUALS:
+  case T_AMPEQUALS:
+  case T_PIPEEQUALS:
+  case T_CARETEQUALS:
+    break;
+  default:
+    puts("unexpected token for assignment. Expected =, +=, -=, etc");
+    assert(0);
+    break;
+  }
+  parser->position++;
+
+  struct ExpressionNode *rhs_expression = parse_expression(parser, 0);
+  assert(rhs_expression != NULL);
+
+  if (parser_peek(parser).type == T_SEMICOLON) {
+    parser->position++;
+  }
+
+  switch (assignment_type) {
+#define GEN_CODE(TOK, BIN_EXPR)                                                \
+  case TOK:                                                                    \
+    rhs_expression = ast_promote_expression_node(                              \
+        parser->allocator,                                                     \
+        (struct ExpressionNode){                                               \
+            .type = EXPR_BINARY,                                               \
+            .node.binary = ast_make_binary_expression(                         \
+                parser->allocator, BIN_EXPR, expr, rhs_expression)});          \
+    break;
+    GEN_CODE(T_PLUSEQUALS, BIN_EXPR_ADD)
+    GEN_CODE(T_MINUSEQUALS, BIN_EXPR_SUB)
+    GEN_CODE(T_STAREQUALS, BIN_EXPR_MUL)
+    GEN_CODE(T_SLASHEQUALS, BIN_EXPR_DIV)
+    GEN_CODE(T_LSHIFTEQUALS, BIN_EXPR_LSHIFT)
+    GEN_CODE(T_RSHIFTEQUALS, BIN_EXPR_RSHIFT)
+    GEN_CODE(T_AMPEQUALS, BIN_EXPR_AND)
+    GEN_CODE(T_PIPEEQUALS, BIN_EXPR_OR)
+    GEN_CODE(T_CARETEQUALS, BIN_EXPR_XOR)
+#undef GEN_CODE
+    break;
+  case T_EQUALS:
+    break;
+  default:
+    puts("illegal code path.");
+    assert(0);
+    break;
+  }
+
+  return ast_promote(
+      parser->allocator,
+      &(struct FunctionStatementNode){
+          .type = FN_STMT_ASSIGN,
+          .node.assign = ast_promote(parser->allocator,
+                                     &(struct AssignStatementNode){
+                                         .source_expression = expr,
+                                         .result_expression = rhs_expression},
+                                     sizeof(struct AssignStatementNode)),
+          .next = NULL,
+      },
+      sizeof(struct FunctionStatementNode));
+}
+
 struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
   switch (parser_peek(parser).type) {
   case T_LET: {
@@ -1366,103 +1438,17 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
 
                          },
                          sizeof(struct FunctionStatementNode));
-    case EXPR_DEREF: {
-      assert(parser_peek(parser).type == T_EQUALS);
-      parser->position++;
-
-      struct ExpressionNode *result_expression = parse_expression(parser, 0);
-      assert(result_expression != NULL);
-
-      if (parser_peek(parser).type == T_SEMICOLON) {
-        parser->position++;
-      }
-
-      return ast_promote(parser->allocator,
-                         &(struct FunctionStatementNode){
-                             .type = FN_STMT_ASSIGN,
-                             .node.assign = ast_promote(
-                                 parser->allocator,
-                                 &(struct AssignStatementNode){
-                                     .source_expression = expr,
-                                     .result_expression = result_expression},
-                                 sizeof(struct AssignStatementNode)),
-                             .next = NULL,
-                         },
-                         sizeof(struct FunctionStatementNode));
-    }
+    case EXPR_DEREF:
     case EXPR_FIELD_ACCESS:
-      assert(parser_peek(parser).type == T_EQUALS);
-      parser->position++;
-
-      struct ExpressionNode *result_expression = parse_expression(parser, 0);
-      assert(result_expression != NULL);
-
-      if (parser_peek(parser).type == T_SEMICOLON) {
-        parser->position++;
-      }
-
-      return ast_promote(parser->allocator,
-                         &(struct FunctionStatementNode){
-                             .type = FN_STMT_ASSIGN,
-                             .node.assign = ast_promote(
-                                 parser->allocator,
-                                 &(struct AssignStatementNode){
-                                     .source_expression = expr,
-                                     .result_expression = result_expression},
-                                 sizeof(struct AssignStatementNode)),
-                             .next = NULL,
-                         },
-                         sizeof(struct FunctionStatementNode));
-    case EXPR_SYMBOL_LITERAL: {
-      puts("plain symbol assignment.");
-
-      assert(parser_peek(parser).type == T_EQUALS);
-      parser->position++;
-
-      struct ExpressionNode *result_expression = parse_expression(parser, 0);
-
-      printf("in assign, parsed expression of type: %d\n",
-             result_expression->type);
-
-      if (parser_peek(parser).type == T_SEMICOLON) {
-        parser->position++;
-      }
-
-      return ast_promote(parser->allocator,
-                         &(struct FunctionStatementNode){
-                             .type = FN_STMT_ASSIGN,
-                             .node.assign = ast_promote(
-                                 parser->allocator,
-                                 &(struct AssignStatementNode){
-                                     .source_expression = expr,
-                                     .result_expression = result_expression},
-                                 sizeof(struct AssignStatementNode)),
-                             .next = NULL,
-                         },
-                         sizeof(struct FunctionStatementNode));
-    }
-    case EXPR_ARRAY_INITIALIZER:
-      puts("Found array initializer fn stmt");
-      assert(0);
-
-      return ast_promote(
+    case EXPR_SYMBOL_LITERAL:
+      return parse_assignment_statement(parser, expr);
+    case EXPR_ARRAY_INITIALIZER: {
+      struct ExpressionNode *source_expression = ast_promote(
           parser->allocator,
-          &(struct FunctionStatementNode){
-              .type = FN_STMT_ASSIGN,
-              .node.assign = ast_promote(
-                  parser->allocator,
-                  &(struct AssignStatementNode){
-                      .source_expression = ast_promote(
-                          parser->allocator,
-                          &(struct ExpressionNode){.type = EXPR_DEREF,
-                                                   .node.deref = expr},
-                          sizeof(struct ExpressionNode)),
-                      .result_expression = result_expression},
-                  sizeof(struct AssignStatementNode)),
-              .next = NULL,
-          },
-          sizeof(struct FunctionStatementNode));
-      break;
+          &(struct ExpressionNode){.type = EXPR_DEREF, .node.deref = expr},
+          sizeof(struct ExpressionNode));
+      return parse_assignment_statement(parser, source_expression);
+    }
     case EXPR_BINARY:
     case EXPR_INTEGER_LITERAL:
     case EXPR_STRING_LITERAL:
