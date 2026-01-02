@@ -15,6 +15,8 @@
 #include "token.h"
 #include "llvm-c/Core.h"
 
+const char *VERSION = "0.1.0";
+
 struct LunaString read_file(const char *path, struct ArenaAllocator *alloc) {
   FILE *file = fopen(path, "rb");
   if (!file) {
@@ -129,6 +131,11 @@ int main(int argc, char **argv) {
   if (argc < 2) {
     fprintf(stderr, "usage: %s <source.luna> ...\n", argv[0]);
     return 1;
+  }
+
+  if (strcmp(argv[1], "-v") == 0) {
+    printf("version: %s\n", VERSION);
+    return 0;
   }
 
   struct ModuleStatementNode *new_root = NULL;
