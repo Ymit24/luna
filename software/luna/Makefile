@@ -16,12 +16,22 @@ SRC := main.c \
        src/arena_allocator.c src/interpreter.c src/annotator.c \
        src/instruction_builder.c src/llvm-backend/code_generator.c src/module_symbol_table_builder.c
 
+LIB := lib.c \
+       src/luna_string.c src/lexer.c src/parser.c src/ast.c \
+       src/arena_allocator.c src/interpreter.c src/annotator.c \
+       src/instruction_builder.c src/llvm-backend/code_generator.c src/module_symbol_table_builder.c
+
 .PHONY: all clean
 
 all: lunac
 
 lunac: $(SRC)
 	gcc -o bin/$@ $(SRC) $(CFLAGS) $(LDFLAGS)
+
+lib: $(LIB)
+	clang -S -emit-llvm -std=c99 lib.c -o out/source.ll -Iinclude
+	llvm-link out/compiled.ll out/source.ll -S -o out/combined.ll
+	clang out/combined.ll -o out/final $(LDFLAGS)
 
 clean:
 	rm -f lunac

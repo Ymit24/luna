@@ -1,0 +1,8 @@
+#include "src/annotator.c"
+#include "src/arena_allocator.c"
+#include "src/ast.c"
+#include "src/lexer.c"
+#include "src/llvm-backend/code_generator.c"
+#include "src/luna_string.c"
+#include "src/module_symbol_table_builder.c"
+#include "src/parser.c"
