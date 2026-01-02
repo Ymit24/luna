@@ -626,11 +626,34 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
                 },
                 sizeof(struct StructInitializationExpressionNode))});
   }
+  case T_UNION: {
+    parser->position++;
 
+    struct StructDefinitionExpressionNode struct_def = {0};
+
+    struct_def.is_union = true;
+
+    assert(parser_peek(parser).type == T_LBRACE);
+    parser->position++;
+
+    struct_def.fields = parse_struct_field_definition(parser);
+
+    assert(parser_peek(parser).type == T_RBRACE);
+    parser->position++;
+
+    return ast_promote(parser->allocator,
+                       &(struct ExpressionNode){
+                           .type = EXPR_STRUCT_DEF,
+                           .node.struct_def = ast_promote(
+                               parser->allocator, &struct_def,
+                               sizeof(struct StructDefinitionExpressionNode)),
+                       },
+                       sizeof(struct ExpressionNode));
+  }
   case T_STRUCT: {
     parser->position++;
 
-    struct StructDefinitionExpressionNode struct_def;
+    struct StructDefinitionExpressionNode struct_def = {0};
 
     assert(parser_peek(parser).type == T_LBRACE);
     parser->position++;

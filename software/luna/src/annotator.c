@@ -1680,10 +1680,14 @@ bool can_operate_data_types(struct DataType *left, struct DataType *right,
 void print_struct_def_data_type(
     struct StructDefinitionExpressionNode *definition) {
   if (definition == NULL) {
-    printf("struct{?}");
+    printf("struct|union{?}");
     return;
   }
-  printf("struct{");
+  if (definition->is_union) {
+    printf("union{");
+  } else {
+    printf("struct{");
+  }
   struct StructFieldDefinitionNode *current = definition->fields;
   while (current != NULL) {
     printf("%s:", current->name.data);
