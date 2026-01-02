@@ -1,28 +1,17 @@
 const parsers = mod {
-  const Context = struct {
-    source: strings::string,
-    index: i32
-  }
+  const Context = struct { source: strings::string, index: i32 }
 
   const make = fn(str: *i8): Context {
-    return .Context {
-      source: str,
-      index: 0,
-    }
+    return .Context { source: str, index: 0 }
   }
 
   const peek = fn(context: *Context): i8 {
     const peek_inner = fn(context: *Context): i8 {
-      if context.index >= context.source.len {
-        const r: i8 = 0
-        return r
-      }
+      if context.index >= context.source.len { const r: i8 = 0; return r }
       return context.source.data[context.index]
     }
 
-    while cstd::isspace(peek_inner(context)) {
-      context.index += 1
-    }
+    while cstd::isspace(peek_inner(context)) { context.index += 1 }
 
     return peek_inner(context)
   }
@@ -41,16 +30,37 @@ const parsers = mod {
       }
       expect(context, '\"')
 
-      strings::make_slice_from(&context.source.data[start_index], context.index - start_index - 1)
+      return strings::make_slice_from(&context.source.data[start_index], context.index - start_index - 1)
+    }
 
-      return strings::make("foo")
+    const number = fn(context: *Context): i32 {
+      if cstd::isdigit(peek(context)) == false {
+        cstd::puts("Expected number.")
+        std::assert(false)
+      }
+
+      const buffer = strings::make("")
+
+      while cstd::isdigit(peek(context)) {
+        strings::append::char(&buffer, peek(context)) 
+        context.index += 1
+      }
+
+      cstd::printf("Parsed number buffer: '%s' (%d)\n", buffer.data, buffer.len)
+
+      let endptr = null
+      const result: i32 = cstd::strtol(buffer.data, &endptr, 10)
+      return result
     }
   }
 }
 
 const main = fn () {
-  const parser = parsers::make("\"foo\"")
+  const parser = parsers::make("\"foo\" 20")
 
   const str = parsers::parse::string(&parser)
   cstd::printf("String: '%s' (%d)\n", str.data, str.len)
+
+  const num = parsers::parse::number(&parser)
+  cstd::printf("Number: '%d'\n", num)
 }
