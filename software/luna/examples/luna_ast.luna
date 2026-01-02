@@ -1,0 +1,318 @@
+const LunaString = struct {
+  data: *i8,
+  length: i32
+}
+
+const ModuleStatementType = mod {
+  const LET = 0
+  const CONST = 1
+}
+
+const FunctionStatementType = mod {
+  const LET = 0
+  const CONST = 1
+  const ASSIGN = 2
+  const RETURN = 3
+  const FN_CALL = 4
+  const IF = 5
+  const WHILE = 6
+}
+
+const FunctionArgumentNode = struct {
+  symbol: LunaString,
+  data_type: *DataType,
+  next: *FunctionArgumentNode
+}
+
+const DeclarationStatementNode = struct {
+  symbol: LunaString,
+  data_type: *DataType,
+  expression: *ExpressionNode,
+  has_type: i1,
+  is_const: i1,
+}
+
+const AssignStatementNode = struct {
+  source_expression: *ExpressionNode,
+  result_expression: *ExpressionNode,
+}
+
+const ModuleNode = struct {
+  statements: *ModuleStatementNode,
+  symbol_table: SymbolTable,
+}
+
+const ModuleStatementNodeValue = union {
+  decl: DeclarationStatementNode
+}
+
+const ModuleStatementNode = struct {
+  type: i32,
+  node: ModuleStatementNodeValue,
+  next: *ModuleStatementNode,
+}
+
+const ReturnStatementNode = struct {
+  expression: *ExpressionNode,
+}
+
+const FunctionStatementNodeValue = union {
+  decl: *DeclarationStatementNode,
+  assign: *AssignStatementNode,
+  ret: *ReturnStatementNode,
+  call_fn: *FunctionCallExpressionNode,
+  stmt_fn: *IfStatementNode,
+  stmt_while: *WhileStatementNode,
+}
+
+const FunctionStatementNode = struct {
+  type: i32,
+  node: FunctionStatementNodeValue,
+  next: *FunctionStatementNode,
+}
+
+const IfStatementNode = struct {
+  condition: *ExpressionNode,
+  body: *FunctionStatementNode,
+  next: *IfStatementNode,
+  symbol_table: SymbolTable,
+}
+
+const WhileStatementNode = struct {
+  condition: *ExpressionNode,
+  body: *FunctionStatementNode,
+  symbol_table: SymbolTable,
+}
+
+
+const ExpressionType = mod {
+  const EXPR_BINARY = 0
+  const EXPR_INTEGER_LITERAL = 1
+  const EXPR_SYMBOL_LITERAL = 2
+  const EXPR_STRING_LITERAL = 3
+  const EXPR_FN_DEF = 4
+  const EXPR_FN_CALL = 5
+  const EXPR_REF = 6
+  const EXPR_DEREF = 7
+  const EXPR_NOT = 8
+  const EXPR_STRUCT_DEF = 9
+  const EXPR_STRUCT_INIT = 10
+  const EXPR_FIELD_ACCESS = 11
+  const EXPR_CAST = 12
+  const EXPR_ARRAY_INITIALIZER = 13
+  const EXPR_MOD_DEF = 14
+  const EXPR_VALUESIZE = 15
+  const EXPR_TYPESIZE = 16
+}
+
+const CastExpressionNode = struct {
+  expr: *ExpressionNode,
+  type: *DataType
+}
+
+const ArrayInitializerExpressionNode = struct {
+  initializer: *ExpressionNode,
+  next: *ArrayInitializerExpressionNode
+}
+
+const ExpressionNodeValue = union {
+  integer: *IntegerLiteralNode,
+  scoped_symbol: *ScopedSymbolLiteralNode,
+  string: *StringLiteralNode,
+  binary: *BinaryExpressionNode,
+  def_fn: *FunctionDefinitionExpressionNode,
+  call_fn: *FunctionCallExpressionNode,
+  ref: *ExpressionNode,
+  deref: *ExpressionNode,
+  not: *ExpressionNode,
+  def_struct: *StructDefinitionExpressionNode,
+  init_struct: *StructInitializationExpressionNode,
+  field_access: *StructFieldAccessExpressionNode,
+  cast: *CastExpressionNode,
+  valuesize: *ExpressionNode,
+  typesize: *DataType,
+  array_initializers: *ArrayInitializerExpressionNode,
+  definition_module: *ModuleNode,
+}
+
+const ExpressionNode = struct {
+  type: i32,
+  node: ExpressionNodeValue
+}
+
+const IntegerLiteralNode = struct {
+  value: i64,
+}
+
+const SymbolLiteralNode = struct {
+  value: LunaString,
+}
+
+const ScopedSymbolLiteralNode = struct {
+  symbol: *SymbolLiteralNode,
+  next: *ScopedSymbolLiteralNode,
+  remaining: u8,
+}
+
+const StringLiteralNode = struct {
+  value: LunaString,
+}
+
+const StructFieldDefinitionNode = struct {
+  name: LunaString,
+  type: *DataType,
+  next: *StructFieldDefinitionNode,
+}
+
+const StructDefinitionExpressionNode = struct {
+  fields: *StructFieldDefinitionNode,
+  symbol_table: SymbolTable,
+  llvm_structure_type: LLVMTypeRef,
+  is_union: i1,
+}
+
+const StructFieldAccessExpressionNode = struct {
+  expression: *ExpressionNode,
+  symbol: LunaString,
+}
+
+const StructFieldInitializerExpressionNode = struct {
+  name: LunaString,
+  expression: *ExpressionNode,
+  next: *StructFieldInitializerExpressionNode
+}
+
+const StructInitializationExpressionNode = struct {
+  name: ScopedSymbolLiteralNode,
+  fields: *StructFieldInitializerExpressionNode,
+}
+
+const FunctionDefinitionExpressionNode = struct {
+  body: *FunctionStatementNode,
+  function_type: *DataType,
+  symbol_table: SymbolTable,
+}
+
+const FunctionCallArgumentExpressionsNode = struct {
+  argument: *ExpressionNode,
+  next: *FunctionCallArgumentExpressionsNode,
+}
+
+const FunctionCallExpressionNode = struct {
+  name: *ScopedSymbolLiteralNode,
+  arguments: *FunctionCallArgumentExpressionsNode,
+}
+
+
+const BinaryExpressionType = mod {
+  const BIN_EXPR_ADD = 0
+  const BIN_EXPR_SUB = 1
+  const BIN_EXPR_MUL = 2
+  const BIN_EXPR_DIV = 3
+
+  const BIN_EXPR_AND = 4
+  const BIN_EXPR_OR = 5
+  const BIN_EXPR_XOR = 6
+
+  const BIN_EXPR_LSHIFT = 7
+  const BIN_EXPR_RSHIFT = 8
+
+  const BIN_EXPR_LT = 9
+  const BIN_EXPR_GT = 10
+  const BIN_EXPR_EQ = 11
+  const BIN_EXPR_NEQ = 12
+  const BIN_EXPR_LEQ = 13
+  const BIN_EXPR_GEQ = 14
+}
+
+const BinaryExpressionNode = struct {
+  type: i32,
+  left: *ExpressionNode,
+  right: *ExpressionNode,
+}
+
+const SymbolTableEntry = struct {
+  symbol: LunaString,
+  type: *DataType,
+  llvm_value: LLVMValueRef,
+  next: *SymbolTableEntry,
+  memory_segment: i32,
+  symbol_location: i32,
+  index: u16,
+}
+
+const SymbolTable = struct {
+  head: *SymbolTableEntry,
+  parent: *SymbolTable,
+  current_index: u16,
+  type: i32,
+}
+
+// todo -------
+
+const FunctionType = struct {
+  type_return: *DataType,
+  arguments: *FunctionArgumentNode,
+  extern_name: *LunaString,
+  is_variadic: i1,
+};
+
+const PrimitiveType = struct {
+  kind: i32,
+  bitwidth: u8,
+  is_signed: i1,
+}
+
+const StructType = struct {
+  name: *ScopedSymbolLiteralNode,
+  definition: *StructDefinitionExpressionNode,
+}
+
+const ArrayType = struct {
+  element_type: *DataType,
+  length: u64,
+}
+
+const StructDefinitionType = struct {
+  definition: *StructDefinitionExpressionNode
+}
+
+const ModuleDefinitionType = struct {
+  definition_module: *ModuleNode
+}
+
+const ModuleType = struct {
+  name: *ScopedSymbolLiteralNode,
+  definition_module: *ModuleDefinitionType
+}
+
+const ResolvableType = struct {
+  scoped_symbol: *ScopedSymbolLiteralNode,
+  resolved_type: *DataType,
+}
+
+
+const DataTypeValue = union {
+  function: FunctionType,
+  primitive: PrimitiveType,
+  pointer_inner: *DataType,
+  _structure: StructType,
+  array: ArrayType,
+  definition_structure: StructDefinitionType,
+  definition_module: *ModuleDefinitionType,
+  _module: *ModuleType,
+  resolvable: ResolvableType,
+}
+
+const DataType = struct {
+  kind: i32,
+  value: DataTypeValue,
+  next: *DataType,
+}
+
+const LLVMTypeRef = struct { foo: i32 }
+const LLVMValueRef = struct { foo: i32 }
+
+const main = fn() {
+
+}

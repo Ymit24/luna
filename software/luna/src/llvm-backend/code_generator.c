@@ -199,8 +199,10 @@ LLVMTypeRef cg_get_type(struct CodeGenerator *code_generator,
     return LLVMVoidType();
   }
   case DTK_POINTER: {
-    LLVMTypeRef inner =
-        cg_get_type(code_generator, data_type->value.pointer_inner);
+    LLVMTypeRef inner = LLVMInt32Type();
+    // TODO: May not need this
+    // LLVMTypeRef inner =
+    //     cg_get_type(code_generator, data_type->value.pointer_inner);
     return LLVMPointerType(inner, 0);
   }
   case DTK_STRUCTURE_DEF:
