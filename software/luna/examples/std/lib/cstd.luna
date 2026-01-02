@@ -20,6 +20,7 @@ const exit = fn@extern["exit"](status: i32);
 const perror = fn@extern["perror"](s: *i8);
 const system = fn@extern["system"](s: *i8):i32;
 
+const isspace = fn@extern["isspace"](c: i32): i32;
 
 // NOTE: This is macos version of dirent
 const dirent = struct {

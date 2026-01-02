@@ -1,0 +1,56 @@
+const parsers = mod {
+  const Context = struct {
+    source: strings::string,
+    index: i32
+  }
+
+  const make = fn(str: *i8): Context {
+    return .Context {
+      source: str,
+      index: 0,
+    }
+  }
+
+  const peek = fn(context: *Context): i8 {
+    const peek_inner = fn(context: *Context): i8 {
+      if context.index >= context.source.len {
+        const r: i8 = 0
+        return r
+      }
+      return context.source.data[context.index]
+    }
+
+    while cstd::isspace(peek_inner(context)) {
+      context.index += 1
+    }
+
+    return peek_inner(context)
+  }
+
+  const parse = mod {
+    const expect = fn(context: *Context, expected: i8) {
+      const actual = peek(context);
+      context.index += 1;
+    }
+
+    const string = fn(context: *Context): strings::string {
+      expect(context, '\"')
+      const start_index = context.index
+      while peek(context) != '\"' {
+        context.index += 1
+      }
+      expect(context, '\"')
+
+      strings::make_slice_from(&context.source.data[start_index], context.index - start_index - 1)
+
+      return strings::make("foo")
+    }
+  }
+}
+
+const main = fn () {
+  const parser = parsers::make("\"foo\"")
+
+  const str = parsers::parse::string(&parser)
+  cstd::printf("String: '%s' (%d)\n", str.data, str.len)
+}

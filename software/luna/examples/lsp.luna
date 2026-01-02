@@ -212,7 +212,7 @@ const json = mod {
         fn parse_value = fn(context: *Context): *Value {
             const inner = fn(context: *Context): Value {
                 const token = peek(context);
-                if token == '"' {
+                if token == '\"' {
                     return .Value {
                         type: ValueType::STRING,
                         string: parse_string(),

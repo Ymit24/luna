@@ -26,6 +26,24 @@ const make_from = fn(src: *i8): string {
     return str;
 };
 
+
+const make_slice_from = fn(src: *i8, len: i8): string {
+    const size = cstd::strlen(src) + 1; 
+    if size < len {
+      cstd::printf("Len too long for string.")
+      std::assert(0)
+    }
+
+    // cstd::printf("SIZE: %d\n", size);
+    const dst = cstd::malloc(@typesize(i8) * (len + 1));
+    cstd::memcpy(dst, src, len);
+    dst[len] = 0
+    // cstd::printf("Copied string: '%s'\n", dst);
+    const str = make(dst);
+    str.is_heap = 1;
+    return str;
+};
+
 const free = fn(str: string) {
     std::assert(str.is_heap);
     cstd::free(str.data);
