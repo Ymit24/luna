@@ -1114,21 +1114,44 @@ void cg_visit_struct_definition(
   if (definition->is_union) {
     puts("[cg_visit_struct_definition] is union: true");
     uint64_t max_size = 0;
+    uint32_t max_alignment = 0;
 
     while (field != NULL) {
       LLVMTypeRef field_type = cg_get_type(code_generator, field->type);
 
       uint64_t size =
           LLVMABISizeOfType(code_generator->target_data, field_type);
+      uint32_t alignment =
+          LLVMABIAlignmentOfType(code_generator->target_data, field_type);
 
       if (size > max_size) {
         max_size = size;
+      }
+      if (alignment > max_alignment) {
+        max_alignment = alignment;
       }
 
       field = field->next;
     }
 
-    type = LLVMArrayType2(LLVMIntType(8), max_size);
+    LLVMTypeRef unit;
+    uint64_t unit_size;
+
+    if (max_alignment >= 8) {
+      unit = LLVMInt64Type();
+      unit_size = 8;
+    } else if (max_alignment == 4) {
+      unit = LLVMInt32Type();
+      unit_size = 4;
+    } else if (max_alignment == 2) {
+      unit = LLVMInt16Type();
+      unit_size = 2;
+    } else {
+      unit = LLVMInt8Type();
+      unit_size = 1;
+    }
+
+    type = LLVMArrayType2(unit, (max_size + unit_size - 1) / unit_size);
   } else {
     puts("[cg_visit_struct_definition] is union: false");
     LLVMTypeRef *field_types = arena_alloc(code_generator->allocator,

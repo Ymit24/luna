@@ -1,6 +1,6 @@
 const LunaString = struct {
   data: *i8,
-  length: i32
+  length: u16
 }
 
 const ModuleStatementType = mod {
@@ -343,7 +343,7 @@ const lexer_peek = fn@extern["lexer_peek"](lexer: *Lexer): i8;
 const lexer_next = fn@extern["lexer_next"](lexer: *Lexer, out_token: *Token): i8;
 
 const TokenValue = union {
-  integer: i32,
+  integer: u16,
   symbol: LunaString,
 }
 
@@ -431,7 +431,7 @@ const main = fn() {
 
   const lexer = .Lexer {
     allocator: &allocator,
-    source: string_make("let a = 10;"),
+    source: string_make("10 3 58 let 9 ;"),
     position: 0
   }
 
@@ -448,5 +448,8 @@ const main = fn() {
 
   while lexer_next(&lexer, &out) {
     printf("next token: type=%d\n", out.type)
+    if out.type == TokenType::T_INTEGER {
+      printf("\tinteger value: %u\n", out.value.integer)
+    }
   }
 }
