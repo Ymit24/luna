@@ -22,6 +22,16 @@ const Tokens = mod {
     type: i32,
     value: TokenValue
   }
+
+  const print = fn(value: TokenValue, type: i32) {
+    if type == 0 {
+      printf("[print]: `%d`\n", value.integer)
+    } else if type == 1 {
+      printf("[print]: `%s`\n", value.symbol.data)
+    } else {
+      printf("[print]: `unknown type %d`", type)
+    }
+  }
 }
 
 const GetToken = fn(): Tokens::TokenValue {
@@ -57,4 +67,7 @@ const main = fn() {
 
   const gettoken = GetToken()
   printf("gettoken: %d\n", gettoken.integer)
+
+  printf("print of gettoken:\n\t")
+  Tokens::print(gettoken, 0)
 }
