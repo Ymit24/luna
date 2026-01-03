@@ -1,0 +1,27 @@
+const Allocator = struct {
+  arena: *i8,
+  length: i64,
+  capacity: i64,
+}
+
+const Lexer = struct {
+  allocator: *Allocator,
+  source: strings::string,
+  position: i32
+}
+
+const make = fn(allocator: *Allocator, source: strings::string): Lexer {
+  return .Lexer {
+    allocator: allocator,
+    source: source,
+    position: 0
+  }
+}
+
+const peek = fn(lexer: *Lexer): i8 {
+  if (lexer.position > lexer.source.len) {
+    return 0
+  }
+
+  return lexer.source.data[lexer.position]
+}

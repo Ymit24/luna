@@ -51,6 +51,7 @@ enum TokenType {
   T_IF,
   T_ELSE,
   T_STRUCT,
+  T_UNION,
   T_WHILE,
   T_MOD,
   T_PLUSEQUALS,

@@ -1,0 +1,70 @@
+const TokenValue = union {
+  integer: i32,
+  symbol: strings::string,
+}
+
+const Token = struct {
+  type: i32,
+  value: TokenValue
+}
+
+const TokenType = mod {
+  const T_ILLEGAL = 0
+  const T_EOF = 1
+  const T_INTEGER = 2
+  const T_CHAR = 3
+  const T_PLUS = 4
+  const T_MINUS = 5
+  const T_STAR = 6
+  const T_AMPERSAND = 7
+  const T_SLASH = 8
+  const T_LPAREN = 9
+  const T_RPAREN = 10
+  const T_LBRACE = 11
+  const T_RBRACE = 12
+  const T_LBRACK = 13
+  const T_RBRACK = 14
+  const T_LANGLE = 15
+  const T_RANGLE = 16
+  const T_LSHIFT = 17
+  const T_RSHIFT = 18
+  const T_SEMICOLON = 19
+  const T_PIPE = 20
+  const T_CARET = 21
+  const T_TILDE = 22
+  const T_COLON = 23
+  const T_COMMA = 24
+  const T_PERIOD = 25
+  const T_LET = 26
+  const T_CONST = 27
+  const T_EXCLAMATION = 28
+  const T_EQUALS = 29
+  const T_EQEQ = 30
+  const T_NTEQ = 31
+  const T_LEQ = 32
+  const T_GEQ = 33
+  const T_SYMBOL = 34
+  const T_FN = 35
+  const T_RETURN = 36
+  const T_CAST = 37
+  const T_EXTERN = 38
+  const T_VARIADIC = 39
+  const T_VALUESIZE = 40
+  const T_TYPESIZE = 41
+  const T_STRING = 42
+  const T_IF = 43
+  const T_ELSE = 44
+  const T_STRUCT = 45
+  const T_UNION = 46
+  const T_WHILE = 47
+  const T_MOD = 48
+  const T_PLUSEQUALS = 49
+  const T_MINUSEQUALS = 50
+  const T_STAREQUALS = 51
+  const T_SLASHEQUALS = 52
+  const T_LSHIFTEQUALS = 53
+  const T_RSHIFTEQUALS = 54
+  const T_AMPEQUALS = 55
+  const T_PIPEEQUALS = 56
+  const T_CARETEQUALS = 57
+}

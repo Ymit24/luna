@@ -199,12 +199,14 @@ LLVMTypeRef cg_get_type(struct CodeGenerator *code_generator,
     return LLVMVoidType();
   }
   case DTK_POINTER: {
-    LLVMTypeRef inner =
-        cg_get_type(code_generator, data_type->value.pointer_inner);
+    LLVMTypeRef inner = LLVMInt32Type();
+    // TODO: May not need this
+    // LLVMTypeRef inner =
+    //     cg_get_type(code_generator, data_type->value.pointer_inner);
     return LLVMPointerType(inner, 0);
   }
   case DTK_STRUCTURE_DEF:
-    puts("unimplemented for struct def");
+    puts("[cg_get_type] About to get type of structure.");
     printf("data type: ");
     print_data_type(data_type);
     puts("");
@@ -217,6 +219,7 @@ LLVMTypeRef cg_get_type(struct CodeGenerator *code_generator,
     assert(
         data_type->value.structure_definition.definition->llvm_structure_type !=
         NULL);
+    puts("[cg_get_type] done here in structure def.");
     return data_type->value.structure_definition.definition
         ->llvm_structure_type;
   case DTK_STRUCTURE: {
@@ -472,92 +475,39 @@ LLVMValueRef cg_visit_field_access_expr(
 
   LLVMTypeRef lhs_type = cg_get_type(code_generator, lhs_data_type);
 
-  size_t field_index = 0;
-  struct StructFieldDefinitionNode *field_def = struct_def->fields;
-  while (field_def != NULL) {
-    if (strings_equal(field_def->name, field_access_expr->symbol)) {
-      break;
+  if (!struct_def->is_union) {
+    puts("[cg_visit_field_access_expr] is union is false");
+    size_t field_index = 0;
+    struct StructFieldDefinitionNode *field_def = struct_def->fields;
+    while (field_def != NULL) {
+      if (strings_equal(field_def->name, field_access_expr->symbol)) {
+        break;
+      }
+      field_index++;
+      field_def = field_def->next;
     }
-    field_index++;
-    field_def = field_def->next;
+
+    LLVMValueRef field_indicies[] = {
+        LLVMConstInt(LLVMInt32Type(), 0, 0),
+        LLVMConstInt(LLVMInt32Type(), field_index, 0),
+    };
+
+    LLVMValueRef field_ptr = LLVMBuildGEP2(code_generator->builder, lhs_type,
+                                           lhs, field_indicies, 2, "");
+    puts("[cg_visit_field_access_expr] returning standard struct gep2.");
+    return field_ptr;
+  } else {
+    puts("[cg_visit_field_access_expr] is union is true");
+
+    LLVMValueRef field_indicies[] = {
+        LLVMConstInt(LLVMInt32Type(), 0, 0),
+        LLVMConstInt(LLVMInt32Type(), 0, 0),
+    };
+
+    LLVMValueRef field_ptr = LLVMBuildGEP2(code_generator->builder, lhs_type,
+                                           lhs, field_indicies, 2, "");
+    return field_ptr;
   }
-
-  LLVMValueRef field_indicies[] = {
-      LLVMConstInt(LLVMInt32Type(), 0, 0),
-      LLVMConstInt(LLVMInt32Type(), field_index, 0),
-  };
-
-  LLVMValueRef field_ptr = LLVMBuildGEP2(code_generator->builder, lhs_type, lhs,
-                                         field_indicies, 2, "");
-  return field_ptr;
-
-  // //-------------------------------
-  //
-  // struct SymbolTableEntry *entry = lookup_scoped_symbol_in(
-  //     field_access_expr->root_symbol, code_generator->current_symbol_table);
-  //
-  // assert(entry != NULL);
-  // puts("Found symbol.");
-  // assert(entry->type != NULL);
-  //
-  // printf("next: %d\n", field_access_expr->next == NULL);
-  // puts("..");
-  //
-  // if (field_access_expr->next == NULL) {
-  //   puts("Returning field access.");
-  //   return entry->llvm_value;
-  // }
-  //
-  // ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  //
-  // struct SymbolTable *old_symbol_table =
-  // code_generator->current_symbol_table;
-  //
-  // code_generator->annotator->current_symbol_table =
-  //     code_generator->current_symbol_table;
-  //
-  // struct StructDefinitionExpressionNode *definition =
-  //     get_or_resolve_struct_definition_from_type(entry->type,
-  //                                                code_generator->annotator);
-  //
-  // code_generator->annotator->current_symbol_table = old_symbol_table;
-  //
-  // assert(definition != NULL);
-  //
-  // size_t field_depth = cg_count_field_access_depth(field_access_expr);
-  //
-  // printf("field depth: %zu\n", field_depth);
-  //
-  // // NOTE: the * 2 is so each field could be a pointer so we may need up to
-  // // double the derefs
-  // LLVMValueRef *field_indicies = arena_alloc(
-  //     code_generator->allocator, sizeof(LLVMValueRef) * field_depth * 2);
-  //
-  // field_indicies[0] = LLVMConstInt(LLVMInt32Type(), 0, 0);
-  //
-  // size_t index = 1;
-  //
-  // LLVMValueRef source = entry->llvm_value;
-  // LLVMTypeRef source_type = cg_get_type(code_generator, entry->type);
-  //
-  // // NOTE: if base field is a struct pointer we need an initial extra deref.
-  // if (entry->type->kind == DTK_POINTER) {
-  //   puts("root symbol is pointer, adding extra deref.");
-  //   source =
-  //       LLVMBuildLoad2(code_generator->builder,
-  //                      cg_get_type(code_generator, entry->type), source, "");
-  //   lhs_type = cg_get_type(code_generator, entry->type->value.pointer_inner);
-  // }
-  //
-  // ////////////////
-  //
-  // cg_visit_field_inner_access_expr(field_access_expr->next, &field_indicies,
-  //                                  &index, definition->fields);
-  //
-  // LLVMValueRef field_ptr = LLVMBuildGEP2(code_generator->builder, lhs_type,
-  //                                        source, field_indicies, index, "");
-  //
-  // return field_ptr;
 }
 
 struct LLVMValueAndTypeRefs
@@ -609,24 +559,41 @@ cg_visit_struct_init_expression(struct CodeGenerator *code_generator,
         LLVMConstInt(LLVMInt32Type(), field_index++, 0)};
 
     puts("Building field ptr..");
-    LLVMValueRef field_ptr = LLVMBuildGEP2(code_generator->builder, struct_type,
-                                           local_struct, indicies, 2, "");
 
     LLVMValueRef coereced;
     LLVMTypeRef field_type = cg_get_type(code_generator, field_def->type);
 
+    bool is_struct =
+        !entry->type->value.structure_definition.definition->is_union;
+
+    LLVMValueRef field_ptr;
+    if (field_init != NULL) {
+      if (!is_struct) {
+        indicies[1] = indicies[0];
+      }
+      field_ptr = LLVMBuildGEP2(code_generator->builder, struct_type,
+                                local_struct, indicies, 2, "");
+    }
+
+    printf("[cg_visit_struct_init_expression] is struct: %d\n", is_struct);
+
     if (field_init == NULL) {
-      uint64_t size =
-          LLVMABISizeOfType(code_generator->target_data, field_type);
-      coereced = LLVMConstInt(LLVMIntType(size * 8), 0, false);
+      if (is_struct) {
+        uint64_t size =
+            LLVMABISizeOfType(code_generator->target_data, field_type);
+        coereced = LLVMConstInt(LLVMIntType(size * 8), 0, false);
+
+        puts("Building store..");
+        LLVMBuildStore(code_generator->builder, coereced, field_ptr);
+      }
     } else {
       coereced = cg_coerce(
           code_generator, cg_visit_expr(code_generator, field_init->expression),
           field_type);
-    }
 
-    puts("Building store..");
-    LLVMBuildStore(code_generator->builder, coereced, field_ptr);
+      puts("Building store..");
+      LLVMBuildStore(code_generator->builder, coereced, field_ptr);
+    }
 
     puts("Advancing pointers..");
     field_def = field_def->next;
@@ -1133,6 +1100,7 @@ void cg_visit_struct_definition(
     struct CodeGenerator *code_generator,
     struct StructDefinitionExpressionNode *definition) {
   puts("code genning struct definition");
+
   struct StructFieldDefinitionNode *field = definition->fields;
   size_t field_count = 0;
   while (field != NULL) {
@@ -1141,18 +1109,40 @@ void cg_visit_struct_definition(
   }
   field = definition->fields;
 
-  LLVMTypeRef *field_types =
-      arena_alloc(code_generator->allocator, sizeof(LLVMTypeRef) * field_count);
+  LLVMTypeRef type;
 
-  size_t field_index = 0;
-  while (field != NULL) {
-    field_types[field_index++] = cg_get_type(code_generator, field->type);
-    field = field->next;
+  if (definition->is_union) {
+    puts("[cg_visit_struct_definition] is union: true");
+    uint64_t max_size = 0;
+
+    while (field != NULL) {
+      LLVMTypeRef field_type = cg_get_type(code_generator, field->type);
+
+      uint64_t size =
+          LLVMABISizeOfType(code_generator->target_data, field_type);
+
+      if (size > max_size) {
+        max_size = size;
+      }
+
+      field = field->next;
+    }
+
+    type = LLVMArrayType2(LLVMIntType(8), max_size);
+  } else {
+    puts("[cg_visit_struct_definition] is union: false");
+    LLVMTypeRef *field_types = arena_alloc(code_generator->allocator,
+                                           sizeof(LLVMTypeRef) * field_count);
+
+    size_t field_index = 0;
+    while (field != NULL) {
+      field_types[field_index++] = cg_get_type(code_generator, field->type);
+      field = field->next;
+    }
+    type = LLVMStructType(field_types, field_count, false);
   }
 
-  LLVMTypeRef type = LLVMStructType(field_types, field_count, false);
   definition->llvm_structure_type = type;
-  // entry->llvm_structure_type = type;
 
   assert(definition->llvm_structure_type != NULL);
 

@@ -1677,21 +1677,31 @@ bool can_operate_data_types(struct DataType *left, struct DataType *right,
 
 // NOTE: hi it`s me grace your wife`
 
+static bool recurse_print = false;
+
 void print_struct_def_data_type(
     struct StructDefinitionExpressionNode *definition) {
   if (definition == NULL) {
-    printf("struct{?}");
+    printf("struct|union{?}");
     return;
   }
-  printf("struct{");
-  struct StructFieldDefinitionNode *current = definition->fields;
-  while (current != NULL) {
-    printf("%s:", current->name.data);
-    print_data_type(current->type);
-    if (current->next != NULL) {
-      printf(",");
+  if (definition->is_union) {
+    printf("union{");
+  } else {
+    printf("struct{");
+  }
+  if (recurse_print) {
+    printf("(...)");
+  } else {
+    struct StructFieldDefinitionNode *current = definition->fields;
+    while (current != NULL) {
+      printf("%s:", current->name.data);
+      print_data_type(current->type);
+      if (current->next != NULL) {
+        printf(",");
+      }
+      current = current->next;
     }
-    current = current->next;
   }
   printf("}");
 }
@@ -1723,7 +1733,22 @@ void print_data_type(struct DataType *data_type) {
     break;
   case DTK_POINTER:
     printf("*");
-    print_data_type(data_type->value.pointer_inner);
+    switch (data_type->value.pointer_inner->kind) {
+    case DTK_PRIMITIVE:
+    case DTK_FUNCTION:
+    case DTK_VOID:
+    case DTK_POINTER:
+    case DTK_ARRAY:
+    case DTK_STRUCTURE:
+    case DTK_STRUCTURE_DEF:
+    case DTK_MODULE_DEF:
+    case DTK_MODULE:
+      print_data_type(data_type->value.pointer_inner);
+      break;
+    case DTK_RESOLVABLE:
+      printf("(...)");
+      break;
+    }
     break;
   case DTK_FUNCTION: {
     printf("fn");
@@ -1758,9 +1783,12 @@ void print_data_type(struct DataType *data_type) {
     printf("(");
     print_scoped_symbol(data_type->value.structure.name);
     printf(")");
+
+    recurse_print = true;
     print_struct_def_data_type(data_type->value.structure.definition);
     break;
   case DTK_STRUCTURE_DEF: {
+    recurse_print = true;
     print_struct_def_data_type(
         data_type->value.structure_definition.definition);
     break;

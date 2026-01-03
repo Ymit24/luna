@@ -1,0 +1,73 @@
+const puts = fn@extern["puts"](fmt: *i8):i32
+const printf = fn@extern["printf"]@variadic(fmt: *i8): i32
+
+const String = struct {
+  data: *i8,
+  len: i32,
+}
+
+const Value = union {
+  int: u16,
+  string: String,
+  array: [i32; 12]
+}
+
+const Tokens = mod {
+  const TokenValue = union {
+    integer: i32,
+    symbol: String
+  }
+
+  const Token = struct {
+    type: i32,
+    value: TokenValue
+  }
+
+  const print = fn(value: TokenValue, type: i32) {
+    if type == 0 {
+      printf("[print]: `%d`\n", value.integer)
+    } else if type == 1 {
+      printf("[print]: `%s`\n", value.symbol.data)
+    } else {
+      printf("[print]: `unknown type %d`", type)
+    }
+  }
+}
+
+const GetToken = fn(): Tokens::TokenValue {
+  return .Tokens::TokenValue {
+    integer: 47
+  }
+}
+
+const main = fn() {
+  const val1 = .Value { int: 100 }
+  const val2 = .Value { string: .String { data: "foo", len: 4 } }
+
+  const val1i32: i32 = val1.int
+
+  printf("Val1 int: %d\n", val1i32)
+  printf("Val1 size: %d\n", @valuesize(val1))
+
+  printf("Val1: %d (size: %d)\n", val1.int, @valuesize(val1))
+  printf("Val2: %s (size: %d)\n", val2.string.data, @valuesize(val2))
+
+  const tok = .Tokens::Token {
+    type: 2,
+    value: .Tokens::TokenValue {
+      integer: 3
+    }
+  }
+
+  printf("tok1: %d, value: %d, size: %d\n", tok.type, tok.value.integer, @typesize(Tokens::Token))
+
+  tok.value.symbol = .String { data: "bar", len: 4 }
+
+  printf("tok2: %d, value: %s, size: %d\n", tok.type, tok.value.symbol.data, @typesize(Tokens::Token))
+
+  const gettoken = GetToken()
+  printf("gettoken: %d\n", gettoken.integer)
+
+  printf("print of gettoken:\n\t")
+  Tokens::print(gettoken, 0)
+}

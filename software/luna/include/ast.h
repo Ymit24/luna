@@ -166,6 +166,7 @@ struct StructDefinitionExpressionNode {
   struct StructFieldDefinitionNode *fields;
   struct SymbolTable symbol_table;
   LLVMTypeRef llvm_structure_type;
+  bool is_union;
 };
 
 struct StructFieldAccessExpressionNode {

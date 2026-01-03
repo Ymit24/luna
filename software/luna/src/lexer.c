@@ -362,6 +362,12 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
         out_token->type = T_RETURN;
         lexer->position += 6;
         return true;
+      } else if (lexer->source.length - lexer->position >= 5 &&
+                 strncmp("union", &lexer->source.data[lexer->position], 5) ==
+                     0) {
+        out_token->type = T_UNION;
+        lexer->position += 5;
+        return true;
       } else if (lexer->source.length - lexer->position >= 6 &&
                  strncmp("struct", &lexer->source.data[lexer->position], 6) ==
                      0) {
