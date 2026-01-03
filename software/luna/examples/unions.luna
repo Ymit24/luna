@@ -24,6 +24,11 @@ const Tokens = mod {
   }
 }
 
+const GetToken = fn(): Tokens::TokenValue {
+  return .Tokens::TokenValue {
+    integer: 47
+  }
+}
 
 const main = fn() {
   const val1 = .Value { int: 100 }
@@ -49,4 +54,7 @@ const main = fn() {
   tok.value.symbol = .String { data: "bar", len: 4 }
 
   printf("tok2: %d, value: %s, size: %d\n", tok.type, tok.value.symbol.data, @typesize(Tokens::Token))
+
+  const gettoken = GetToken()
+  printf("gettoken: %d\n", gettoken.integer)
 }
