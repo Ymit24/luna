@@ -61,3 +61,14 @@ const print = fn(l: *list) {
       cstd::printf("\t%d: %d\n", index, *value);
   });
 };
+
+const to_carray = fn(l: *list): *i8 {
+   const array = cstd::malloc(l.size * l.len)
+   let index = 0
+   while index < l.len {
+      const dest_ptr = array + (index * l.size);
+      cstd::memcpy(dest_ptr, l.data[index], l.size)
+      index += 1
+   }
+  return array
+}

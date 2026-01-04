@@ -3,6 +3,13 @@ const LunaString = struct {
   length: u16
 }
 
+const string_make = fn(val: *i8): LunaString {
+  return .LunaString {
+    data: val,
+    length: cstd::strlen(val)
+  }
+}
+
 const ModuleStatementType = mod {
   const LET = 0
   const CONST = 1
@@ -313,21 +320,21 @@ const DataType = struct {
 const LLVMTypeRef = struct { foo: i32 }
 const LLVMValueRef = struct { foo: i32 }
 
-const puts = fn@extern["puts"](fmt: *i8):i32;
-const printf = fn@extern["printf"]@variadic(fmt: *i8): i32;
-const strlen = fn@extern["strlen"](s: *i8): i32;
+//const puts = fn@extern["puts"](fmt: *i8):i32;
+//const printf = fn@extern["printf"]@variadic(fmt: *i8): i32;
+//const strlen = fn@extern["strlen"](s: *i8): i32;
 
 
 const ArenaAllocator = struct {
   arena: *i8,
-  length: i64,
-  capacity: i64,
+  length: u64,
+  capacity: u64,
 }
 
 const Lexer = struct {
   allocator: *ArenaAllocator,
   source: LunaString,
-  position: i32
+  position: u16
 }
 
 const arena_make = fn(arena: *i8, capacity: i64): ArenaAllocator {
@@ -413,43 +420,99 @@ const TokenType = mod {
   const T_CARETEQUALS = 57
 }
 
-const main = fn() {
-  const arena: [i8; 1000] = [0]
-  puts("foo")
-
-  const allocator = arena_make(arena, 1000)
-  puts("got allocator!")
-
-  printf("allocator len: %d, cap: %d\n", allocator.length, allocator.capacity)
-
-  const string_make = fn(val: *i8): LunaString {
-    return .LunaString {
-      data: val,
-      length: strlen(val)
-    }
-  }
-
-  const lexer = .Lexer {
-    allocator: &allocator,
-    source: string_make("10 3 58 let 9 ;"),
-    position: 0
-  }
-
-  printf("lexer position: %d\n", lexer.position)
-
-  const peeked = lexer_peek(&lexer)
-
-  printf("peeked: %c\n", peeked)
-
+const lex_all = fn(lexer: *Lexer, tokens: *lists::list) {
   const out = .Token {
     type: 1,
     value: .TokenValue { integer: 0 }
   }
-
-  while lexer_next(&lexer, &out) {
-    printf("next token: type=%d\n", out.type)
+  while lexer_next(lexer, &out) {
+    cstd::printf("next token: type=%d\n", out.type)
     if out.type == TokenType::T_INTEGER {
-      printf("\tinteger value: %u\n", out.value.integer)
+      cstd::printf("\tinteger value: %u\n", out.value.integer)
     }
+
+    const tok = @cast(*Token, cstd::malloc(@typesize(Token)));
+    *tok = out
+    lists::push(tokens, @cast(*i8, tok))
   }
+}
+
+const lexer_make = fn(allocator: *ArenaAllocator, source: LunaString): Lexer {
+  return .Lexer {
+      allocator: allocator,
+      source: source,
+      position: 0
+    }
+}
+
+const print_tokens = fn(tokens: *lists::list) {
+  let index = 0
+  while index < tokens.len {
+    const token: *Token = @cast(*Token, tokens.data[index])
+
+    cstd::printf("\ttok: %d", token.type)
+    if token.type == TokenType::T_INTEGER {
+      cstd::printf(", int: %d", token.value.integer)
+    } else if token.type == TokenType::T_SYMBOL {
+      cstd::printf(", symbol: `%s`", token.value.symbol.data)
+    }
+    cstd::puts("")
+    index += 1
+  }
+}
+
+const Parser = struct {
+  allocator: *ArenaAllocator,
+  tokens: *Token,
+  token_count: u16,
+  position: u16,
+}
+
+const parser_make = fn@extern["parser_make"](allocator: *ArenaAllocator, tokens: *Token, token_count: u16): Parser
+const parse_module_statements = fn@extern["parse_module_statements"](sret: *i8, parser: *Parser): ModuleStatementNode
+
+const arena_verify = fn@extern["arena_verify"](allocator: *ArenaAllocator)
+const lexer_verify = fn@extern["lexer_verify"](lexer: *Lexer)
+
+const main = fn() {
+  const arena: [i8; 1000] = [0]
+  const allocator = arena_make(arena, 1000)
+  cstd::printf("allocator addr %p\n", &allocator)
+
+  cstd::printf("sizes: %d %d\n", @typesize(u64), @typesize(ArenaAllocator))
+
+  arena_verify(&allocator)
+
+  cstd::printf("ALLOCATOR: %p %d / %d\n", allocator.arena, allocator.length, allocator.capacity)
+
+  const source = string_make("let a = 10;")
+  cstd::printf("compiling source `%s` (%d)\n", source.data, source.length)
+  const lexer = lexer_make(&allocator, source)
+  cstd::printf("expected lexer allocator len: %d\n", lexer.allocator.length)
+  lexer_verify(&lexer)
+
+  const tokens = lists::make(@typesize(Token))
+  lex_all(&lexer, &tokens)
+
+  cstd::printf("token count: %d\n", tokens.len)
+
+  print_tokens(&tokens)
+
+  const raw_tokens: *Token = @cast(*Token, lists::to_carray(&tokens))
+  cstd::printf("[0] raw token: %d::%d\n", raw_tokens[0].type, raw_tokens[0].value.integer)
+  cstd::printf("[1] raw token: %d::%d\n", raw_tokens[1].type, raw_tokens[1].value.integer)
+
+  cstd::puts("creating parser..")
+  let parser = parser_make(&allocator, raw_tokens, tokens.len)
+  cstd::puts("created parser!")
+
+  cstd::printf("parser info: %d, %d\n", parser.token_count, parser.position)
+  cstd::printf("first token %d %d\n", parser.tokens[0].type, parser.tokens[0].value.integer)
+
+  cstd::puts("parsing code...")
+  cstd::printf("2.luna: parser tokens addr: %p\n", parser.tokens)
+  const MARKER = 7214
+  cstd::printf("luna: parser addr: %p\n", &parser)
+  const stmt = parse_module_statements(null, &parser)
+  cstd::printf("parsed! %d\n", parser.position)
 }

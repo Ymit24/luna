@@ -20,6 +20,10 @@ parse_scoped_symbol_literal(struct Parser *parser);
 
 struct Parser parser_make(struct ArenaAllocator *allocator,
                           struct Token *tokens, uint16_t token_count) {
+  arena_verify(allocator);
+
+  printf("[parser_make] tokens addr: %p\n", (void *)tokens);
+
   return (struct Parser){
       .allocator = allocator,
       .tokens = tokens,
@@ -29,7 +33,17 @@ struct Parser parser_make(struct ArenaAllocator *allocator,
 }
 
 struct Token parser_peek(struct Parser *parser) {
+  puts("parser_peek a");
   assert(parser->position < parser->token_count);
+  puts("parser_peek b");
+
+  printf("[parser_peek] parser addr: %p\n", (void *)parser);
+
+  printf("parser->position=>%d\n", parser->position);
+  printf("parser->tokens=>%p\n", (void *)parser->tokens);
+  printf("parser->tokens[0]=>%d\n", parser->tokens[0].type);
+  printf("parser->tokens[parser->position]=>%d\n",
+         parser->tokens[parser->position].type);
 
   return parser->tokens[parser->position];
 }
@@ -969,16 +983,25 @@ parse_scoped_symbol_literal(struct Parser *parser) {
 }
 
 struct ModuleStatementNode *parse_module_statements(struct Parser *parser) {
+  puts("pre a");
   assert(parser_peek(parser).type != T_EOF);
 
+  puts("A");
   struct ModuleStatementNode *head = parse_module_statement(parser);
+  puts("B");
   struct ModuleStatementNode *curr = head;
+  puts("C");
 
   enum TokenType peak;
+
+  puts("D");
   while ((peak = parser_peek(parser).type, peak != T_RBRACE && peak != T_EOF)) {
     curr->next = parse_module_statement(parser);
+
+    puts("E");
     curr = curr->next;
   }
+  puts("F");
 
   return head;
 }

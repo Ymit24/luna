@@ -13,4 +13,7 @@ struct ArenaAllocator {
 struct ArenaAllocator arena_make(void *arena, size_t capacity);
 void *arena_alloc(struct ArenaAllocator *allocator, size_t size);
 
+
+void arena_verify (struct ArenaAllocator* arena);
+
 #endif

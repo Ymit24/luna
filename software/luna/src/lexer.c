@@ -80,6 +80,7 @@ char lexer_read_char(struct Lexer *lexer) {
 }
 
 struct LunaString lexer_read_string(struct Lexer *lexer) {
+  printf("[lexer_read_string] allocating: %lu\n", 256 * sizeof(char));
   char *buf = arena_alloc(lexer->allocator, 256 * sizeof(char));
   uint16_t index = 0;
 
@@ -98,6 +99,7 @@ struct LunaString lexer_read_string(struct Lexer *lexer) {
 }
 
 struct LunaString lexer_read_symbol(struct Lexer *lexer) {
+  printf("[lexer_read_symbol] allocating: %lu\n", 64 * sizeof(char));
   char *buf = arena_alloc(lexer->allocator, 64 * sizeof(char));
   uint8_t index = 0;
 
@@ -119,6 +121,7 @@ void lexer_skip_whitespace(struct Lexer *lexer) {
 }
 
 bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
+  printf("[lexer_next] %d\n", lexer->position);
   lexer_skip_whitespace(lexer);
   char current = lexer_peek(lexer);
 
@@ -397,4 +400,10 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
   lexer->position++;
 
   return true;
+}
+
+void lexer_verify(struct Lexer *lexer) {
+  arena_verify(lexer->allocator);
+  printf("[lexer_verify] %p %hu %d\n", (void *)lexer->allocator,
+         lexer->position, lexer->source.length);
 }

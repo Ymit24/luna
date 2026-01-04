@@ -25,4 +25,6 @@ void lexer_skip_whitespace(struct Lexer *lexer);
 
 bool lexer_next(struct Lexer *lexer, struct Token *out_token);
 
+void lexer_verify (struct Lexer* lexer);
+
 #endif

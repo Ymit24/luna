@@ -1,0 +1,16 @@
+const OwnedList = struct {
+  data: *i8,
+  len: u32,
+  cap: u32,
+  element_size: u32,
+}
+
+const make = fn(): OwnedList {
+  return .OwnedList { }
+}
+
+const new = fn(): *OwnedList {}
+
+const push = fn(l: *OwnedList, element: *i8) {}
+
+const each = fn(l: *OwnedList, cb: fn(item: *i8)) {}
