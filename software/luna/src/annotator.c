@@ -1539,7 +1539,11 @@ bool can_operate_data_types(struct DataType *left, struct DataType *right,
     }
     break;
   case DTK_POINTER:
-    if (operation_is_add_sub || operation_is_logical) {
+    if (right->kind == DTK_POINTER &&
+        (operation_is_add_sub || operation_is_logical)) {
+      return true;
+    }
+    if (operation_is_logical) {
       return right->kind == DTK_POINTER;
     }
     return right->kind == DTK_PRIMITIVE &&

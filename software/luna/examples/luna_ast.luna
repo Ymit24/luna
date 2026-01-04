@@ -174,7 +174,7 @@ const StructFieldDefinitionNode = struct {
 const StructDefinitionExpressionNode = struct {
   fields: *StructFieldDefinitionNode,
   symbol_table: SymbolTable,
-  llvm_structure_type: LLVMTypeRef,
+  llvm_structure_type: *i8, // LLVMTypeRef,
   is_union: i1,
 }
 
@@ -241,7 +241,7 @@ const BinaryExpressionNode = struct {
 const SymbolTableEntry = struct {
   symbol: LunaString,
   type: *DataType,
-  llvm_value: LLVMValueRef,
+  llvm_value: *i8, // LLVMValueRef
   next: *SymbolTableEntry,
   memory_segment: i32,
   symbol_location: i32,
@@ -254,8 +254,6 @@ const SymbolTable = struct {
   current_index: u16,
   type: i32,
 }
-
-// todo -------
 
 const FunctionType = struct {
   type_return: *DataType,
@@ -317,8 +315,8 @@ const DataType = struct {
   next: *DataType,
 }
 
-const LLVMTypeRef = struct { foo: i32 }
-const LLVMValueRef = struct { foo: i32 }
+// const LLVMTypeRef = struct { foo: i32 }
+// const LLVMValueRef = struct { foo: i32 }
 
 //const puts = fn@extern["puts"](fmt: *i8):i32;
 //const printf = fn@extern["printf"]@variadic(fmt: *i8): i32;
@@ -593,12 +591,15 @@ const read_file = fn(path: *i8, allocator: *ArenaAllocator): LunaString {
 
 const parse_source_file = fn(allocator: *ArenaAllocator, source_file: *i8): *ModuleStatementNode {
   const contents = read_file(source_file, allocator)
+  cstd::printf("CONTENTS:\n\n`%s`\n\n\n", contents.data)
   const lexer = lexer_make(allocator, contents)
 
   const toks: [Token; 4096] = [.Token { type: 0 }]
 
+  let has_next = true
   let tok_index = 0
-  while lexer_next(&lexer, &toks[tok_index]) {
+  while has_next {
+    has_next = lexer_next(&lexer, &toks[tok_index])
     tok_index += 1
   }
 
@@ -620,35 +621,68 @@ const get_module_name_from_file = fn(allocator: *ArenaAllocator, file_path: *i8)
   let size = 0;
   if last_dot != null {
     if last_dot > result {
-      size = last_dot - result
+      const ld: u64 = @cast(u64, last_dot)
+      const r: u64 = @cast(u64, result)
+      size = @cast(u32, ld - r)
+    } else {
+      size = cstd::strlen(result)
     }
   }
 
-  return string_make("foo")
+  const new_str = arena_alloc(allocator, size + 1)
+  cstd::memcpy(new_str, result, size)
+  new_str[size] = '\0'
+
+  return string_make(new_str)
 }
 
-// struct LunaString get_module_name_from_file(struct ArenaAllocator *allocator,
-//                                             char *file_path) {
-//   const char *last_slash = strrchr(file_path, '/');
-//   const char *result = last_slash ? last_slash + 1 : file_path;
-//   const char *last_dot = strrchr(result, '.');
-// 
-//   size_t size;
-//   if (last_dot && last_dot > result)
-//     size = (size_t)(last_dot - result);
-//   else
-//     size = strlen(result);
-// 
-//   char *new_str = arena_alloc(allocator, size + 1);
-//   memcpy(new_str, result, size);
-//   new_str[size] = '\0';
-// 
-//   return string_make(new_str);
-// }
+const insert_symbol_entry = fn@extern["insert_symbol_entry"](annotator: *Annotator, entry: SymbolTableEntry)
+const annotator_initialize_primitives = fn@extern["annotator_initialize_primitives"](annotator: *Annotator)
+
+const do_stuff = fn(allocator: *ArenaAllocator) {
+  const filename = "examples/test.luna"
+  const source_root = parse_source_file(allocator, filename)
+
+  const original_root = wrap_module(allocator, source_root, get_module_name_from_file(allocator, filename))
+  const new_root = wrap_module(allocator, original_root, string_make("src"))
+
+  const annotator = annotator_make(allocator);
+  annotator.current_symbol_table = &annotator.root_symbol_table;
+
+  cstd::puts("created annotator.")
+
+  cstd::puts("about to mstb visit module statements..")
+
+  mstb_visit_module(&annotator, new_root)
+
+  insert_symbol_entry(&annotator, .SymbolTableEntry {
+                                      symbol: string_make("src"),
+                                      type: new_root.node.decl.data_type,
+                                      symbol_location: 0,
+                                      index: 0,
+                                      next: @cast(*SymbolTableEntry, null)
+                                  })
+
+  cstd::puts("finished mstb.")
+
+  cstd::puts("about to do mstb infer types")
+
+  mstb_infer_types(&annotator, &new_root.node.decl.expression.node.definition_module.symbol_table)
+
+  // print_symbol_table(string_make("Root1"), &annotator.root_symbol_table);
+  annotator.current_symbol_table = &annotator.root_symbol_table;
+
+  cstd::puts("about to annotator visit module statements..")
+
+  annotator_initialize_primitives(&annotator);
+  annotator_visit_module_statements(&annotator, new_root);
+
+  cstd::puts("done annotator visit module statements..")
+}
 
 const main = fn() {
-  const arena: [i8; 1000] = [0]
-  const allocator = arena_make(arena, 1000)
+  const arena: [i8; 10000] = [0]
+  const allocator = arena_make(arena, @valuesize(arena))
   cstd::printf("LUNA: ALLOCATOR: %p %d / %d\n", allocator.arena, allocator.length, allocator.capacity)
   cstd::printf("allocator addr %p\n", &allocator)
 
@@ -658,93 +692,96 @@ const main = fn() {
 
   cstd::printf("LUNA2: ALLOCATOR: %p %d / %d\n", allocator.arena, allocator.length, allocator.capacity)
 
-  const source = string_make("let a = 10; let b = fn(): i32 { return 2; };")
-  cstd::printf("compiling source `%s` (%d)\n", source.data, source.length)
-  const lexer = lexer_make(&allocator, source)
-  cstd::printf("expected lexer allocator len: %d\n", lexer.allocator.length)
-  lexer_verify(&lexer)
+  do_stuff(&allocator)
 
-  const tokens = lists::make(@typesize(Token))
-  lex_all(&lexer, &tokens)
-
-  cstd::printf("token count: %d\n", tokens.len)
-
-  print_tokens(&tokens)
-
-  const raw_tokens: *Token = @cast(*Token, lists::to_carray(&tokens))
-  cstd::printf("[0] raw token: %d::%d\n", raw_tokens[0].type, raw_tokens[0].value.integer)
-  cstd::printf("[1] raw token: %d::%d\n", raw_tokens[1].type, raw_tokens[1].value.integer)
-
-  cstd::puts("creating parser..")
-  let parser = parser_make(&allocator, raw_tokens, tokens.len)
-  cstd::puts("created parser!")
-
-  cstd::printf("parser info: %d, %d\n", parser.token_count, parser.position)
-  cstd::printf("first token %d %d\n", parser.tokens[0].type, parser.tokens[0].value.integer)
-
-  cstd::puts("\n\n\n\n\n")
-
-  cstd::printf("sizeof tok: %d\n", @typesize(Token))
-
-  let the_tok = parser_peek(&parser)
-  parser.position += 1
-
-  cstd::printf("1. peeked token: %d\n", the_tok.type)
-  parser.position = 0
-
-  cstd::puts("\n\n\n\n\n")
-
-  cstd::puts("parsing code...")
-  const stmt = parse_module_statements(&parser)
-  cstd::printf("parsed! %d\n", parser.position)
-
-  cstd::printf("type of mod stmt: %d\n", stmt.type)
-
-  const stringified = to_string::stmt_mod(stmt)
-
-  cstd::puts(stringified.data)
-
-  cstd::puts("creating annotator...")
-
-  let new_root = wrap_module(&allocator, stmt, string_make("temp"))
-  new_root = wrap_module(&allocator, new_root, string_make("src"));
-
-
-  const annotator = annotator_make(&allocator);
-  annotator.current_symbol_table = &annotator.root_symbol_table;
-
-  cstd::puts("created annotator.")
-
-  cstd::puts("about to mstb visit module statements..")
-
-  mstb_visit_module(&annotator, stmt)
-
-  cstd::puts("about to annotator visit module statements..")
-  annotator_visit_module_statements(&annotator, stmt);
-
-  cstd::puts("done annotator visit module statements..")
-
-//  const print_data_type = fn@extern["print_data_type"](data_type: *DataType)
 //
-//  print_data_type(new_root.node.decl.data_type)
+//  const source = string_make("let a = 10; let b = fn(): i32 { return 2; };")
+//  cstd::printf("compiling source `%s` (%d)\n", source.data, source.length)
+//  const lexer = lexer_make(&allocator, source)
+//  cstd::printf("expected lexer allocator len: %d\n", lexer.allocator.length)
+//  lexer_verify(&lexer)
 //
-//  const insert_symbol_entry = fn@extern["insert_symbol_entry"](annotator: *Annotator, entry: SymbolTableEntry)
+//  const tokens = lists::make(@typesize(Token))
+//  lex_all(&lexer, &tokens)
 //
-//  insert_symbol_entry(&annotator, .SymbolTableEntry {
-//                                      symbol: string_make("src"),
-//                                      type: new_root.node.decl.data_type,
-//                                      // llvm_value: null,
-//                                      // next: null,
-//                                      symbol_location: 0,
-//                                      index: 0,
-//                                  })
+//  cstd::printf("token count: %d\n", tokens.len)
+//
+//  print_tokens(&tokens)
+//
+//  const raw_tokens: *Token = @cast(*Token, lists::to_carray(&tokens))
+//  cstd::printf("[0] raw token: %d::%d\n", raw_tokens[0].type, raw_tokens[0].value.integer)
+//  cstd::printf("[1] raw token: %d::%d\n", raw_tokens[1].type, raw_tokens[1].value.integer)
+//
+//  cstd::puts("creating parser..")
+//  let parser = parser_make(&allocator, raw_tokens, tokens.len)
+//  cstd::puts("created parser!")
+//
+//  cstd::printf("parser info: %d, %d\n", parser.token_count, parser.position)
+//  cstd::printf("first token %d %d\n", parser.tokens[0].type, parser.tokens[0].value.integer)
+//
+//  cstd::puts("\n\n\n\n\n")
+//
+//  cstd::printf("sizeof tok: %d\n", @typesize(Token))
+//
+//  let the_tok = parser_peek(&parser)
+//  parser.position += 1
+//
+//  cstd::printf("1. peeked token: %d\n", the_tok.type)
+//  parser.position = 0
+//
+//  cstd::puts("\n\n\n\n\n")
+//
+//  cstd::puts("parsing code...")
+//  const stmt = parse_module_statements(&parser)
+//  cstd::printf("parsed! %d\n", parser.position)
+//
+//  cstd::printf("type of mod stmt: %d\n", stmt.type)
+//
+//  const stringified = to_string::stmt_mod(stmt)
+//
+//  cstd::puts(stringified.data)
+//
+//  cstd::puts("creating annotator...")
+//
+//  let new_root = wrap_module(&allocator, stmt, string_make("temp"))
+//  new_root = wrap_module(&allocator, new_root, string_make("src"));
+//
+//
+//  const annotator = annotator_make(&allocator);
+//  annotator.current_symbol_table = &annotator.root_symbol_table;
+//
+//  cstd::puts("created annotator.")
+//
+//  cstd::puts("about to mstb visit module statements..")
+//
+//  mstb_visit_module(&annotator, stmt)
+//
+//  cstd::puts("about to annotator visit module statements..")
+//  annotator_visit_module_statements(&annotator, stmt);
+//
+//  cstd::puts("done annotator visit module statements..")
+//
+////  const print_data_type = fn@extern["print_data_type"](data_type: *DataType)
+////
+////  print_data_type(new_root.node.decl.data_type)
+////
+////  const insert_symbol_entry = fn@extern["insert_symbol_entry"](annotator: *Annotator, entry: SymbolTableEntry)
+////
+////  insert_symbol_entry(&annotator, .SymbolTableEntry {
+////                                      symbol: string_make("src"),
+////                                      type: new_root.node.decl.data_type,
+////                                      // llvm_value: null,
+////                                      // next: null,
+////                                      symbol_location: 0,
+////                                      index: 0,
+////                                  })
+////
+////  print_symbol_table(string_make("root"), &annotator.root_symbol_table)
+////
+////  const annotator_visit_module_statements = fn@extern["annotator_visit_module_statements"](annotator: *Annotator, statement: *ModuleStatementNode)
+////
+////
+////  annotator_visit_module_statements(&annotator, new_root);
 //
 //  print_symbol_table(string_make("root"), &annotator.root_symbol_table)
-//
-//  const annotator_visit_module_statements = fn@extern["annotator_visit_module_statements"](annotator: *Annotator, statement: *ModuleStatementNode)
-//
-//
-//  annotator_visit_module_statements(&annotator, new_root);
-
-  print_symbol_table(string_make("root"), &annotator.root_symbol_table)
 }
