@@ -489,16 +489,18 @@ const to_string = mod {
 
     return str
   }
+
   const stmt_mod = fn(stmt: *ModuleStatementNode): strings::string {
     const str = strings::make("")
 
     if stmt.type == 0 {
-      strings::append::cstr(&str, "LET ")
+     strings::append::cstr(&str, "LET ")
     } else {
-      strings::append::cstr(&str, "CONST ")
+     strings::append::cstr(&str, "CONST ")
     }
 
-    strings::append::string(&str, decl(stmt.node.value))
+    const s = decl(stmt.node.decl)
+    strings::append::lstr(&str, &s)
 
     return str
   }
@@ -559,4 +561,8 @@ const main = fn() {
   cstd::printf("parsed! %d\n", parser.position)
 
   cstd::printf("type of mod stmt: %d\n", stmt.type)
+
+  const stringified = to_string::stmt_mod(stmt)
+
+  cstd::puts(stringified.data)
 }

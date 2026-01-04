@@ -49,12 +49,10 @@ const append = mod {
         };
     };
 
-    const string = fn(str: *string, other: *string) {
+    const lstr = fn(str: *string, other: *string) {
         ensure_heap(str);
         const cstr_len = other.len
-
         ensure_cap(str, cstr_len);
-
         cstd::memcpy(str.data + str.len, other.data, cstr_len);
         str.len += cstr_len;
     };
