@@ -65,4 +65,6 @@ const snprintf = fn@extern["snprintf"]@variadic(str: *i8, size: i32, fmt: *i8): 
 const getenv = fn@extern["getenv"](var: *i8): *i8;
 const getcwd = fn@extern["getcwd"](buf: *i8, size: i32): *i8;
 
-const strtol = fn@extern["strtol"](str: *i8, endptr: **i8, base: i32): i64;
+const strtol = fn@extern["strtol"](str: *i8, endptr: **i8, base: i32): i64
+const strrchr = fn@extern["strrchr"](str: *i8, pattern: i8): *i8
+
