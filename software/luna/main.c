@@ -15,7 +15,7 @@
 #include "token.h"
 #include "llvm-c/Core.h"
 
-const char *VERSION = "0.1.1";
+const char *VERSION = "0.1.2";
 
 struct LunaString read_file(const char *path, struct ArenaAllocator *alloc) {
   FILE *file = fopen(path, "rb");
@@ -124,9 +124,9 @@ struct LunaString get_module_name_from_file(struct ArenaAllocator *allocator,
 int main(int argc, char **argv) {
   puts("Luna Compiler");
 
-  uint8_t arena[UINT16_MAX * 4];
+  uint8_t arena[UINT16_MAX * 16];
 
-  struct ArenaAllocator allocator = arena_make(&arena, UINT16_MAX * 4);
+  struct ArenaAllocator allocator = arena_make(&arena, sizeof(arena));
 
   if (argc < 2) {
     fprintf(stderr, "usage: %s <source.luna> ...\n", argv[0]);
