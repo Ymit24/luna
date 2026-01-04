@@ -779,7 +779,10 @@ cg_visit_function_decl(struct CodeGenerator *code_generator,
   struct FunctionArgumentNode *argument =
       fn_def->function_type->value.function.arguments;
 
-  size_t index = 0;
+  size_t index =
+      fn_def->function_type->value.function.return_type->kind == DTK_RESOLVABLE
+          ? 1
+          : 0;
   while (argument != NULL) {
     struct SymbolTableEntry *symbol = lookup_symbol_in(
         argument->symbol, code_generator->current_symbol_table);
