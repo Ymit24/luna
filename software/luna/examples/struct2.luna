@@ -51,6 +51,17 @@ const main = fn(): i32 {
   const thething_truthy: i1 = thething
   printf("the thing truthy: %d\n", thething_truthy)
 
+  const make_string = fn(): string {
+    return .string {
+      data: "foobar",
+      len: 6,
+    }
+  }
+
+  const str2 = make_string()
+
+  printf("STRING: %s :: %d\n", str2.data, str2.len)
+
   return 0
 }
 

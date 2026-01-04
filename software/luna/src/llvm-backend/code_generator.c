@@ -140,7 +140,10 @@ LLVMTypeRef cg_get_func_type(struct CodeGenerator *code_generator,
 
   puts("about to check type for function.");
   LLVMTypeRef return_type;
-  if (data_type->value.function.return_type == NULL) {
+  bool struct_return_type =
+      data_type->value.function.return_type->kind == DTK_RESOLVABLE;
+  if (data_type->value.function.return_type == NULL || struct_return_type) {
+    puts("Struct return being marked as void");
     return_type = LLVMVoidType();
   } else {
     return_type =
@@ -154,12 +157,21 @@ LLVMTypeRef cg_get_func_type(struct CodeGenerator *code_generator,
   if (argument_count != 0) {
     assert(data_type->value.function.arguments != NULL);
 
+    if (struct_return_type) {
+      argument_count++; // NOTE: Add extra arg for hidden return
+    }
+
     LLVMTypeRef *argument_types = (LLVMTypeRef *)arena_alloc(
         code_generator->allocator, argument_count * sizeof(LLVMTypeRef));
 
     struct FunctionArgumentNode *current = data_type->value.function.arguments;
 
     size_t index = 0;
+
+    if (struct_return_type) {
+      argument_types[index++] = LLVMPointerType(return_type, 0);
+    }
+
     while (current != NULL) {
       LLVMTypeRef type = cg_get_type(code_generator, current->data_type);
       argument_types[index++] = type;
@@ -170,9 +182,11 @@ LLVMTypeRef cg_get_func_type(struct CodeGenerator *code_generator,
         LLVMFunctionType(return_type, argument_types, argument_count,
                          data_type->value.function.is_variadic);
   } else {
-    function_type = LLVMFunctionType(return_type, NULL, 0,
+    LLVMTypeRef params[] = {LLVMPointerType(return_type, 0)};
+    function_type = LLVMFunctionType(return_type, params, 1,
                                      data_type->value.function.is_variadic);
   }
+
   return function_type;
 }
 
@@ -310,9 +324,27 @@ LLVMValueRef cg_visit_function_call(struct CodeGenerator *code_generator,
   //     "");
 
   size_t argument_count = count_function_call_arguments(expr->arguments);
+
+  bool is_struct_return_type =
+      fn_definition->return_type->kind == DTK_RESOLVABLE;
+  printf("is struct return? %d\n", is_struct_return_type);
+  LLVMValueRef struct_return_value;
+  LLVMTypeRef struct_return_type;
+
+  if (is_struct_return_type) {
+    struct_return_type =
+        cg_get_type(code_generator, fn_definition->return_type);
+    struct_return_value =
+        LLVMBuildAlloca(code_generator->builder, struct_return_type, "");
+  }
+
   if (argument_count != 0) {
     assert(expr->arguments != NULL);
     puts("cg: function call has arguments.");
+
+    if (is_struct_return_type) {
+      argument_count++;
+    }
 
     LLVMValueRef *arguments = (LLVMValueRef *)arena_alloc(
         code_generator->allocator, argument_count * sizeof(LLVMValueRef));
@@ -323,6 +355,11 @@ LLVMValueRef cg_visit_function_call(struct CodeGenerator *code_generator,
         fn_definition->arguments;
 
     size_t index = 0;
+
+    if (is_struct_return_type) {
+      arguments[index++] = struct_return_value;
+    }
+
     while (current_call_argument != NULL) {
       // TODO: consider variadic
       if (!fn_definition->is_variadic) {
@@ -356,11 +393,27 @@ LLVMValueRef cg_visit_function_call(struct CodeGenerator *code_generator,
     print_data_type(symbol->type);
     puts("");
 
-    return LLVMBuildCall2(code_generator->builder, type, value, arguments,
-                          argument_count, "");
-  }
+    printf("arg count: %zu\n", argument_count);
 
-  return LLVMBuildCall2(code_generator->builder, type, value, NULL, 0, "");
+    LLVMValueRef raw_return = LLVMBuildCall2(
+        code_generator->builder, type, value, arguments, argument_count, "");
+    puts("built call.");
+    if (is_struct_return_type) {
+      return LLVMBuildLoad2(code_generator->builder, struct_return_type,
+                            struct_return_value, "");
+    }
+    return raw_return;
+  } else {
+    if (is_struct_return_type) {
+      LLVMValueRef params[] = {struct_return_value};
+      LLVMBuildCall2(code_generator->builder, type, value, params, 1, "");
+
+      return LLVMBuildLoad2(code_generator->builder, struct_return_type,
+                            struct_return_value, "");
+    } else {
+      return LLVMBuildCall2(code_generator->builder, type, value, NULL, 0, "");
+    }
+  }
 }
 
 // TODO/NOTE: this is an awful hack because the annotator infer_type uses the
@@ -650,6 +703,118 @@ LLVMValueRef cg_visit_ref_expr(struct CodeGenerator *code_generator,
   }
 }
 
+LLVMValueRef
+cg_visit_extern_function_decl(struct CodeGenerator *code_generator,
+                              struct FunctionDefinitionExpressionNode *fn_def,
+                              LLVMTypeRef function_type) {
+  puts("code genning extern function.");
+  printf("name: %s\n", fn_def->function_type->value.function.extern_name->data);
+
+  char *msg = LLVMPrintTypeToString(function_type);
+  printf("type is: %s\n", msg);
+  LLVMDisposeMessage(msg);
+
+  puts("did the add func");
+
+  printf("\n\t\t\t++++++++++++++++POPPING FUNCTION+++++++++\n\n\n");
+
+  return LLVMAddFunction(
+      code_generator->module,
+      fn_def->function_type->value.function.extern_name->data, function_type);
+}
+
+void cg_add_sret_if_needed(struct CodeGenerator *code_generator,
+                           LLVMValueRef function,
+                           struct FunctionDefinitionExpressionNode *fn_def) {
+  if (fn_def->function_type->value.function.return_type->kind ==
+      DTK_RESOLVABLE) {
+    uint32_t sret_kind =
+        LLVMGetEnumAttributeKindForName("sret", strlen("sret"));
+    LLVMAttributeRef sret_attr = LLVMCreateTypeAttribute(
+        LLVMGetGlobalContext(), sret_kind,
+        cg_get_type(code_generator,
+                    fn_def->function_type->value.function.return_type));
+    LLVMAddAttributeAtIndex(function, 1, sret_attr);
+  }
+}
+
+LLVMValueRef
+cg_visit_function_decl(struct CodeGenerator *code_generator,
+                       struct FunctionDefinitionExpressionNode *fn_def) {
+
+  printf("\n\t\t\t++++++++++++++++PUSHING FUNCTION+++++++++\n\n\n");
+
+  struct SymbolTable *old_current = code_generator->current_symbol_table;
+  LLVMBasicBlockRef previous_block = code_generator->current_block;
+
+  // NOTE: we explicitly want the function type not pointer
+  printf("fn_def %d\n", fn_def != NULL);
+  LLVMTypeRef function_type =
+      cg_get_func_type(code_generator, fn_def->function_type);
+
+  char *msg = LLVMPrintTypeToString(function_type);
+  printf("the type is: %s\n", msg);
+  LLVMDisposeMessage(msg);
+
+  if (fn_def->function_type->value.function.extern_name != NULL) {
+    LLVMValueRef function =
+        cg_visit_extern_function_decl(code_generator, fn_def, function_type);
+    cg_add_sret_if_needed(code_generator, function, fn_def);
+    return function;
+  }
+
+  LLVMValueRef function =
+      LLVMAddFunction(code_generator->module, "", function_type);
+  cg_add_sret_if_needed(code_generator, function, fn_def);
+
+  LLVMBasicBlockRef block = LLVMAppendBasicBlock(function, "entry");
+  LLVMPositionBuilderAtEnd(code_generator->builder, block);
+
+  code_generator->current_block = block;
+  code_generator->current_symbol_table = &fn_def->symbol_table;
+
+  printf("about to hop into function. here is its symbol table:\n");
+  print_symbol_table(string_make("some_func"), &fn_def->symbol_table);
+
+  struct FunctionArgumentNode *argument =
+      fn_def->function_type->value.function.arguments;
+
+  size_t index = 0;
+  while (argument != NULL) {
+    struct SymbolTableEntry *symbol = lookup_symbol_in(
+        argument->symbol, code_generator->current_symbol_table);
+    assert(symbol != NULL);
+    LLVMValueRef value = LLVMGetParam(function, index);
+
+    symbol->llvm_value =
+        LLVMBuildAlloca(code_generator->builder,
+                        cg_get_type(code_generator, argument->data_type), "");
+    LLVMBuildStore(code_generator->builder, value, symbol->llvm_value);
+
+    // symbol->llvm_value = value;
+    index++;
+    argument = argument->next;
+  }
+
+  cg_visit_function_statements(code_generator, fn_def->body);
+
+  if (LLVMGetBasicBlockTerminator(code_generator->current_block) == NULL) {
+    assert(fn_def->function_type->value.function.return_type->kind == DTK_VOID);
+
+    LLVMBuildRetVoid(code_generator->builder);
+  }
+
+  code_generator->current_symbol_table = old_current;
+  code_generator->current_block = previous_block;
+
+  LLVMPositionBuilderAtEnd(code_generator->builder, previous_block);
+
+  puts("non extern.");
+  printf("\n\t\t\t++++++++++++++++POPPING FUNCTION+++++++++\n\n\n");
+
+  return function;
+}
+
 LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
                            struct ExpressionNode *expr) {
   printf("[cg_visit_expr] %d\n", expr->type);
@@ -819,90 +984,7 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
     break;
   }
   case EXPR_FN_DEF:
-    printf("\n\t\t\t++++++++++++++++PUSHING FUNCTION+++++++++\n\n\n");
-
-    struct SymbolTable *old_current = code_generator->current_symbol_table;
-    LLVMBasicBlockRef previous_block = code_generator->current_block;
-
-    LLVMValueRef function = NULL;
-
-    // NOTE: we explicitly want the function type not pointer
-    printf("expr: %d, fn_def %d\n", expr != NULL, expr->node.fn_def != NULL);
-    LLVMTypeRef function_type =
-        cg_get_func_type(code_generator, expr->node.fn_def->function_type);
-
-    char *msg = LLVMPrintTypeToString(function_type);
-    printf("the type is: %s\n", msg);
-    LLVMDisposeMessage(msg);
-
-    if (expr->node.fn_def->function_type->value.function.extern_name != NULL) {
-      puts("code genning extern function.");
-
-      puts("pre add func");
-      printf(
-          "name: %s\n",
-          expr->node.fn_def->function_type->value.function.extern_name->data);
-      char *msg = LLVMPrintTypeToString(function_type);
-      printf("type is: %s\n", msg);
-      LLVMDisposeMessage(msg);
-
-      function = LLVMAddFunction(
-          code_generator->module,
-          expr->node.fn_def->function_type->value.function.extern_name->data,
-          function_type);
-      puts("did the add func");
-    } else {
-      function = LLVMAddFunction(code_generator->module, "", function_type);
-      LLVMBasicBlockRef block = LLVMAppendBasicBlock(function, "entry");
-      LLVMPositionBuilderAtEnd(code_generator->builder, block);
-
-      code_generator->current_block = block;
-      code_generator->current_symbol_table = &expr->node.fn_def->symbol_table;
-
-      printf("about to hop into function. here is its symbol table:\n");
-      print_symbol_table(string_make("some_func"),
-                         &expr->node.fn_def->symbol_table);
-
-      struct FunctionArgumentNode *argument =
-          expr->node.fn_def->function_type->value.function.arguments;
-      size_t index = 0;
-      while (argument != NULL) {
-        struct SymbolTableEntry *symbol = lookup_symbol_in(
-            argument->symbol, code_generator->current_symbol_table);
-        assert(symbol != NULL);
-        LLVMValueRef value = LLVMGetParam(function, index);
-
-        symbol->llvm_value = LLVMBuildAlloca(
-            code_generator->builder,
-            cg_get_type(code_generator, argument->data_type), "");
-        LLVMBuildStore(code_generator->builder, value, symbol->llvm_value);
-
-        // symbol->llvm_value = value;
-        index++;
-        argument = argument->next;
-      }
-
-      cg_visit_function_statements(code_generator, expr->node.fn_def->body);
-
-      if (LLVMGetBasicBlockTerminator(code_generator->current_block) == NULL) {
-        assert(expr->node.fn_def->function_type->value.function.return_type
-                   ->kind == DTK_VOID);
-
-        LLVMBuildRetVoid(code_generator->builder);
-      }
-
-      code_generator->current_symbol_table = old_current;
-      code_generator->current_block = previous_block;
-
-      LLVMPositionBuilderAtEnd(code_generator->builder, previous_block);
-
-      puts("non extern.");
-      return function;
-    }
-
-    printf("\n\t\t\t++++++++++++++++POPPING FUNCTION+++++++++\n\n\n");
-
-    return function;
+    return cg_visit_function_decl(code_generator, expr->node.fn_def);
   case EXPR_FN_CALL:
     return cg_visit_function_call(code_generator, expr->node.fn_call);
   case EXPR_REF: {
@@ -1249,8 +1331,21 @@ void cg_visit_return(struct CodeGenerator *code_generator,
   if (ret->expression == NULL) {
     LLVMBuildRetVoid(code_generator->builder);
   } else {
-    LLVMBuildRet(code_generator->builder,
-                 cg_visit_expr(code_generator, ret->expression));
+    struct DataType *inferred_return_type =
+        cg_infer_type(code_generator, ret->expression);
+    assert(inferred_return_type != NULL);
+
+    LLVMValueRef result = cg_visit_expr(code_generator, ret->expression);
+
+    if (inferred_return_type->kind == DTK_RESOLVABLE) {
+      LLVMValueRef fn = LLVMGetBasicBlockParent(code_generator->current_block);
+      LLVMValueRef v = LLVMGetParam(fn, 0);
+
+      LLVMBuildStore(code_generator->builder, result, v);
+      LLVMBuildRetVoid(code_generator->builder);
+    } else {
+      LLVMBuildRet(code_generator->builder, result);
+    }
   }
 }
 
