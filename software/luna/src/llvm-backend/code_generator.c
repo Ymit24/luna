@@ -30,7 +30,8 @@ cg_count_structure_definition_fields(struct StructFieldDefinitionNode *field);
 
 LLVMValueRef cg_visit_ref_expr(struct CodeGenerator *code_generator,
                                struct ExpressionNode *expr);
-
+bool cg_function_needs_struct_return_type(struct CodeGenerator *code_generator,
+                                          struct DataType *return_type);
 // size_t
 // cg_count_field_access_depth(struct StructFieldAccessExpressionNode *field);
 
@@ -140,8 +141,9 @@ LLVMTypeRef cg_get_func_type(struct CodeGenerator *code_generator,
 
   puts("about to check type for function.");
   LLVMTypeRef return_type;
-  bool struct_return_type =
-      data_type->value.function.return_type->kind == DTK_RESOLVABLE;
+  bool struct_return_type = cg_function_needs_struct_return_type(
+      code_generator, data_type->value.function.return_type);
+
   if (data_type->value.function.return_type == NULL || struct_return_type) {
     puts("Struct return being marked as void");
     return_type = LLVMVoidType();
@@ -297,6 +299,13 @@ LLVMTypeRef cg_get_type(struct CodeGenerator *code_generator,
   return NULL;
 }
 
+bool cg_function_needs_struct_return_type(struct CodeGenerator *code_generator,
+                                          struct DataType *return_type) {
+  return return_type->kind == DTK_RESOLVABLE &&
+         LLVMABISizeOfType(code_generator->target_data,
+                           cg_get_type(code_generator, return_type)) >= 16;
+}
+
 LLVMValueRef cg_visit_function_call(struct CodeGenerator *code_generator,
                                     struct FunctionCallExpressionNode *expr) {
   puts("\n\t\t\t\t\t\tCode genning function call.");
@@ -325,8 +334,8 @@ LLVMValueRef cg_visit_function_call(struct CodeGenerator *code_generator,
 
   size_t argument_count = count_function_call_arguments(expr->arguments);
 
-  bool is_struct_return_type =
-      fn_definition->return_type->kind == DTK_RESOLVABLE;
+  bool is_struct_return_type = cg_function_needs_struct_return_type(
+      code_generator, fn_definition->return_type);
   printf("is struct return? %d\n", is_struct_return_type);
   LLVMValueRef struct_return_value;
   LLVMTypeRef struct_return_type;
@@ -726,8 +735,8 @@ cg_visit_extern_function_decl(struct CodeGenerator *code_generator,
 void cg_add_sret_if_needed(struct CodeGenerator *code_generator,
                            LLVMValueRef function,
                            struct FunctionDefinitionExpressionNode *fn_def) {
-  if (fn_def->function_type->value.function.return_type->kind ==
-      DTK_RESOLVABLE) {
+  if (cg_function_needs_struct_return_type(
+          code_generator, fn_def->function_type->value.function.return_type)) {
     uint32_t sret_kind =
         LLVMGetEnumAttributeKindForName("sret", strlen("sret"));
     LLVMAttributeRef sret_attr = LLVMCreateTypeAttribute(
@@ -780,7 +789,8 @@ cg_visit_function_decl(struct CodeGenerator *code_generator,
       fn_def->function_type->value.function.arguments;
 
   size_t index =
-      fn_def->function_type->value.function.return_type->kind == DTK_RESOLVABLE
+      cg_function_needs_struct_return_type(
+          code_generator, fn_def->function_type->value.function.return_type)
           ? 1
           : 0;
   while (argument != NULL) {
@@ -1340,7 +1350,8 @@ void cg_visit_return(struct CodeGenerator *code_generator,
 
     LLVMValueRef result = cg_visit_expr(code_generator, ret->expression);
 
-    if (inferred_return_type->kind == DTK_RESOLVABLE) {
+    if (cg_function_needs_struct_return_type(code_generator,
+                                             inferred_return_type)) {
       LLVMValueRef fn = LLVMGetBasicBlockParent(code_generator->current_block);
       LLVMValueRef v = LLVMGetParam(fn, 0);
 
