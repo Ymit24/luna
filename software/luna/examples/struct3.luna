@@ -3,6 +3,8 @@ const printf = fn@extern["printf"]@variadic(fmt: *i8): i32
 
 const string = struct { data: *i8, len: i32 }
 const complex = struct { x: i32, y: string, z: u16 }
+const other = struct { x: i32 }
+const double = struct { x: *other }
 
 const make_string = fn(): string {
   return .string {
@@ -37,6 +39,10 @@ const main = fn(): i32 {
   const c = make_complex(6)
 
   printf("complex: x: %d, y: %s, z: %d\n", c.x, c.y.data, c.z)
+
+  const o = .other { x: 100 }
+  const oo = .double { x: &o }
+  const oo2 = .double { x: &.other { x: 3 } }
 
   return 0
 }

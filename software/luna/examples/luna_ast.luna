@@ -471,10 +471,27 @@ const Parser = struct {
   position: u16,
 }
 
+
+const DataTypeTable = struct {
+  head: *DataType
+}
+
+const Annotator = struct {
+  root_symbol_table: SymbolTable,
+  current_symbol_table: *SymbolTable,
+  data_type_table: DataTypeTable,
+  allocator: *ArenaAllocator,
+  current_function: FunctionType,
+}
+
 const parser_make = fn@extern["parser_make"](allocator: *ArenaAllocator, tokens: *Token, token_count: u16): Parser
 const parse_module_statements = fn@extern["parse_module_statements"](parser: *Parser): *ModuleStatementNode
 const parser_peek = fn@extern["parser_peek"](parser: *Parser): Token
 
+const annotator_make = fn@extern["annotator_make"](allocator: *ArenaAllocator): Annotator
+
+const mstb_visit_module = fn@extern["mstb_visit_module"](annotator: *Annotator, root: *ModuleStatementNode)
+const mstb_infer_types = fn@extern["mstb_infer_types"](annotator: *Annotator, symbol_table: *SymbolTable)
 
 const arena_verify = fn@extern["arena_verify"](allocator: *ArenaAllocator)
 const lexer_verify = fn@extern["lexer_verify"](lexer: *Lexer)
@@ -506,6 +523,46 @@ const to_string = mod {
   }
 }
 
+const ast_promote = fn@extern["ast_promote"](allocator: *ArenaAllocator, src: *i8, size: u8): *i8
+const ast_promote_expression_node = fn@extern["ast_promote_expression_node"](allocator: *ArenaAllocator, expr: ExpressionNode): *ExpressionNode
+
+const wrap_module = fn(allocator: *ArenaAllocator, old_root: *ModuleStatementNode, file_name: LunaString): *ModuleStatementNode {
+  const t1 = .ModuleNode{ statements: old_root }
+  const file_module = ast_promote(
+    allocator,
+    &t1,
+    @typesize(ModuleNode)
+  )
+
+  const file_module_definition = ast_promote_expression_node(
+    allocator,
+    .ExpressionNode {
+      type: ExpressionType::EXPR_MOD_DEF,
+      node: .ExpressionNodeValue {
+        definition_module: file_module
+      }
+    })
+
+  const t2 = .DeclarationStatementNode {
+                  symbol: file_name,
+                  data_type: @cast(*DataType, null),
+                  has_type: false,
+                  is_const: true,
+                  expression: file_module_definition,
+              }
+
+  const root_decl = ast_promote(allocator, &t2, @typesize(DeclarationStatementNode));
+
+  const t3 = .ModuleStatementNode {
+                      type: 1,
+                      node: .ModuleStatementNodeValue { decl: root_decl },
+                      next: @cast(*ModuleStatementNode, null),
+                  }
+  const new_root = ast_promote(allocator, &t3, @typesize(ModuleStatementNode));
+
+
+  return @cast(*ModuleStatementNode, new_root)
+}
 
 const main = fn() {
   const arena: [i8; 1000] = [0]
@@ -519,7 +576,7 @@ const main = fn() {
 
   cstd::printf("LUNA2: ALLOCATOR: %p %d / %d\n", allocator.arena, allocator.length, allocator.capacity)
 
-  const source = string_make("let a = 10;")
+  const source = string_make("let a = 10; let b = fn(): i32 { return 2 + 9; };")
   cstd::printf("compiling source `%s` (%d)\n", source.data, source.length)
   const lexer = lexer_make(&allocator, source)
   cstd::printf("expected lexer allocator len: %d\n", lexer.allocator.length)
@@ -553,7 +610,6 @@ const main = fn() {
   cstd::printf("1. peeked token: %d\n", the_tok.type)
   parser.position = 0
 
-
   cstd::puts("\n\n\n\n\n")
 
   cstd::puts("parsing code...")
@@ -565,4 +621,43 @@ const main = fn() {
   const stringified = to_string::stmt_mod(stmt)
 
   cstd::puts(stringified.data)
+
+  cstd::puts("creating annotator...")
+
+  let new_root = wrap_module(&allocator, stmt, string_make("temp"))
+  new_root = wrap_module(&allocator, new_root, string_make("src"));
+
+  const print_symbol_table = fn@extern["print_symbol_table"](name: LunaString, symbol_table: *SymbolTable)
+
+  const annotator = annotator_make(&allocator);
+  annotator.current_symbol_table = &annotator.root_symbol_table;
+
+  cstd::puts("created annotator.")
+
+  const print_data_type = fn@extern["print_data_type"](data_type: *DataType)
+
+  print_data_type(new_root.node.decl.data_type)
+
+  const insert_symbol_entry = fn@extern["insert_symbol_entry"](annotator: *Annotator, entry: SymbolTableEntry)
+
+
+  insert_symbol_entry(&annotator, .SymbolTableEntry {
+                                      symbol: string_make("src"),
+                                      type: new_root.node.decl.data_type,
+                                      // llvm_value: null,
+                                      // next: null,
+                                      symbol_location: 0,
+                                      index: 0,
+                                  })
+
+  print_symbol_table(string_make("root"), &annotator.root_symbol_table)
+
+  const annotator_visit_module_statements = fn@extern["annotator_visit_module_statements"](annotator: *Annotator, statement: *ModuleStatementNode)
+
+
+  annotator_visit_module_statements(&annotator, new_root);
+
+  print_symbol_table(string_make("root"), &annotator.root_symbol_table)
+
+  mstb_visit_module(&annotator, stmt)
 }
