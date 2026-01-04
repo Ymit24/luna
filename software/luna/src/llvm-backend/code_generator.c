@@ -303,7 +303,7 @@ bool cg_function_needs_struct_return_type(struct CodeGenerator *code_generator,
                                           struct DataType *return_type) {
   return return_type->kind == DTK_RESOLVABLE &&
          LLVMABISizeOfType(code_generator->target_data,
-                           cg_get_type(code_generator, return_type)) >= 16;
+                           cg_get_type(code_generator, return_type)) > 16;
 }
 
 LLVMValueRef cg_visit_function_call(struct CodeGenerator *code_generator,
