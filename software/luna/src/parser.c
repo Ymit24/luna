@@ -33,11 +33,10 @@ struct Parser parser_make(struct ArenaAllocator *allocator,
 }
 
 struct Token parser_peek(struct Parser *parser) {
+  printf("[c99] parser addr: %p\n", (void *)parser);
   puts("parser_peek a");
   assert(parser->position < parser->token_count);
   puts("parser_peek b");
-
-  printf("[parser_peek] parser addr: %p\n", (void *)parser);
 
   printf("parser->position=>%d\n", parser->position);
   printf("parser->tokens=>%p\n", (void *)parser->tokens);
@@ -984,6 +983,9 @@ parse_scoped_symbol_literal(struct Parser *parser) {
 
 struct ModuleStatementNode *parse_module_statements(struct Parser *parser) {
   puts("pre a");
+  struct Token peeked_tok = parser_peek(parser);
+  printf("[c99] parser stuff: %d\n", parser->position);
+  printf("[c99] peeked tok: %d\n", peeked_tok.type);
   assert(parser_peek(parser).type != T_EOF);
 
   puts("A");
@@ -1543,6 +1545,7 @@ struct ModuleStatementNode *parse_module_statement(struct Parser *parser) {
   }
   default: {
     puts("Unexpected token in module.");
+    printf("token: %d\n", parser_peek(parser).type);
     assert(0);
     break;
   }

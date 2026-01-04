@@ -425,7 +425,10 @@ const lex_all = fn(lexer: *Lexer, tokens: *lists::list) {
     type: 1,
     value: .TokenValue { integer: 0 }
   }
-  while lexer_next(lexer, &out) {
+
+  let has_next = true
+  while has_next {
+    has_next = lexer_next(lexer, &out)
     cstd::printf("next token: type=%d\n", out.type)
     if out.type == TokenType::T_INTEGER {
       cstd::printf("\tinteger value: %u\n", out.value.integer)
@@ -469,21 +472,50 @@ const Parser = struct {
 }
 
 const parser_make = fn@extern["parser_make"](allocator: *ArenaAllocator, tokens: *Token, token_count: u16): Parser
-const parse_module_statements = fn@extern["parse_module_statements"](sret: *i8, parser: *Parser): ModuleStatementNode
+const parse_module_statements = fn@extern["parse_module_statements"](parser: *Parser): *ModuleStatementNode
+const parser_peek = fn@extern["parser_peek"](parser: *Parser): Token
+
 
 const arena_verify = fn@extern["arena_verify"](allocator: *ArenaAllocator)
 const lexer_verify = fn@extern["lexer_verify"](lexer: *Lexer)
 
+const to_string = mod {
+  const decl = fn(decl: *DeclarationStatementNode): strings::string {
+    const str = strings::make("")
+
+    strings::append::cstr(&str, "(")
+    strings::append::cstr(&str, decl.symbol.data)
+    strings::append::cstr(&str, ")")
+
+    return str
+  }
+  const stmt_mod = fn(stmt: *ModuleStatementNode): strings::string {
+    const str = strings::make("")
+
+    if stmt.type == 0 {
+      strings::append::cstr(&str, "LET ")
+    } else {
+      strings::append::cstr(&str, "CONST ")
+    }
+
+    strings::append::string(&str, decl(stmt.node.value))
+
+    return str
+  }
+}
+
+
 const main = fn() {
   const arena: [i8; 1000] = [0]
   const allocator = arena_make(arena, 1000)
+  cstd::printf("LUNA: ALLOCATOR: %p %d / %d\n", allocator.arena, allocator.length, allocator.capacity)
   cstd::printf("allocator addr %p\n", &allocator)
 
   cstd::printf("sizes: %d %d\n", @typesize(u64), @typesize(ArenaAllocator))
 
   arena_verify(&allocator)
 
-  cstd::printf("ALLOCATOR: %p %d / %d\n", allocator.arena, allocator.length, allocator.capacity)
+  cstd::printf("LUNA2: ALLOCATOR: %p %d / %d\n", allocator.arena, allocator.length, allocator.capacity)
 
   const source = string_make("let a = 10;")
   cstd::printf("compiling source `%s` (%d)\n", source.data, source.length)
@@ -509,10 +541,22 @@ const main = fn() {
   cstd::printf("parser info: %d, %d\n", parser.token_count, parser.position)
   cstd::printf("first token %d %d\n", parser.tokens[0].type, parser.tokens[0].value.integer)
 
+  cstd::puts("\n\n\n\n\n")
+
+  cstd::printf("sizeof tok: %d\n", @typesize(Token))
+
+  let the_tok = parser_peek(&parser)
+  parser.position += 1
+
+  cstd::printf("1. peeked token: %d\n", the_tok.type)
+  parser.position = 0
+
+
+  cstd::puts("\n\n\n\n\n")
+
   cstd::puts("parsing code...")
-  cstd::printf("2.luna: parser tokens addr: %p\n", parser.tokens)
-  const MARKER = 7214
-  cstd::printf("luna: parser addr: %p\n", &parser)
-  const stmt = parse_module_statements(null, &parser)
+  const stmt = parse_module_statements(&parser)
   cstd::printf("parsed! %d\n", parser.position)
+
+  cstd::printf("type of mod stmt: %d\n", stmt.type)
 }

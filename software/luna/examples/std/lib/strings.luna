@@ -49,6 +49,16 @@ const append = mod {
         };
     };
 
+    const string = fn(str: *string, other: *string) {
+        ensure_heap(str);
+        const cstr_len = other.len
+
+        ensure_cap(str, cstr_len);
+
+        cstd::memcpy(str.data + str.len, other.data, cstr_len);
+        str.len += cstr_len;
+    };
+
     const cstr = fn(str: *string, cstr: *i8) {
         ensure_heap(str);
         const cstr_len = cstd::strlen(cstr);
