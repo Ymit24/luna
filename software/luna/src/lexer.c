@@ -10,9 +10,10 @@
 #include <string.h>
 
 struct Lexer lexer_make(struct ArenaAllocator *allocator,
-                        struct LunaString source) {
+                        struct LunaString source,
+                        struct LunaString filename) {
   return (struct Lexer){
-      .allocator = allocator, .source = source, .position = 0};
+      .allocator = allocator, .source = source, .filename = filename, .position = 0};
 }
 
 char lexer_peek(struct Lexer *lexer) {
@@ -120,10 +121,15 @@ void lexer_skip_whitespace(struct Lexer *lexer) {
 
 bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
   lexer_skip_whitespace(lexer);
+  uint16_t start_pos = lexer->position;
   char current = lexer_peek(lexer);
+
+  out_token->location.filename = lexer->filename;
 
   if (current == 0) {
     out_token->type = T_EOF;
+    out_token->location.start = start_pos;
+    out_token->location.end = lexer->position;
     return false;
   }
 
@@ -137,6 +143,8 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
       out_token->type = T_PLUSEQUALS;
       lexer->position++;
     }
+    out_token->location.start = start_pos;
+    out_token->location.end = lexer->position;
     return true;
   case '-':
     out_token->type = T_MINUS;
@@ -145,6 +153,8 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
       out_token->type = T_MINUSEQUALS;
       lexer->position++;
     }
+    out_token->location.start = start_pos;
+    out_token->location.end = lexer->position;
     return true;
   case '*':
     out_token->type = T_STAR;
@@ -153,6 +163,8 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
       out_token->type = T_STAREQUALS;
       lexer->position++;
     }
+    out_token->location.start = start_pos;
+    out_token->location.end = lexer->position;
     return true;
   case '&':
     out_token->type = T_AMPERSAND;
@@ -161,6 +173,8 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
       out_token->type = T_AMPEQUALS;
       lexer->position++;
     }
+    out_token->location.start = start_pos;
+    out_token->location.end = lexer->position;
     return true;
   case '|':
     out_token->type = T_PIPE;
@@ -169,6 +183,8 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
       out_token->type = T_PIPEEQUALS;
       lexer->position++;
     }
+    out_token->location.start = start_pos;
+    out_token->location.end = lexer->position;
     return true;
   case '^':
     out_token->type = T_CARET;
@@ -177,9 +193,12 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
       out_token->type = T_CARETEQUALS;
       lexer->position++;
     }
+    out_token->location.start = start_pos;
+    out_token->location.end = lexer->position;
     return true;
   case '~':
     out_token->type = T_TILDE;
+    lexer->position++;
     break;
   case '/':
     lexer->position++;
@@ -192,28 +211,38 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
     } else if (lexer_peek(lexer) == '=') {
       out_token->type = T_SLASHEQUALS;
       lexer->position++;
+      out_token->location.start = start_pos;
+      out_token->location.end = lexer->position;
       return true;
     }
     out_token->type = T_SLASH;
+    out_token->location.start = start_pos;
+    out_token->location.end = lexer->position;
     return true;
 
   case '(':
     out_token->type = T_LPAREN;
+    lexer->position++;
     break;
   case ')':
     out_token->type = T_RPAREN;
+    lexer->position++;
     break;
   case '{':
     out_token->type = T_LBRACE;
+    lexer->position++;
     break;
   case '}':
     out_token->type = T_RBRACE;
+    lexer->position++;
     break;
   case '[':
     out_token->type = T_LBRACK;
+    lexer->position++;
     break;
   case ']':
     out_token->type = T_RBRACK;
+    lexer->position++;
     break;
   case '!':
     out_token->type = T_EXCLAMATION;
@@ -222,6 +251,8 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
       out_token->type = T_NTEQ;
       lexer->position++;
     }
+    out_token->location.start = start_pos;
+    out_token->location.end = lexer->position;
     return true;
   case '<':
     out_token->type = T_LANGLE;
@@ -238,6 +269,8 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
         lexer->position++;
       }
     }
+    out_token->location.start = start_pos;
+    out_token->location.end = lexer->position;
     return true;
   case '>':
     out_token->type = T_RANGLE;
@@ -254,18 +287,24 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
         lexer->position++;
       }
     }
+    out_token->location.start = start_pos;
+    out_token->location.end = lexer->position;
     return true;
   case ';':
     out_token->type = T_SEMICOLON;
+    lexer->position++;
     break;
   case ':':
     out_token->type = T_COLON;
+    lexer->position++;
     break;
   case ',':
     out_token->type = T_COMMA;
+    lexer->position++;
     break;
   case '.':
     out_token->type = T_PERIOD;
+    lexer->position++;
     break;
   case '=':
     out_token->type = T_EQUALS;
@@ -274,6 +313,8 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
       out_token->type = T_EQEQ;
       lexer->position++;
     }
+    out_token->location.start = start_pos;
+    out_token->location.end = lexer->position;
     return true;
   case '\'':
     out_token->type = T_CHAR;
@@ -282,6 +323,8 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
     out_token->value.integer = lexer_read_char(lexer);
     assert(lexer_peek(lexer) == '\'');
     lexer->position++;
+    out_token->location.start = start_pos;
+    out_token->location.end = lexer->position;
     return true;
   case '"':
     out_token->type = T_STRING;
@@ -290,6 +333,8 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
     out_token->value.symbol = lexer_read_string(lexer);
     assert(lexer_peek(lexer) == '"');
     lexer->position++;
+    out_token->location.start = start_pos;
+    out_token->location.end = lexer->position;
     return true;
   case '@':
     lexer->position++;
@@ -297,29 +342,39 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
         strncmp("extern", &lexer->source.data[lexer->position], 6) == 0) {
       out_token->type = T_EXTERN;
       lexer->position += 6;
+      out_token->location.start = start_pos;
+      out_token->location.end = lexer->position;
       return true;
     } else if (lexer->source.length - lexer->position >= 8 &&
                strncmp("variadic", &lexer->source.data[lexer->position], 8) ==
                    0) {
       out_token->type = T_VARIADIC;
       lexer->position += 8;
+      out_token->location.start = start_pos;
+      out_token->location.end = lexer->position;
       return true;
     } else if (lexer->source.length - lexer->position >= 4 &&
                strncmp("cast", &lexer->source.data[lexer->position], 4) == 0) {
       out_token->type = T_CAST;
       lexer->position += 4;
+      out_token->location.start = start_pos;
+      out_token->location.end = lexer->position;
       return true;
     } else if (lexer->source.length - lexer->position >= 9 &&
                strncmp("valuesize", &lexer->source.data[lexer->position], 9) ==
                    0) {
       out_token->type = T_VALUESIZE;
       lexer->position += 9;
+      out_token->location.start = start_pos;
+      out_token->location.end = lexer->position;
       return true;
     } else if (lexer->source.length - lexer->position >= 8 &&
                strncmp("typesize", &lexer->source.data[lexer->position], 8) ==
                    0) {
       out_token->type = T_TYPESIZE;
       lexer->position += 8;
+      out_token->location.start = start_pos;
+      out_token->location.end = lexer->position;
       return true;
     }
     break;
@@ -327,74 +382,99 @@ bool lexer_next(struct Lexer *lexer, struct Token *out_token) {
     if (isdigit(current)) {
       out_token->type = T_INTEGER;
       out_token->value.integer = lexer_read_integer(lexer);
+      out_token->location.start = start_pos;
+      out_token->location.end = lexer->position;
       return true;
     } else {
       if (lexer->source.length - lexer->position >= 3 &&
           strncmp("let", &lexer->source.data[lexer->position], 3) == 0) {
         out_token->type = T_LET;
         lexer->position += 3;
+        out_token->location.start = start_pos;
+        out_token->location.end = lexer->position;
         return true;
       } else if (lexer->source.length - lexer->position >= 5 &&
                  strncmp("const", &lexer->source.data[lexer->position], 5) ==
                      0) {
         out_token->type = T_CONST;
         lexer->position += 5;
+        out_token->location.start = start_pos;
+        out_token->location.end = lexer->position;
         return true;
       } else if (lexer->source.length - lexer->position >= 2 &&
                  strncmp("fn", &lexer->source.data[lexer->position], 2) == 0) {
         out_token->type = T_FN;
         lexer->position += 2;
+        out_token->location.start = start_pos;
+        out_token->location.end = lexer->position;
         return true;
       } else if (lexer->source.length - lexer->position >= 2 &&
                  strncmp("if", &lexer->source.data[lexer->position], 2) == 0) {
         out_token->type = T_IF;
         lexer->position += 2;
+        out_token->location.start = start_pos;
+        out_token->location.end = lexer->position;
         return true;
       } else if (lexer->source.length - lexer->position >= 4 &&
                  strncmp("else", &lexer->source.data[lexer->position], 4) ==
                      0) {
         out_token->type = T_ELSE;
         lexer->position += 4;
+        out_token->location.start = start_pos;
+        out_token->location.end = lexer->position;
         return true;
       } else if (lexer->source.length - lexer->position >= 6 &&
                  strncmp("return", &lexer->source.data[lexer->position], 6) ==
                      0) {
         out_token->type = T_RETURN;
         lexer->position += 6;
+        out_token->location.start = start_pos;
+        out_token->location.end = lexer->position;
         return true;
       } else if (lexer->source.length - lexer->position >= 5 &&
                  strncmp("union", &lexer->source.data[lexer->position], 5) ==
                      0) {
         out_token->type = T_UNION;
         lexer->position += 5;
+        out_token->location.start = start_pos;
+        out_token->location.end = lexer->position;
         return true;
       } else if (lexer->source.length - lexer->position >= 6 &&
                  strncmp("struct", &lexer->source.data[lexer->position], 6) ==
                      0) {
         out_token->type = T_STRUCT;
         lexer->position += 6;
+        out_token->location.start = start_pos;
+        out_token->location.end = lexer->position;
         return true;
       } else if (lexer->source.length - lexer->position >= 5 &&
                  strncmp("while", &lexer->source.data[lexer->position], 5) ==
                      0) {
         out_token->type = T_WHILE;
         lexer->position += 5;
+        out_token->location.start = start_pos;
+        out_token->location.end = lexer->position;
         return true;
       } else if (lexer->source.length - lexer->position >= 3 &&
                  strncmp("mod", &lexer->source.data[lexer->position], 3) == 0) {
         out_token->type = T_MOD;
         lexer->position += 3;
+        out_token->location.start = start_pos;
+        out_token->location.end = lexer->position;
         return true;
       } else {
         out_token->type = T_SYMBOL;
         out_token->value.symbol = lexer_read_symbol(lexer);
+        out_token->location.start = start_pos;
+        out_token->location.end = lexer->position;
         return true;
       }
     }
   }
   }
 
-  lexer->position++;
+  out_token->location.start = start_pos;
+  out_token->location.end = lexer->position;
 
   return true;
 }

@@ -7,6 +7,7 @@
 #include "annotator.h"
 #include "arena_allocator.h"
 #include "luna_string.h"
+#include "token.h"
 
 enum ModuleStatementType {
   MOD_STMT_LET,
@@ -35,6 +36,7 @@ struct DeclarationStatementNode {
   struct ExpressionNode *expression;
   bool has_type;
   bool is_const;
+  struct SourceLocation location;
 };
 
 struct AssignStatementNode {
@@ -45,6 +47,7 @@ struct AssignStatementNode {
 struct ModuleNode {
   struct ModuleStatementNode *statements;
   struct SymbolTable symbol_table;
+  struct SourceLocation location;
 };
 
 struct ModuleStatementNode {
@@ -53,6 +56,7 @@ struct ModuleStatementNode {
     struct DeclarationStatementNode *decl;
   } node;
   struct ModuleStatementNode *next;
+  struct SourceLocation location;
 };
 
 struct ReturnStatementNode {
@@ -70,6 +74,7 @@ struct FunctionStatementNode {
     struct WhileStatementNode *while_stmt;
   } node;
   struct FunctionStatementNode *next;
+  struct SourceLocation location;
 };
 
 struct IfStatementNode {
@@ -77,12 +82,14 @@ struct IfStatementNode {
   struct FunctionStatementNode *body;
   struct IfStatementNode *next;
   struct SymbolTable symbol_table;
+  struct SourceLocation location;
 };
 
 struct WhileStatementNode {
   struct ExpressionNode *condition;
   struct FunctionStatementNode *body;
   struct SymbolTable symbol_table;
+  struct SourceLocation location;
 };
 
 enum ExpressionType {
@@ -136,6 +143,7 @@ struct ExpressionNode {
     struct ArrayInitializerExpressionNode *array_initializers;
     struct ModuleNode *module_definition;
   } node;
+  struct SourceLocation location;
 };
 
 struct IntegerLiteralNode {
@@ -167,6 +175,7 @@ struct StructDefinitionExpressionNode {
   struct SymbolTable symbol_table;
   LLVMTypeRef llvm_structure_type;
   bool is_union;
+  struct SourceLocation location;
 };
 
 struct StructFieldAccessExpressionNode {
@@ -189,6 +198,7 @@ struct FunctionDefinitionExpressionNode {
   struct FunctionStatementNode *body;
   struct DataType *function_type;
   struct SymbolTable symbol_table;
+  struct SourceLocation location;
 };
 
 struct FunctionCallArgumentExpressionsNode {

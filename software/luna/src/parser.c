@@ -18,6 +18,23 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser);
 struct ScopedSymbolLiteralNode *
 parse_scoped_symbol_literal(struct Parser *parser);
 
+static inline struct SourceLocation
+parser_make_span(struct Parser *parser, uint16_t start_pos) {
+  if (parser->position == 0) {
+    return (struct SourceLocation){
+        .filename = parser->tokens[0].location.filename,
+        .start = start_pos,
+        .end = start_pos,
+    };
+  }
+  struct Token end_token = parser->tokens[parser->position - 1];
+  return (struct SourceLocation){
+      .filename = end_token.location.filename,
+      .start = start_pos,
+      .end = end_token.location.end,
+  };
+}
+
 struct Parser parser_make(struct ArenaAllocator *allocator,
                           struct Token *tokens, uint16_t token_count) {
   return (struct Parser){
@@ -36,7 +53,7 @@ struct Token parser_peek(struct Parser *parser) {
 
 struct FunctionCallExpressionNode *
 parse_function_call_expression(struct Parser *parser,
-                               struct ScopedSymbolLiteralNode *symbol) {
+                                struct ScopedSymbolLiteralNode *symbol) {
 
   assert(parser_peek(parser).type == T_LPAREN);
   parser->position++;
@@ -75,10 +92,13 @@ parse_function_call_expression(struct Parser *parser,
   assert(parser_peek(parser).type == T_RPAREN);
   parser->position++;
 
-  return ast_promote(parser->allocator,
-                     &(struct FunctionCallExpressionNode){
-                         .name = symbol, .arguments = root_argument},
-                     sizeof(struct FunctionCallExpressionNode));
+  struct FunctionCallExpressionNode *result =
+      ast_promote(parser->allocator,
+                   &(struct FunctionCallExpressionNode){
+                       .name = symbol, .arguments = root_argument},
+                   sizeof(struct FunctionCallExpressionNode));
+
+  return result;
 }
 
 // TODO: clean up these values once all operators are done
@@ -270,18 +290,25 @@ parse_array_initializer(struct Parser *parser) {
 
 struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
   switch (token.type) {
-  case T_INTEGER:
-    return ast_promote_expression_node(
+  case T_INTEGER: {
+    struct ExpressionNode *result = ast_promote_expression_node(
         parser->allocator,
         (struct ExpressionNode){.type = EXPR_INTEGER_LITERAL,
                                 .node.integer = parse_integer_literal(parser)});
-  case T_CHAR:
+    result->location = token.location;
+    return result;
+  }
+  case T_CHAR: {
+    struct SourceLocation loc = token.location;
     parser->position++;
-    return ast_promote_expression_node(
+    struct ExpressionNode *result = ast_promote_expression_node(
         parser->allocator,
         (struct ExpressionNode){.type = EXPR_INTEGER_LITERAL,
                                 .node.integer = ast_make_integer_literal(
                                     parser->allocator, token.value.integer)});
+    result->location = loc;
+    return result;
+  }
   case T_SYMBOL: {
     struct ScopedSymbolLiteralNode *scoped_symbol =
         parse_scoped_symbol_literal(parser);
@@ -413,19 +440,23 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
   }
   case T_STAR: {
     puts("parsing deref");
+    struct SourceLocation loc = token.location;
     parser->position++;
 
     struct ExpressionNode *deref_expr = parse_expression(parser, 0);
 
-    return ast_promote(
+    struct ExpressionNode *result = ast_promote(
         parser->allocator,
         &(struct ExpressionNode){.type = EXPR_DEREF, .node.deref = deref_expr},
         sizeof(struct ExpressionNode));
+    result->location = parser_make_span(parser, loc.start);
+    return result;
   }
   case T_AMPERSAND: {
+    struct SourceLocation loc = token.location;
     parser->position++;
 
-    return ast_promote(
+    struct ExpressionNode *result = ast_promote(
         parser->allocator,
         &(struct ExpressionNode){
             .type = EXPR_REF,
@@ -435,21 +466,27 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
             // `foo.bar[100]` part.
             .node.ref = parse_expression(parser, precedence_for_token(T_PLUS))},
         sizeof(struct ExpressionNode));
+    result->location = parser_make_span(parser, loc.start);
+    return result;
   }
   case T_TILDE: {
+    struct SourceLocation loc = token.location;
     parser->position++;
 
-    return ast_promote(
+    struct ExpressionNode *result = ast_promote(
         parser->allocator,
         &(struct ExpressionNode){.type = EXPR_NOT,
                                  .node.not = parse_expression(
                                      parser, precedence_for_token(T_TILDE))},
         sizeof(struct ExpressionNode));
+    result->location = parser_make_span(parser, loc.start);
+    return result;
   }
   case T_STRING: {
+    struct SourceLocation loc = token.location;
     parser->position++;
 
-    return ast_promote(
+    struct ExpressionNode *result = ast_promote(
         parser->allocator,
         &(struct ExpressionNode){
             .type = EXPR_STRING_LITERAL,
@@ -458,9 +495,11 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
                 &(struct StringLiteralNode){.value = token.value.symbol},
                 sizeof(struct StringLiteralNode))},
         sizeof(struct ExpressionNode));
-    break;
+    result->location = loc;
+    return result;
   }
-  case T_VALUESIZE:
+  case T_VALUESIZE: {
+    struct SourceLocation loc = token.location;
     parser->position++;
     assert(parser_peek(parser).type == T_LPAREN);
     parser->position++;
@@ -470,10 +509,14 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
     assert(parser_peek(parser).type == T_RPAREN);
     parser->position++;
 
-    return ast_promote_expression_node(
+    struct ExpressionNode *result = ast_promote_expression_node(
         parser->allocator, (struct ExpressionNode){.type = EXPR_VALUESIZE,
                                                    .node.valuesize = expr});
-  case T_TYPESIZE:
+    result->location = parser_make_span(parser, loc.start);
+    return result;
+  }
+  case T_TYPESIZE: {
+    struct SourceLocation loc = token.location;
     parser->position++;
     assert(parser_peek(parser).type == T_LPAREN);
     parser->position++;
@@ -483,10 +526,14 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
     assert(parser_peek(parser).type == T_RPAREN);
     parser->position++;
 
-    return ast_promote_expression_node(
+    struct ExpressionNode *result = ast_promote_expression_node(
         parser->allocator,
         (struct ExpressionNode){.type = EXPR_TYPESIZE, .node.typesize = dt});
+    result->location = parser_make_span(parser, loc.start);
+    return result;
+  }
   case T_CAST: {
+    struct SourceLocation loc = token.location;
     parser->position++;
 
     assert(parser_peek(parser).type == T_LPAREN);
@@ -502,7 +549,7 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
     assert(parser_peek(parser).type == T_RPAREN);
     parser->position++;
 
-    return ast_promote_expression_node(
+    struct ExpressionNode *result = ast_promote_expression_node(
         parser->allocator,
         (struct ExpressionNode){
             .type = EXPR_CAST,
@@ -510,16 +557,21 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
                 parser->allocator,
                 &(struct CastExpressionNode){.expr = expr, .type = type},
                 sizeof(struct CastExpressionNode))});
+    result->location = parser_make_span(parser, loc.start);
+    return result;
   }
   case T_LPAREN: {
+    struct SourceLocation loc = token.location;
     assert(parser_peek(parser).type == T_LPAREN);
     parser->position++;
     struct ExpressionNode *result = parse_expression(parser, 0);
     assert(parser_peek(parser).type == T_RPAREN);
     parser->position++; // consume the close paren.
+    result->location = parser_make_span(parser, loc.start);
     return result;
   }
   case T_FN: {
+    struct SourceLocation fn_loc = token.location;
     struct DataType *return_type = NULL;
     parser->position++;
     struct LunaString *extern_name = NULL;
@@ -560,7 +612,7 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
     }
     printf("next token is: %d\n", parser_peek(parser).type);
     if (extern_name != NULL) {
-      return ast_promote(
+      struct ExpressionNode *result = ast_promote(
           parser->allocator,
           &(struct ExpressionNode){
               .type = EXPR_FN_DEF,
@@ -575,6 +627,8 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
                               sizeof(struct FunctionDefinitionExpressionNode)),
           },
           sizeof(struct ExpressionNode));
+      result->location = parser_make_span(parser, fn_loc.start);
+      return result;
     }
     assert(parser_peek(parser).type == T_LBRACE);
     parser->position++;
@@ -582,7 +636,7 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
     assert(parser_peek(parser).type == T_RBRACE);
     parser->position++; // consume the close brace.
     printf("return type IS NULL?: %d\n", return_type == NULL);
-    return ast_promote(parser->allocator,
+    struct ExpressionNode *fn_result = ast_promote(parser->allocator,
                        &(struct ExpressionNode){
                            .type = EXPR_FN_DEF,
                            .node.fn_def = ast_promote(
@@ -596,8 +650,12 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
                                sizeof(struct FunctionDefinitionExpressionNode)),
                        },
                        sizeof(struct ExpressionNode));
+    fn_result->location = parser_make_span(parser, fn_loc.start);
+    fn_result->node.fn_def->location = fn_result->location;
+    return fn_result;
   }
   case T_PERIOD: {
+    struct SourceLocation loc = token.location;
     parser->position++;
     puts("found struct initialization");
 
@@ -613,7 +671,7 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
     assert(parser_peek(parser).type == T_RBRACE);
     parser->position++; // consume the close brace.
 
-    return ast_promote_expression_node(
+    struct ExpressionNode *result = ast_promote_expression_node(
         parser->allocator,
         (struct ExpressionNode){
             .type = EXPR_STRUCT_INIT,
@@ -625,8 +683,11 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
 
                 },
                 sizeof(struct StructInitializationExpressionNode))});
+    result->location = parser_make_span(parser, loc.start);
+    return result;
   }
   case T_UNION: {
+    struct SourceLocation loc = token.location;
     parser->position++;
 
     struct StructDefinitionExpressionNode struct_def = {0};
@@ -641,7 +702,7 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
     assert(parser_peek(parser).type == T_RBRACE);
     parser->position++;
 
-    return ast_promote(parser->allocator,
+    struct ExpressionNode *result = ast_promote(parser->allocator,
                        &(struct ExpressionNode){
                            .type = EXPR_STRUCT_DEF,
                            .node.struct_def = ast_promote(
@@ -649,8 +710,12 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
                                sizeof(struct StructDefinitionExpressionNode)),
                        },
                        sizeof(struct ExpressionNode));
+    result->location = parser_make_span(parser, loc.start);
+    result->node.struct_def->location = result->location;
+    return result;
   }
   case T_STRUCT: {
+    struct SourceLocation loc = token.location;
     parser->position++;
 
     struct StructDefinitionExpressionNode struct_def = {0};
@@ -663,7 +728,7 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
     assert(parser_peek(parser).type == T_RBRACE);
     parser->position++;
 
-    return ast_promote(parser->allocator,
+    struct ExpressionNode *result = ast_promote(parser->allocator,
                        &(struct ExpressionNode){
                            .type = EXPR_STRUCT_DEF,
                            .node.struct_def = ast_promote(
@@ -671,8 +736,12 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
                                sizeof(struct StructDefinitionExpressionNode)),
                        },
                        sizeof(struct ExpressionNode));
+    result->location = parser_make_span(parser, loc.start);
+    result->node.struct_def->location = result->location;
+    return result;
   }
   case T_MOD: {
+    struct SourceLocation mod_loc = token.location;
     puts("Found module definition");
     parser->position++;
 
@@ -685,7 +754,7 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
     assert(parser_peek(parser).type == T_RBRACE);
     parser->position++;
 
-    return ast_promote(parser->allocator,
+    struct ExpressionNode *result = ast_promote(parser->allocator,
                        &(struct ExpressionNode){
                            .type = EXPR_MOD_DEF,
                            .node.module_definition =
@@ -696,10 +765,13 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
                                            sizeof(struct ModuleNode)),
                        },
                        sizeof(struct ExpressionNode));
-
+    result->location = parser_make_span(parser, mod_loc.start);
+    result->node.module_definition->location = result->location;
+    return result;
     break;
   }
-  case T_LBRACK:
+  case T_LBRACK: {
+    struct SourceLocation loc = token.location;
     puts("Found array initializer.");
     parser->position++;
 
@@ -709,11 +781,14 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
     assert(parser_peek(parser).type == T_RBRACK);
     parser->position++;
 
-    return ast_promote_expression_node(
+    struct ExpressionNode *result = ast_promote_expression_node(
         parser->allocator, (struct ExpressionNode){
                                .type = EXPR_ARRAY_INITIALIZER,
                                .node.array_initializers = initializers,
                            });
+    result->location = parser_make_span(parser, loc.start);
+    return result;
+  }
   default:
     printf("Found type: %d\n", token.type);
     assert(false);
@@ -721,8 +796,9 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
 }
 
 struct ExpressionNode *parse_expression(struct Parser *parser,
-                                        uint8_t precendence) {
+                                         uint8_t precendence) {
   struct Token token = parser_peek(parser);
+  uint16_t start_pos = token.location.start;
 
   struct ExpressionNode *left = parse_nud(parser, token);
 
@@ -915,6 +991,7 @@ struct ExpressionNode *parse_expression(struct Parser *parser,
     }
   }
 
+  left->location = parser_make_span(parser, start_pos);
   return left;
 }
 
@@ -973,11 +1050,13 @@ struct ModuleStatementNode *parse_module_statements(struct Parser *parser) {
 
   struct ModuleStatementNode *head = parse_module_statement(parser);
   struct ModuleStatementNode *curr = head;
+  head->location = parser_make_span(parser, head->location.start);
 
   enum TokenType peak;
   while ((peak = parser_peek(parser).type, peak != T_RBRACE && peak != T_EOF)) {
     curr->next = parse_module_statement(parser);
     curr = curr->next;
+    curr->location = parser_make_span(parser, curr->location.start);
   }
 
   return head;
@@ -1292,26 +1371,33 @@ parse_assignment_statement(struct Parser *parser, struct ExpressionNode *expr) {
 }
 
 struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
+  struct Token token = parser_peek(parser);
+  uint16_t start_pos = token.location.start;
+
   switch (parser_peek(parser).type) {
   case T_LET: {
     struct DeclarationStatementNode *decl = parse_decl_statement(parser, false);
-    return ast_promote(parser->allocator,
+    struct FunctionStatementNode *result = ast_promote(parser->allocator,
                        &(struct FunctionStatementNode){
                            .type = FN_STMT_LET,
                            .node.decl = decl,
                            .next = NULL,
                        },
                        sizeof(struct FunctionStatementNode));
+    result->location = parser_make_span(parser, start_pos);
+    return result;
   }
   case T_CONST: {
     struct DeclarationStatementNode *decl = parse_decl_statement(parser, true);
-    return ast_promote(parser->allocator,
+    struct FunctionStatementNode *result = ast_promote(parser->allocator,
                        &(struct FunctionStatementNode){
                            .type = FN_STMT_CONST,
                            .node.decl = decl,
                            .next = NULL,
                        },
                        sizeof(struct FunctionStatementNode));
+    result->location = parser_make_span(parser, start_pos);
+    return result;
   }
   case T_RETURN: {
     puts("found return.");
@@ -1323,11 +1409,13 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
     }
 
     puts("parsed ret");
-    return ast_promote(parser->allocator,
+    struct FunctionStatementNode *result = ast_promote(parser->allocator,
                        &(struct FunctionStatementNode){.type = FN_STMT_RETURN,
                                                        .node.ret = ret,
                                                        .next = NULL},
                        sizeof(struct FunctionStatementNode));
+    result->location = parser_make_span(parser, start_pos);
+    return result;
   }
   case T_WHILE: {
     puts("found while.");
@@ -1355,13 +1443,16 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
       parser->position++;
     }
 
-    return ast_promote(
+    struct FunctionStatementNode *result = ast_promote(
         parser->allocator,
         &(struct FunctionStatementNode){
             .type = FN_STMT_WHILE,
             .node.while_stmt = ast_promote(parser->allocator, &while_stmt,
                                            sizeof(struct WhileStatementNode))},
         sizeof(struct FunctionStatementNode));
+    result->location = parser_make_span(parser, start_pos);
+    result->node.while_stmt->location = result->location;
+    return result;
   }
   case T_IF: {
     puts("found if.");
@@ -1428,7 +1519,7 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
       parser->position++;
     }
 
-    return ast_promote(
+    struct FunctionStatementNode *result = ast_promote(
         parser->allocator,
         &(struct FunctionStatementNode){
             .type = FN_STMT_IF,
@@ -1436,6 +1527,9 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
             .node.if_stmt = ast_promote(parser->allocator, &if_stmt,
                                         sizeof(struct IfStatementNode))},
         sizeof(struct FunctionStatementNode));
+    result->location = parser_make_span(parser, start_pos);
+    result->node.if_stmt->location = result->location;
+    return result;
   }
   default: {
     puts("[PARSER] In default case for function statement.");
@@ -1453,7 +1547,7 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
         parser->position++;
       }
 
-      return ast_promote(parser->allocator,
+      struct FunctionStatementNode *result = ast_promote(parser->allocator,
                          &(struct FunctionStatementNode){
                              .type = FN_STMT_FN_CALL,
                              .node.fn_call = expr->node.fn_call,
@@ -1461,16 +1555,23 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
 
                          },
                          sizeof(struct FunctionStatementNode));
+      result->location = parser_make_span(parser, start_pos);
+      return result;
     case EXPR_DEREF:
     case EXPR_FIELD_ACCESS:
-    case EXPR_SYMBOL_LITERAL:
-      return parse_assignment_statement(parser, expr);
+    case EXPR_SYMBOL_LITERAL: {
+      struct FunctionStatementNode *result = parse_assignment_statement(parser, expr);
+      result->location = parser_make_span(parser, start_pos);
+      return result;
+    }
     case EXPR_ARRAY_INITIALIZER: {
       struct ExpressionNode *source_expression = ast_promote(
           parser->allocator,
           &(struct ExpressionNode){.type = EXPR_DEREF, .node.deref = expr},
           sizeof(struct ExpressionNode));
-      return parse_assignment_statement(parser, source_expression);
+      struct FunctionStatementNode *result = parse_assignment_statement(parser, source_expression);
+      result->location = parser_make_span(parser, start_pos);
+      return result;
     }
     case EXPR_BINARY:
     case EXPR_INTEGER_LITERAL:
@@ -1497,26 +1598,33 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
 }
 
 struct ModuleStatementNode *parse_module_statement(struct Parser *parser) {
+  struct Token token = parser_peek(parser);
+  uint16_t start_pos = token.location.start;
+
   switch (parser_peek(parser).type) {
   case T_LET: {
     struct DeclarationStatementNode *decl = parse_decl_statement(parser, false);
-    return ast_promote(parser->allocator,
+    struct ModuleStatementNode *result = ast_promote(parser->allocator,
                        &(struct ModuleStatementNode){
                            .type = MOD_STMT_LET,
                            .node.decl = decl,
                            .next = NULL,
                        },
                        sizeof(struct ModuleStatementNode));
+    result->location = parser_make_span(parser, start_pos);
+    return result;
   }
   case T_CONST: {
     struct DeclarationStatementNode *decl = parse_decl_statement(parser, true);
-    return ast_promote(parser->allocator,
+    struct ModuleStatementNode *result = ast_promote(parser->allocator,
                        &(struct ModuleStatementNode){
                            .type = MOD_STMT_CONST,
                            .node.decl = decl,
                            .next = NULL,
                        },
                        sizeof(struct ModuleStatementNode));
+    result->location = parser_make_span(parser, start_pos);
+    return result;
   }
   default: {
     puts("Unexpected token in module.");

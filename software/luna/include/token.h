@@ -65,12 +65,19 @@ enum TokenType {
   T_CARETEQUALS
 };
 
+struct SourceLocation {
+  struct LunaString filename;
+  uint16_t start;
+  uint16_t end;
+};
+
 struct Token {
   enum TokenType type;
   union {
     uint16_t integer;
     struct LunaString symbol;
   } value;
+  struct SourceLocation location;
 };
 
 #endif

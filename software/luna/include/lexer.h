@@ -11,11 +11,13 @@
 struct Lexer {
   struct ArenaAllocator *allocator;
   struct LunaString source;
+  struct LunaString filename;
   uint16_t position;
 };
 
 struct Lexer lexer_make(struct ArenaAllocator *allocator,
-                        struct LunaString source);
+                        struct LunaString source,
+                        struct LunaString filename);
 
 char lexer_peek(struct Lexer *lexer);
 
