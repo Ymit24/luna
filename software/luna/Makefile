@@ -23,10 +23,13 @@ LIB := lib.c \
 
 .PHONY: all clean
 
-all: lunac
+all: lunac luna-lsp
 
 lunac: $(SRC)
 	gcc -o bin/$@ $(SRC) $(CFLAGS) $(LDFLAGS)
+
+luna-lsp: lsp.c src/lsp_query.c src/lexer.c src/parser.c src/ast.c src/luna_string.c src/arena_allocator.c src/annotator.c src/instruction_builder.c src/module_symbol_table_builder.c
+	gcc -o bin/$@ lsp.c src/lsp_query.c src/lexer.c src/parser.c src/ast.c src/luna_string.c src/arena_allocator.c src/annotator.c src/instruction_builder.c src/module_symbol_table_builder.c -Wall -Wextra -std=c99 -Iinclude $(LLVM_CFLAGS)
 
 lib: $(LIB)
 	clang -S -emit-llvm -std=c99 lib.c -o out/source.ll -Iinclude
@@ -34,4 +37,4 @@ lib: $(LIB)
 	clang out/combined.ll -o out/final $(LDFLAGS)
 
 clean:
-	rm -f lunac
+	rm -f bin/lunac bin/luna-lsp
