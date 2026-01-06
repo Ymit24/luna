@@ -1,0 +1,205 @@
+const ValueInner = union {
+  string: *i8,
+  number: i64,
+  object: Object,
+  array: Array,
+}
+
+const ValueType = mod {
+  const STRING = 0
+  const NUMBER = 1
+  const OBJECT = 2
+  const ARRAY = 3
+}
+
+const Value = struct {
+  inner: ValueInner,
+  type: i32
+}
+
+const Field = struct {
+  name: *i8,
+  value: Value,
+}
+
+const Object = struct {
+  fields: *Field,
+  field_count: i32,
+}
+
+const Array = struct {
+  elements: *Value,
+  element_count: i32,
+}
+
+const parser = mod {
+const Parser = struct {
+  source: *i8,
+  length: i32,
+  position: i32,
+}
+
+const strlen = fn@extern["strlen"](s: *i8): i32
+const isspace = fn@extern["isspace"](char: i8): i32
+const abort = fn@extern["abort"]()
+const malloc = fn@extern["malloc"](size: i32): *i8;
+const memcpy = fn@extern["memcpy"](dst: *i8, src: *i8, size: i32);
+
+const assert = fn(msg: *i8) {
+  main::printf("ASSERT FAILED: `%s`", msg)
+  abort()
+}
+
+const make = fn(source: *i8): Parser {
+  return .Parser {
+    source: source,
+    length: strlen(source),
+    position: 0
+  }
+}
+
+const parse = mod {
+const peek = fn(p: *Parser): i8 {
+  if p.position >= p.length {
+    const result: i8 = 0
+    return result
+  }
+  
+  const result: i8 = p.source[p.position]
+  return result
+}
+
+const skip_whitespace = fn(p: *Parser) {
+  while isspace(peek(p)) {
+    p.position += 1
+  }
+}
+ 
+const expect = fn(p: *Parser, ch: i8): i8 {
+  if peek(p) != ch {
+    assert("Expected ch but didnt find it.")
+  }
+  return take(p)
+}
+
+const take = fn(p: *Parser): i8 {
+  const ch = peek(p)
+  p.position += 1
+  return ch
+}
+
+const string = fn(p: *Parser): *i8 {
+expect(p, '\"')
+
+const buffer: [i8; 256] = [0]
+let index = 0
+
+while peek(p) != '\"' {
+buffer[index] = take(p)
+main::printf("found ch in string `%c`", buffer[index])
+        index += 1
+      }
+      buffer[index] = 0
+      
+      expect(p, '\"')
+      
+      return buffer
+    }
+    
+    const field = fn(p: *Parser): Field {
+      const name = string(p)
+      expect(p, ':')
+      const val = value(p)
+      return .Field {
+        name: name,
+        value: val
+      }
+    }
+    
+    const object = fn(p: *Parser): Object {
+      expect(p, '{')
+      const fields: [Field; 64] = [.Field { name: "", value: .Value { type: ValueType::STRING, inner: .ValueInner{string:""}} }]
+      let count = 0
+      
+      if peek(p) == '}' {
+        return .Object {
+          fields: @cast(*Field, null),
+          field_count: 0
+        }
+      }
+      
+      fields[count] = field(p)
+      count += 1
+      let index = 0
+      while index < count {
+        main::printf("\tSO FAR %d :: PARSED FIELD: %s:%s\n", index, fields[index].name, fields[index].value.inner.string)
+        index += 1
+      }
+      
+      while peek(p) == ',' {
+        expect(p, ',')
+        fields[count] = field(p)
+        
+        count += 1
+        
+        index = 0
+        while index < count {
+          main::printf("\tSO FAR %d :: PARSED FIELD: %s:%s\n", index, fields[index].name, fields[index].value.inner.string)
+          index += 1
+        }
+      }
+      
+      expect(p, '}')
+      
+      const buf = malloc(@typesize(Field) * count)
+      memcpy(buf, @cast(*i8, fields), @typesize(Field) * count)
+      
+      return .Object {
+        fields: buf,
+        field_count: count
+      }
+    }
+    
+    const array = fn(p: *Parser): Array {
+    expect(p, '[')
+    
+    const elements: [Value; 64] = [.Value{type:ValueType::STRING, inner: .ValueInner{string:""}}]
+    let count = 0
+    
+    if peek(p) == ']' {
+      return .Array {
+        elements: @cast(*Value, null),
+        element_count: 0
+      }
+    }
+    
+    elements[count] = value(p)
+    count += 1
+    while peek(p) == ',' {
+      expect(p, ',')
+      elements[count] = value(p)
+      
+      count += 1
+    }
+    
+    expect(p, ']')
+    
+    const buf = malloc(@typesize(Value) * count)
+    memcpy(buf, @cast(*i8, elements), @typesize(Value) * count)
+    
+    return .Array {
+    elements: buf,
+    element_count: count,
+      }
+    }
+
+    const value = fn(p: *Parser): Value {
+      const ch = peek(p)
+
+      if ch == '\"' { return .Value { type: ValueType::STRING, inner: .ValueInner { string: string(p) } } }
+      else if ch == '{' { return .Value { type: ValueType::OBJECT, inner: .ValueInner { object: object(p) } } }
+      else if ch == '[' { return .Value { type: ValueType::ARRAY, inner: .ValueInner { array: array(p) } } }
+       return .Value { type: ValueType::STRING, inner: .ValueInner { string: "bad" } }
+    }
+  }
+}

@@ -550,14 +550,7 @@ static size_t encode_array(struct ArenaAllocator *allocator,
     }
 
     for (size_t i = 0; i < array->count; i++) {
-        if (!minified && i > 0) {
-            if (buffer && written < capacity) {
-                buffer[written] = ',';
-                written++;
-            } else {
-                written++;
-            }
-        } else if (minified) {
+        if ((!minified && i > 0) || (minified && i > 0)) {
             if (buffer && written < capacity) {
                 buffer[written] = ',';
                 written++;
@@ -617,14 +610,7 @@ static size_t encode_object(struct ArenaAllocator *allocator,
     }
 
     for (size_t i = 0; i < object->count; i++) {
-        if (!minified && i > 0) {
-            if (buffer && written < capacity) {
-                buffer[written] = ',';
-                written++;
-            } else {
-                written++;
-            }
-        } else if (minified) {
+        if (i > 0) {
             if (buffer && written < capacity) {
                 buffer[written] = ',';
                 written++;
@@ -643,7 +629,7 @@ static size_t encode_object(struct ArenaAllocator *allocator,
         }
 
         size_t key_written = encode_string(NULL, 0, object->entries[i].key_ptr, object->entries[i].key_length);
-        if (buffer && written + key_written + 1 < capacity) {
+        if (buffer && written + key_written + 1 <= capacity) {
             encode_string(buffer + written, capacity - written, object->entries[i].key_ptr, object->entries[i].key_length);
         }
         written += key_written;
@@ -665,7 +651,7 @@ static size_t encode_object(struct ArenaAllocator *allocator,
         }
 
         size_t val_written = encode_value(allocator, &object->entries[i].value, NULL, 0, minified);
-        if (buffer && written + val_written < capacity) {
+        if (buffer && written + val_written <= capacity) {
             encode_value(allocator, &object->entries[i].value, buffer + written, capacity - written, minified);
         }
         written += val_written;

@@ -1,0 +1,69 @@
+const puts = fn@extern["puts"](str: *i8): i32
+const printf = fn@extern["printf"]@variadic(str: *i8): i32
+
+const printer = mod {
+  const value = fn(value: *json::Value) {
+    if value.type == json::ValueType::STRING {
+      string(value.inner.string)
+    } else if value.type == json::ValueType::OBJECT {
+      object(&value.inner.object)
+    } else if value.type == json::ValueType::OBJECT {
+      object(&value.inner.object)
+    }
+  }
+
+  const string = fn(str: *i8) {
+    printf("\"%s\"", str)
+  }
+
+  const object = fn(obj: *json::Object) {
+    let index = 0
+    puts("{")
+    while index < obj.field_count{
+      let field = obj.fields[index]
+      printf("\t\"%s\": ", field.name)
+      printer::value(&field.value)
+      if index < ( obj.field_count - 1 ) {
+        printf(",\n")
+      } else {
+        printf("\n")
+      }
+      index += 1
+    }
+    puts("}")
+  }
+}
+
+const main = fn () {
+  puts("hello")
+
+  const parser = json::parser::make("\"hi\"\"a\":\"b\"{\"c\":\"d\",\"e\":\"f\"}[\"1\",\"2\"]")
+  printf("parser: %d/%d\n", parser.position, parser.length)
+
+  let v = json::parser::parse::peek(&parser)
+  printf("1.=%c\n", v)
+
+  json::parser::parse::skip_whitespace(&parser)
+  printf("parser: %d/%d\n", parser.position, parser.length)
+  v = json::parser::parse::peek(&parser)
+  printf("2.=%c\n", v)
+  printf("parser: %d/%d\n", parser.position, parser.length)
+
+  const str = json::parser::parse::string(&parser)
+  printf("3.=%s\n", str)
+  printf("parser: %d/%d\n", parser.position, parser.length)
+
+  const f = json::parser::parse::field(&parser)
+  printf("4.=`%s:%s`\n", f.name, f.value.inner.string)
+  printf("parser: %d/%d\n", parser.position, parser.length)
+
+  const o = json::parser::parse::object(&parser)
+  printf("5.=`%d`\n", o.field_count)
+  printer::object(&o)
+  printf("5b.=`%s:%s`\n", o.fields[0].name, o.fields[0].value.inner.string)
+  printf("parser: %d/%d\n", parser.position, parser.length)
+
+  const a = json::parser::parse::array(&parser)
+  printf("6.=`%d`\n", a.element_count)
+  printf("parser: %d/%d\n", parser.position, parser.length)
+}

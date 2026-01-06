@@ -11,7 +11,7 @@ struct ArenaAllocator arena_make(void *arena, size_t capacity) {
 }
 
 void *arena_alloc(struct ArenaAllocator *allocator, size_t size) {
-  assert(allocator->length + size < allocator->capacity);
+  assert(allocator->length + size <= allocator->capacity);
   allocator->length += size;
   return (void *)((uint8_t *)allocator->arena + allocator->length - size);
 }

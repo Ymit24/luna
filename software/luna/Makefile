@@ -21,12 +21,18 @@ LIB := lib.c \
        src/arena_allocator.c src/interpreter.c src/annotator.c \
        src/instruction_builder.c src/llvm-backend/code_generator.c src/module_symbol_table_builder.c
 
-.PHONY: all clean
+LSP_SRC := lsp_main.c \
+           src/lsp.c src/json.c src/arena_allocator.c
+
+.PHONY: all clean lsp
 
 all: lunac
 
 lunac: $(SRC)
 	gcc -o bin/$@ $(SRC) $(CFLAGS) $(LDFLAGS)
+
+lsp: $(LSP_SRC)
+	gcc -o bin/$@ $(LSP_SRC) $(CFLAGS)
 
 lib: $(LIB)
 	clang -S -emit-llvm -std=c99 lib.c -o out/source.ll -Iinclude
@@ -34,4 +40,4 @@ lib: $(LIB)
 	clang out/combined.ll -o out/final $(LDFLAGS)
 
 clean:
-	rm -f lunac
+	rm -f lunac lunalsp
