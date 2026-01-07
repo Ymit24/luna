@@ -1,0 +1,114 @@
+const get = fn(object: *json::Object, name: *i8): *json::Field {
+  let index = 0
+  while index < object.field_count {
+    let field = object.fields[index]
+
+    libc::printf("[get] field: %p\n", &field)
+    libc::printf("[get] field name: %s\n", field.name)
+
+    if libc::strncmp(name, field.name, libc::strlen(name)) == 0 {
+    libc::puts("[get] found field.")
+      return &object.fields[index]
+    }
+  }
+  const result = @cast(*json::Field, null) 
+  return result
+}
+
+const get_nested = fn(object: *json::Object, path: *i8, path_len: i32): *json::Field {
+  let head = object
+  let index = 0
+
+  libc::printf("[get_nested]: head: %p\n", head)
+  libc::printf("[get_nested]: first field: %p\n", get(head, path[0]))
+
+  while index < path_len {
+    const field = get(head, path[index])
+    if field == null {
+      libc::puts("got null")
+      const result = @cast(*json::Field, null)
+      return result
+    }
+
+    libc::puts("FOUND field")
+
+    index += 1
+
+    if index < path_len {
+      head = &field.value.inner.object
+    } else {
+      return field
+    }
+  }
+
+  const result = @cast(*json::Field, null);
+  return result
+}
+
+const test = fn() {
+  libc::puts("[ SUITE ]: Query ----------")
+
+  let passed = true
+
+  if test_get_field() == false { passed = false }
+  if test_get_nested_field() == false { passed = false }
+  if test_get_nested_fields() == false { passed = false }
+
+  if passed == true { libc::puts("[ SUITE ]: Query PASSED"); }
+  else { libc::puts("[ SUITE ]: Query PASSED"); }
+}
+
+const test_get_field = fn(): i32 {
+  const p = json::parser::make("{\"a\": 3}")
+  const obj = json::parser::parse::object(&p)
+
+  const field = get(&obj, "a")
+
+  if field.value.type != json::ValueType::NUMBER {
+    libc::puts("[test_get_field] FAILED: Expected type to be number")
+    return false
+  }
+
+  if field.value.inner.number != 3 {
+    libc::puts("[test_get_field] FAILED: Expected field value to be 1")
+    return false
+  }
+  libc::puts("[test_get_field] PASSED")
+  return true
+}
+
+const test_get_nested_field = fn(): i32 {
+  const p = json::parser::make("{\"a\": {\"b\": 5}}")
+  const obj = json::parser::parse::object(&p)
+
+  const field = get(&obj, "a")
+  if field.value.type != json::ValueType::OBJECT {
+    libc::puts("[test_get_nested_field] FAILED: Expected type to be number")
+    return false
+  }
+
+  const nested_field = get(&field.value.inner.object, "b")
+  if nested_field.value.type != json::ValueType::NUMBER {
+    libc::puts("[test_get_nested_field] FAILED: Expected type to be number")
+    return false
+  }
+
+  if nested_field.value.inner.number != 5 {
+    libc::puts("[test_get_nested_field] FAILED: Expected field value to be 5")
+    return false
+  }
+
+  libc::puts("[test_get_nested_field] PASSED")
+  return true
+}
+
+const test_get_nested_fields = fn(): i32 {
+  const p = json::parser::make("{\"a\": {\"b\": 5}}")
+  const obj = json::parser::parse::object(&p)
+
+  const path = ["a", "b"]
+  const field = get_nested(&p, path, 2)
+
+  libc::puts("[test_get_nested_fields] PASSED")
+  return true
+}

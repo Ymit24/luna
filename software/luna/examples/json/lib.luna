@@ -1,0 +1,4 @@
+const assert = fn(msg: *i8) {
+  libc::printf("ASSERT FAILED: `%s`", msg)
+  libc::abort()
+}

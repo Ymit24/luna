@@ -41,22 +41,10 @@ const parser = mod {
     position: i32,
   }
 
-  const strlen = fn@extern["strlen"](s: *i8): i32
-  const isspace = fn@extern["isspace"](char: i32): i32
-  const abort = fn@extern["abort"]()
-  const malloc = fn@extern["malloc"](size: i32): *i8;
-  const memcpy = fn@extern["memcpy"](dst: *i8, src: *i8, size: i32);
-  const strtol = fn@extern["strtol"](str: *i8, endptr: **i8, base: i32): i64;
-
-  const assert = fn(msg: *i8) {
-    main::printf("ASSERT FAILED: `%s`", msg)
-    abort()
-  }
-
   const make = fn(source: *i8): Parser {
     return .Parser {
       source: source,
-      length: strlen(source),
+      length: libc::strlen(source),
       position: 0
     }
   }
@@ -73,7 +61,7 @@ const parser = mod {
         return result
       }
 
-      while isspace(inner(p)) {
+      while libc::isspace(inner(p)) {
         const result: i8 = 0
         if p.position >= p.length { return result; }
         p.position += 1
@@ -83,7 +71,7 @@ const parser = mod {
 
     const expect = fn(p: *Parser, ch: i8): i8 {
       if peek(p) != ch {
-        assert("Expected ch but didnt find it.")
+        lib::assert("Expected ch but didnt find it.")
       }
       return take(p)
     }
@@ -97,12 +85,12 @@ const parser = mod {
     const string = fn(p: *Parser): *i8 {
       expect(p, '\"')
 
-      const buffer = malloc(@typesize(i8) * 256)
+      const buffer = libc::malloc(@typesize(i8) * 256)
       let index = 0
 
       while peek(p) != '\"' {
         buffer[index] = take(p)
-        // main::printf("found ch in string `%c`", buffer[index])
+        // libc::printf("found ch in string `%c`", buffer[index])
         index += 1
       }
       buffer[index] = 0
@@ -146,7 +134,7 @@ const parser = mod {
     }
 
     const number = fn(p: *Parser): i64 {
-      const buffer = malloc(@typesize(i8) * 256)
+      const buffer = libc::malloc(@typesize(i8) * 256)
       let index = 0
 
       while isdigit(peek(p)) {
@@ -156,7 +144,7 @@ const parser = mod {
 
       const _ = null
 
-      return strtol(buffer, &_, 10)
+      return libc::strtol(buffer, &_, 10)
     }
 
     const field = fn(p: *Parser): Field {
@@ -185,7 +173,7 @@ const parser = mod {
       count += 1
       let index = 0
       while index < count {
-        // main::printf("\tSO FAR %d :: PARSED FIELD: %s:%s\n", index, fields[index].name, fields[index].value.inner.string)
+        // libc::printf("\tSO FAR %d :: PARSED FIELD: %s:%s\n", index, fields[index].name, fields[index].value.inner.string)
         index += 1
       }
 
@@ -197,15 +185,15 @@ const parser = mod {
 
         index = 0
         while index < count {
-          // main::printf("\tSO FAR %d :: PARSED FIELD: %s:%s\n", index, fields[index].name, fields[index].value.inner.string)
+          // libc::printf("\tSO FAR %d :: PARSED FIELD: %s:%s\n", index, fields[index].name, fields[index].value.inner.string)
           index += 1
         }
       }
 
       expect(p, '}')
 
-      const buf = malloc(@typesize(Field) * count)
-      memcpy(buf, @cast(*i8, fields), @typesize(Field) * count)
+      const buf = libc::malloc(@typesize(Field) * count)
+      libc::memcpy(buf, @cast(*i8, fields), @typesize(Field) * count)
 
       return .Object {
         fields: buf,
@@ -237,8 +225,8 @@ const parser = mod {
 
       expect(p, ']')
 
-      const buf = malloc(@typesize(Value) * count)
-      memcpy(buf, @cast(*i8, elements), @typesize(Value) * count)
+      const buf = libc::malloc(@typesize(Value) * count)
+      libc::memcpy(buf, @cast(*i8, elements), @typesize(Value) * count)
 
       return .Array {
           elements: buf,

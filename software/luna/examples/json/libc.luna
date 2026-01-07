@@ -1,0 +1,11 @@
+const puts = fn@extern["puts"](str: *i8): i32
+const printf = fn@extern["printf"]@variadic(str: *i8): i32
+
+const strlen = fn@extern["strlen"](s: *i8): i32
+const isspace = fn@extern["isspace"](char: i32): i32
+const abort = fn@extern["abort"]()
+const malloc = fn@extern["malloc"](size: i32): *i8;
+const memcpy = fn@extern["memcpy"](dst: *i8, src: *i8, size: i32);
+const strtol = fn@extern["strtol"](str: *i8, endptr: **i8, base: i32): i64;
+
+const strncmp = fn@extern["strncmp"](a: *i8, b: *i8, len: i32): i32;

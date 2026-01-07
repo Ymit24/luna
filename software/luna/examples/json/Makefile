@@ -1,4 +1,4 @@
-SRC := json.luna main.luna
+SRC := json.luna main.luna printer.luna libc.luna query.luna lib.luna
 
 build: $(SRC)
 	rm -f out/compiled.*
