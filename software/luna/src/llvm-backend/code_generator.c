@@ -408,6 +408,15 @@ LLVMValueRef cg_visit_function_call(struct CodeGenerator *code_generator,
         code_generator->builder, type, value, arguments, argument_count, "");
     puts("built call.");
     if (is_struct_return_type) {
+
+      unsigned sretKind =
+          LLVMGetEnumAttributeKindForName("sret", strlen("sret"));
+
+      LLVMAttributeRef sretAttr = LLVMCreateTypeAttribute(
+          LLVMGetGlobalContext(), sretKind, struct_return_type);
+
+      LLVMAddCallSiteAttribute(raw_return, 1, sretAttr);
+
       return LLVMBuildLoad2(code_generator->builder, struct_return_type,
                             struct_return_value, "");
     }

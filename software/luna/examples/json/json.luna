@@ -42,7 +42,7 @@ const parser = mod {
   }
 
   const strlen = fn@extern["strlen"](s: *i8): i32
-  const isspace = fn@extern["isspace"](char: i8): i32
+  const isspace = fn@extern["isspace"](char: i32): i32
   const abort = fn@extern["abort"]()
   const malloc = fn@extern["malloc"](size: i32): *i8;
   const memcpy = fn@extern["memcpy"](dst: *i8, src: *i8, size: i32);
@@ -54,16 +54,25 @@ const parser = mod {
   }
 
   const make = fn(source: *i8): Parser {
-    return .Parser {
+    const p = .Parser {
       source: source,
       length: strlen(source),
       position: 0
     }
+
+    dbg(&p)
+
+    return p
+  }
+
+  const dbg = fn (p: *Parser) {
+    main::printf("parser: %d, %d\n", p.length, p.position)
   }
 
   const parse = mod {
     const peek = fn(p: *Parser): i8 {
       const inner = fn(p: *Parser): i8 {
+        dbg(p)
         if p.position >= p.length {
           const result: i8 = 0
           return result
@@ -78,12 +87,20 @@ const parser = mod {
         if p.position >= p.length { return result; }
         p.position += 1
       }
-      return inner(p)
+
+      const v = inner(p)
+      const v2: i32 = v
+      main::printf("V:'%c'\n", v2)
+      return v
     }
 
     const expect = fn(p: *Parser, ch: i8): i8 {
-      if peek(p) != ch {
-        assert("Expected ch but didnt find it.")
+      const sprintf = fn@extern["sprintf"]@variadic(str: *i8, fmt: *i8): i32
+      const found = peek(p)
+      if found != ch {
+        const buf: [i8; 256] = [0]
+        const _ = sprintf(buf, "Expected ch '%c' but didnt found '%c' instead.", ch, found)
+        assert(buf)
       }
       return take(p)
     }
@@ -95,6 +112,7 @@ const parser = mod {
     }
 
     const string = fn(p: *Parser): *i8 {
+      dbg(p)
       expect(p, '\"')
 
       const buffer = malloc(@typesize(i8) * 256)
@@ -160,6 +178,8 @@ const parser = mod {
     }
 
     const field = fn(p: *Parser): Field {
+      main::printf("[field] : parser length: %d %d\n", p.length, p.position)
+      dbg(p)
       const name = string(p)
       expect(p, ':')
       const val = value(p)
