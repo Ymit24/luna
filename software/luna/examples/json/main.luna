@@ -1,0 +1,203 @@
+const puts = fn@extern["puts"](str: *i8): i32
+const printf = fn@extern["printf"]@variadic(str: *i8): i32
+
+const printer = mod {
+  const value = fn(value: *json::Value, level: i32) {
+    if value.type == json::ValueType::NUMBER {
+      number(value.inner.number, level)
+    } else if value.type == json::ValueType::STRING {
+      string(value.inner.string, level)
+    } else if value.type == json::ValueType::BOOLEAN {
+      boolean(value.inner.boolean)
+    } else if value.type == json::ValueType::OBJECT {
+      object(&value.inner.object, level+1)
+    } else if value.type == json::ValueType::ARRAY {
+      array(&value.inner.array, level+1)
+    }
+  }
+
+  const spaces = fn(level: i32) {
+    printf("%*s", level * 2, "")
+  }
+
+  const field = fn(fd: *json::Field, level: i32) {
+    printf("%s: ", fd.name)
+    printer::value(&fd.value, level)
+  }
+
+  const string = fn(str: *i8, level: i32) {
+    printf("\"%s\"", str)
+  }
+
+  const boolean = fn(bool: i32) {
+    if bool {
+      printf("true")
+    } else {
+      printf("false")
+    }
+  }
+
+  const array = fn(arr: *json::Array, level: i32) {
+    let index = 0
+    puts("[")
+    while index < arr.element_count {
+      spaces(level+1)
+      value(&arr.elements[index], level)
+      if index < (arr.element_count - 1) {
+        printf(",\n")
+      } else {
+        printf("\n")
+      }
+      index += 1
+    }
+    spaces(level)
+    printf("]")
+  }
+
+  const object = fn(obj: *json::Object, level: i32) {
+    let index = 0
+    puts("{")
+    while index < obj.field_count{
+      spaces(level+1)
+      field(&obj.fields[index], level + 1)
+      if index < ( obj.field_count - 1 ) {
+        printf(",\n")
+      } else {
+        printf("\n")
+      }
+      index += 1
+    }
+    spaces(level)
+    printf("}")
+  }
+
+  const number = fn(num: i64, level: i32) {
+    printf("%d", num)
+  }
+}
+
+const test_number = fn() {
+  const parser = json::parser::make("193")
+
+  const v = json::parser::parse::number(&parser)
+
+  printf("Number: `")
+  printer::number(v, 0)
+  printf("`\n")
+}
+
+const test_field = fn() {
+  const parser = json::parser::make("\"a\":\"b\"")
+
+  const v = json::parser::parse::field(&parser)
+
+  printf("Field: `")
+  printer::field(&v, 0)
+  printf("`\n")
+}
+
+const test_object = fn() {
+  const parser = json::parser::make("{\"a\" : \"b\"}")
+
+  const v = json::parser::parse::object(&parser)
+
+  printf("object: `")
+  printer::object(&v, 0)
+  printf("`\n")
+}
+
+const test_array_single = fn() {
+  const parser = json::parser::make("[{\"a\":\"b\"}]")
+
+  const v = json::parser::parse::array(&parser)
+
+  printf("array: `")
+  printer::array(&v, 0)
+  printf("`\n")
+}
+
+const test_array_multi = fn() {
+  const parser = json::parser::make("[\"1\",{\"a\":\"b\",\"c\":93},\"3\"]")
+
+  const v = json::parser::parse::array(&parser)
+
+  printf("array: `")
+  printer::array(&v, 0)
+  printf("`\n")
+}
+
+const test_complex = fn() {
+  const parser = json::parser::make("{\"user\":{\"id\":42,\"name\":\"Christian\",\"isBanned\":false},\"roles\":[\"admin\",\"editor\"],\"active\":true}")
+
+  const v = json::parser::parse::value(&parser)
+
+  puts("complex value: `")
+  printer::value(&v, 0)
+  printf("`\n")
+}
+
+const test_lsp = fn() {
+  const parser = json::parser::make("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"textDocument/didOpen\",\"params\":{\"textDocument\":{\"uri\":\"file:///workspace/main.ts\",\"languageId\":\"typescript\",\"version\":1,\"text\":\"const x = 1;\\n\"}}}")
+
+  const v = json::parser::parse::value(&parser)
+
+  puts("complex value 2: `")
+  printer::value(&v, 0)
+  printf("`\n")
+}
+
+
+
+const test_boolean = fn() {
+  const parser = json::parser::make("true")
+
+  const v = json::parser::parse::boolean(&parser)
+
+  puts("boolean value: `")
+  printer::boolean(v)
+  printf("`\n")
+
+}
+
+const main = fn () {
+  puts("\n\n\n\n\n\n\n\n\n\n\n")
+
+  test_number()
+  test_field()
+  test_object()
+  test_array_single()
+  test_array_multi()
+  test_complex()
+  test_lsp()
+  test_boolean()
+
+//  const parser = json::parser::make("\"hi\"\"a\":\"b\"{\"c\":\"d\",\"e\":\"f\"}[\"1\",\"2\"]")
+//  printf("parser: %d/%d\n", parser.position, parser.length)
+//
+//  let v = json::parser::parse::peek(&parser)
+//  printf("1.=%c\n", v)
+//
+//  json::parser::parse::skip_whitespace(&parser)
+//  printf("parser: %d/%d\n", parser.position, parser.length)
+//  v = json::parser::parse::peek(&parser)
+//  printf("2.=%c\n", v)
+//  printf("parser: %d/%d\n", parser.position, parser.length)
+//
+//  const str = json::parser::parse::string(&parser)
+//  printf("3.=%s\n", str)
+//  printf("parser: %d/%d\n", parser.position, parser.length)
+//
+//  const f = json::parser::parse::field(&parser)
+//  printf("4.=`%s:%s`\n", f.name, f.value.inner.string)
+//  printf("parser: %d/%d\n", parser.position, parser.length)
+//
+//  const o = json::parser::parse::object(&parser)
+//  printf("5.=`%d`\n", o.field_count)
+//  printer::object(&o)
+//  printf("5b.=`%s:%s`\n", o.fields[0].name, o.fields[0].value.inner.string)
+//  printf("parser: %d/%d\n", parser.position, parser.length)
+//
+//  const a = json::parser::parse::array(&parser)
+//  printf("6.=`%d`\n", a.element_count)
+//  printf("parser: %d/%d\n", parser.position, parser.length)
+}

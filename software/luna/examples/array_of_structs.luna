@@ -1,0 +1,27 @@
+const puts = fn@extern["puts"](fmt: *i8):i32
+const printf = fn@extern["printf"]@variadic(fmt: *i8): i32
+
+const Foo = struct {
+  x: i32,
+  y: u16
+}
+
+const Bar = struct {
+  foo: Foo,
+  z: i64
+}
+
+const main = fn () {
+  const arr: [Bar; 16] = [
+    .Bar { foo: .Foo { x: 10, y: 3 }, z: 8 }
+  ]
+
+  const bar2 = .Bar { foo: .Foo { x: 23, y: 48 }, z: 13 }
+
+  printf("ARR[0]: %d %d %d\n", arr[0].foo.x, arr[0].foo.y, arr[0].z)
+  printf("BAR2: %d %d %d\n", bar2.foo.x, bar2.foo.y, bar2.z)
+
+  arr[1] = bar2
+
+  printf("ARR[1]: %d %d %d\n", arr[1].foo.x, arr[1].foo.y, arr[1].z)
+}
