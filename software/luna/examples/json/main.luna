@@ -87,14 +87,7 @@ const test_number = fn() {
 }
 
 const test_field = fn() {
-  puts("TEST: 'FIELD'")
   const parser = json::parser::make("\"a\":\"b\"")
-
-  printf("[pre]: len: %d\n", parser.length)
-
-  json::parser::dbg(&parser)
-
-  const MARKER = 1
 
   const v = json::parser::parse::field(&parser)
 
