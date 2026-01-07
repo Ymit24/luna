@@ -306,6 +306,16 @@ bool cg_function_needs_struct_return_type(struct CodeGenerator *code_generator,
                            cg_get_type(code_generator, return_type)) > 16;
 }
 
+void cg_add_sret_to_call(LLVMValueRef call, LLVMTypeRef return_type){
+      unsigned sretKind =
+          LLVMGetEnumAttributeKindForName("sret", strlen("sret"));
+
+      LLVMAttributeRef sretAttr = LLVMCreateTypeAttribute(
+          LLVMGetGlobalContext(), sretKind, return_type);
+
+      LLVMAddCallSiteAttribute(call, 1, sretAttr);
+}
+
 LLVMValueRef cg_visit_function_call(struct CodeGenerator *code_generator,
                                     struct FunctionCallExpressionNode *expr) {
   puts("\n\t\t\t\t\t\tCode genning function call.");
@@ -404,18 +414,21 @@ LLVMValueRef cg_visit_function_call(struct CodeGenerator *code_generator,
 
     printf("arg count: %zu\n", argument_count);
 
-    LLVMValueRef raw_return = LLVMBuildCall2(
+    LLVMValueRef call = LLVMBuildCall2(
         code_generator->builder, type, value, arguments, argument_count, "");
     puts("built call.");
     if (is_struct_return_type) {
+      cg_add_sret_to_call(call,struct_return_type);
       return LLVMBuildLoad2(code_generator->builder, struct_return_type,
                             struct_return_value, "");
     }
-    return raw_return;
+    return call;
   } else {
     if (is_struct_return_type) {
       LLVMValueRef params[] = {struct_return_value};
-      LLVMBuildCall2(code_generator->builder, type, value, params, 1, "");
+      LLVMValueRef call = LLVMBuildCall2(code_generator->builder, type, value, params, 1, "");
+
+      cg_add_sret_to_call(call,struct_return_type);
 
       return LLVMBuildLoad2(code_generator->builder, struct_return_type,
                             struct_return_value, "");
@@ -424,6 +437,7 @@ LLVMValueRef cg_visit_function_call(struct CodeGenerator *code_generator,
     }
   }
 }
+
 
 // TODO/NOTE: this is an awful hack because the annotator infer_type uses the
 // annotators current symbol table. Given code gen runs after all annotation,
