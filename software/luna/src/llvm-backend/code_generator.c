@@ -306,14 +306,13 @@ bool cg_function_needs_struct_return_type(struct CodeGenerator *code_generator,
                            cg_get_type(code_generator, return_type)) > 16;
 }
 
-void cg_add_sret_to_call(LLVMValueRef call, LLVMTypeRef return_type){
-      unsigned sretKind =
-          LLVMGetEnumAttributeKindForName("sret", strlen("sret"));
+void cg_add_sret_to_call(LLVMValueRef call, LLVMTypeRef return_type) {
+  unsigned sretKind = LLVMGetEnumAttributeKindForName("sret", strlen("sret"));
 
-      LLVMAttributeRef sretAttr = LLVMCreateTypeAttribute(
-          LLVMGetGlobalContext(), sretKind, return_type);
+  LLVMAttributeRef sretAttr =
+      LLVMCreateTypeAttribute(LLVMGetGlobalContext(), sretKind, return_type);
 
-      LLVMAddCallSiteAttribute(call, 1, sretAttr);
+  LLVMAddCallSiteAttribute(call, 1, sretAttr);
 }
 
 LLVMValueRef cg_visit_function_call(struct CodeGenerator *code_generator,
@@ -414,11 +413,11 @@ LLVMValueRef cg_visit_function_call(struct CodeGenerator *code_generator,
 
     printf("arg count: %zu\n", argument_count);
 
-    LLVMValueRef call = LLVMBuildCall2(
-        code_generator->builder, type, value, arguments, argument_count, "");
+    LLVMValueRef call = LLVMBuildCall2(code_generator->builder, type, value,
+                                       arguments, argument_count, "");
     puts("built call.");
     if (is_struct_return_type) {
-      cg_add_sret_to_call(call,struct_return_type);
+      cg_add_sret_to_call(call, struct_return_type);
       return LLVMBuildLoad2(code_generator->builder, struct_return_type,
                             struct_return_value, "");
     }
@@ -426,9 +425,10 @@ LLVMValueRef cg_visit_function_call(struct CodeGenerator *code_generator,
   } else {
     if (is_struct_return_type) {
       LLVMValueRef params[] = {struct_return_value};
-      LLVMValueRef call = LLVMBuildCall2(code_generator->builder, type, value, params, 1, "");
+      LLVMValueRef call =
+          LLVMBuildCall2(code_generator->builder, type, value, params, 1, "");
 
-      cg_add_sret_to_call(call,struct_return_type);
+      cg_add_sret_to_call(call, struct_return_type);
 
       return LLVMBuildLoad2(code_generator->builder, struct_return_type,
                             struct_return_value, "");
@@ -437,7 +437,6 @@ LLVMValueRef cg_visit_function_call(struct CodeGenerator *code_generator,
     }
   }
 }
-
 
 // TODO/NOTE: this is an awful hack because the annotator infer_type uses the
 // annotators current symbol table. Given code gen runs after all annotation,
@@ -642,14 +641,11 @@ cg_visit_struct_init_expression(struct CodeGenerator *code_generator,
     bool is_struct =
         !entry->type->value.structure_definition.definition->is_union;
 
-    LLVMValueRef field_ptr;
-    if (field_init != NULL) {
-      if (!is_struct) {
-        indicies[1] = indicies[0];
-      }
-      field_ptr = LLVMBuildGEP2(code_generator->builder, struct_type,
-                                local_struct, indicies, 2, "");
+    if (!is_struct) {
+      indicies[1] = indicies[0];
     }
+    LLVMValueRef field_ptr = LLVMBuildGEP2(code_generator->builder, struct_type,
+                                           local_struct, indicies, 2, "");
 
     printf("[cg_visit_struct_init_expression] is struct: %d\n", is_struct);
 
@@ -659,7 +655,7 @@ cg_visit_struct_init_expression(struct CodeGenerator *code_generator,
             LLVMABISizeOfType(code_generator->target_data, field_type);
         coereced = LLVMConstInt(LLVMIntType(size * 8), 0, false);
 
-        puts("Building store..");
+        puts("Building zerod store..");
         LLVMBuildStore(code_generator->builder, coereced, field_ptr);
       }
     } else {
@@ -667,7 +663,7 @@ cg_visit_struct_init_expression(struct CodeGenerator *code_generator,
           code_generator, cg_visit_expr(code_generator, field_init->expression),
           field_type);
 
-      puts("Building store..");
+      puts("Building actual store..");
       LLVMBuildStore(code_generator->builder, coereced, field_ptr);
     }
 

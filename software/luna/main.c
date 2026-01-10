@@ -15,7 +15,7 @@
 #include "token.h"
 #include "llvm-c/Core.h"
 
-const char *VERSION = "0.1.3";
+const char *VERSION = "0.1.4+d";
 
 struct LunaString read_file(const char *path, struct ArenaAllocator *alloc) {
   FILE *file = fopen(path, "rb");
