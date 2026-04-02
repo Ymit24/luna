@@ -94,9 +94,10 @@ size_t count_function_call_arguments(
 
 struct CodeGenerator cg_make(struct ArenaAllocator *allocator,
                              struct Annotator *annotator) {
-  LLVMModuleRef module = LLVMModuleCreateWithName("m");
-  LLVMModuleCreateWithName("global");
-  LLVMBuilderRef builder = LLVMCreateBuilder();
+  LLVMContextRef context = LLVMContextCreate();
+  LLVMModuleRef module = LLVMModuleCreateWithNameInContext("m", context);
+  LLVMModuleCreateWithNameInContext("global", context);
+  LLVMBuilderRef builder = LLVMCreateBuilderInContext(context);
 
   LLVMInitializeAllTargetInfos();
   LLVMInitializeAllTargets();
@@ -133,6 +134,7 @@ struct CodeGenerator cg_make(struct ArenaAllocator *allocator,
       .builder = builder,
       .target_data = target_data,
       .current_block = NULL,
+      .context = context,
   };
 }
 
@@ -146,7 +148,7 @@ LLVMTypeRef cg_get_func_type(struct CodeGenerator *code_generator,
 
   if (data_type->value.function.return_type == NULL || struct_return_type) {
     puts("Struct return being marked as void");
-    return_type = LLVMVoidType();
+    return_type = LLVMVoidTypeInContext(code_generator->context);
   } else {
     return_type =
         cg_get_type(code_generator, data_type->value.function.return_type);
@@ -201,7 +203,8 @@ LLVMTypeRef cg_get_type(struct CodeGenerator *code_generator,
   case DTK_PRIMITIVE:
     switch (data_type->value.primitive.kind) {
     case P_INT:
-      return LLVMIntType(data_type->value.primitive.bitwidth);
+      return LLVMIntTypeInContext(code_generator->context,
+                                  data_type->value.primitive.bitwidth);
     case P_FLOAT:
       puts("Floats not impl yet.");
       assert(0);
@@ -212,10 +215,10 @@ LLVMTypeRef cg_get_type(struct CodeGenerator *code_generator,
     return LLVMPointerType(cg_get_func_type(code_generator, data_type), 0);
   case DTK_VOID: {
     puts("cg_get_type: void");
-    return LLVMVoidType();
+    return LLVMVoidTypeInContext(code_generator->context);
   }
   case DTK_POINTER: {
-    LLVMTypeRef inner = LLVMInt32Type();
+    LLVMTypeRef inner = LLVMInt32TypeInContext(code_generator->context);
     // TODO: May not need this
     // LLVMTypeRef inner =
     //     cg_get_type(code_generator, data_type->value.pointer_inner);
@@ -306,14 +309,14 @@ bool cg_function_needs_struct_return_type(struct CodeGenerator *code_generator,
                            cg_get_type(code_generator, return_type)) > 16;
 }
 
-void cg_add_sret_to_call(LLVMValueRef call, LLVMTypeRef return_type){
-      unsigned sretKind =
-          LLVMGetEnumAttributeKindForName("sret", strlen("sret"));
+void cg_add_sret_to_call(struct CodeGenerator *code_generator,
+                         LLVMValueRef call, LLVMTypeRef return_type) {
+  unsigned sretKind = LLVMGetEnumAttributeKindForName("sret", strlen("sret"));
 
-      LLVMAttributeRef sretAttr = LLVMCreateTypeAttribute(
-          LLVMGetGlobalContext(), sretKind, return_type);
+  LLVMAttributeRef sretAttr =
+      LLVMCreateTypeAttribute(code_generator->context, sretKind, return_type);
 
-      LLVMAddCallSiteAttribute(call, 1, sretAttr);
+  LLVMAddCallSiteAttribute(call, 1, sretAttr);
 }
 
 LLVMValueRef cg_visit_function_call(struct CodeGenerator *code_generator,
@@ -414,11 +417,11 @@ LLVMValueRef cg_visit_function_call(struct CodeGenerator *code_generator,
 
     printf("arg count: %zu\n", argument_count);
 
-    LLVMValueRef call = LLVMBuildCall2(
-        code_generator->builder, type, value, arguments, argument_count, "");
+    LLVMValueRef call = LLVMBuildCall2(code_generator->builder, type, value,
+                                       arguments, argument_count, "");
     puts("built call.");
     if (is_struct_return_type) {
-      cg_add_sret_to_call(call,struct_return_type);
+      cg_add_sret_to_call(code_generator, call, struct_return_type);
       return LLVMBuildLoad2(code_generator->builder, struct_return_type,
                             struct_return_value, "");
     }
@@ -426,9 +429,10 @@ LLVMValueRef cg_visit_function_call(struct CodeGenerator *code_generator,
   } else {
     if (is_struct_return_type) {
       LLVMValueRef params[] = {struct_return_value};
-      LLVMValueRef call = LLVMBuildCall2(code_generator->builder, type, value, params, 1, "");
+      LLVMValueRef call =
+          LLVMBuildCall2(code_generator->builder, type, value, params, 1, "");
 
-      cg_add_sret_to_call(call,struct_return_type);
+      cg_add_sret_to_call(code_generator, call, struct_return_type);
 
       return LLVMBuildLoad2(code_generator->builder, struct_return_type,
                             struct_return_value, "");
@@ -437,7 +441,6 @@ LLVMValueRef cg_visit_function_call(struct CodeGenerator *code_generator,
     }
   }
 }
-
 
 // TODO/NOTE: this is an awful hack because the annotator infer_type uses the
 // annotators current symbol table. Given code gen runs after all annotation,
@@ -564,8 +567,9 @@ LLVMValueRef cg_visit_field_access_expr(
     }
 
     LLVMValueRef field_indicies[] = {
-        LLVMConstInt(LLVMInt32Type(), 0, 0),
-        LLVMConstInt(LLVMInt32Type(), field_index, 0),
+        LLVMConstInt(LLVMInt32TypeInContext(code_generator->context), 0, 0),
+        LLVMConstInt(LLVMInt32TypeInContext(code_generator->context),
+                     field_index, 0),
     };
 
     LLVMValueRef field_ptr = LLVMBuildGEP2(code_generator->builder, lhs_type,
@@ -576,8 +580,8 @@ LLVMValueRef cg_visit_field_access_expr(
     puts("[cg_visit_field_access_expr] is union is true");
 
     LLVMValueRef field_indicies[] = {
-        LLVMConstInt(LLVMInt32Type(), 0, 0),
-        LLVMConstInt(LLVMInt32Type(), 0, 0),
+        LLVMConstInt(LLVMInt32TypeInContext(code_generator->context), 0, 0),
+        LLVMConstInt(LLVMInt32TypeInContext(code_generator->context), 0, 0),
     };
 
     LLVMValueRef field_ptr = LLVMBuildGEP2(code_generator->builder, lhs_type,
@@ -631,8 +635,9 @@ cg_visit_struct_init_expression(struct CodeGenerator *code_generator,
     printf("Did find? %d (%s)\n", field_init != NULL, field_def->name.data);
 
     LLVMValueRef indicies[2] = {
-        LLVMConstInt(LLVMInt32Type(), 0, 0),
-        LLVMConstInt(LLVMInt32Type(), field_index++, 0)};
+        LLVMConstInt(LLVMInt32TypeInContext(code_generator->context), 0, 0),
+        LLVMConstInt(LLVMInt32TypeInContext(code_generator->context),
+                     field_index++, 0)};
 
     puts("Building field ptr..");
 
@@ -657,7 +662,8 @@ cg_visit_struct_init_expression(struct CodeGenerator *code_generator,
       if (is_struct) {
         uint64_t size =
             LLVMABISizeOfType(code_generator->target_data, field_type);
-        coereced = LLVMConstInt(LLVMIntType(size * 8), 0, false);
+        coereced = LLVMConstInt(
+            LLVMIntTypeInContext(code_generator->context, size * 8), 0, false);
 
         puts("Building store..");
         LLVMBuildStore(code_generator->builder, coereced, field_ptr);
@@ -754,7 +760,7 @@ void cg_add_sret_if_needed(struct CodeGenerator *code_generator,
     uint32_t sret_kind =
         LLVMGetEnumAttributeKindForName("sret", strlen("sret"));
     LLVMAttributeRef sret_attr = LLVMCreateTypeAttribute(
-        LLVMGetGlobalContext(), sret_kind,
+        code_generator->context, sret_kind,
         cg_get_type(code_generator,
                     fn_def->function_type->value.function.return_type));
     LLVMAddAttributeAtIndex(function, 1, sret_attr);
@@ -790,7 +796,8 @@ cg_visit_function_decl(struct CodeGenerator *code_generator,
       LLVMAddFunction(code_generator->module, "", function_type);
   cg_add_sret_if_needed(code_generator, function, fn_def);
 
-  LLVMBasicBlockRef block = LLVMAppendBasicBlock(function, "entry");
+  LLVMBasicBlockRef block =
+      LLVMAppendBasicBlockInContext(code_generator->context, function, "entry");
   LLVMPositionBuilderAtEnd(code_generator->builder, block);
 
   code_generator->current_block = block;
@@ -980,7 +987,8 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
     }
     break;
   case EXPR_INTEGER_LITERAL:
-    return LLVMConstInt(LLVMInt32Type(), expr->node.integer->value, false);
+    return LLVMConstInt(LLVMInt32TypeInContext(code_generator->context),
+                        expr->node.integer->value, false);
   case EXPR_SYMBOL_LITERAL: {
     puts("getting variable");
     struct SymbolTableEntry *symbol = lookup_scoped_symbol_in(
@@ -1082,13 +1090,16 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
         count_array_initializer_length(expr->node.array_initializers);
     LLVMValueRef array = LLVMBuildArrayAlloca(
         code_generator->builder, element_type,
-        LLVMConstInt(LLVMInt32Type(), element_count, 0), "");
+        LLVMConstInt(LLVMInt32TypeInContext(code_generator->context),
+                     element_count, 0),
+        "");
     struct ArrayInitializerExpressionNode *initializer =
         expr->node.array_initializers;
     size_t index = 0;
     while (initializer != NULL) {
       // %p = getelementptr i32, i32* %a, i32 5
-      LLVMValueRef indices[] = {LLVMConstInt(LLVMInt32Type(), index, 0)};
+      LLVMValueRef indices[] = {LLVMConstInt(
+          LLVMInt32TypeInContext(code_generator->context), index, 0)};
       LLVMValueRef gep = LLVMBuildGEP2(code_generator->builder, element_type,
                                        array, indices, 1, "");
       LLVMValueRef result =
@@ -1108,13 +1119,15 @@ LLVMValueRef cg_visit_expr(struct CodeGenerator *code_generator,
         code_generator->target_data,
         cg_get_type(code_generator,
                     cg_infer_type(code_generator, expr->node.valuesize)));
-    return LLVMConstInt(LLVMInt32Type(), size, 0);
+    return LLVMConstInt(LLVMInt32TypeInContext(code_generator->context), size,
+                        0);
   }
   case EXPR_TYPESIZE: {
     uint64_t size =
         LLVMABISizeOfType(code_generator->target_data,
                           cg_get_type(code_generator, expr->node.typesize));
-    return LLVMConstInt(LLVMInt32Type(), size, 0);
+    return LLVMConstInt(LLVMInt32TypeInContext(code_generator->context), size,
+                        0);
   }
   case EXPR_MOD_DEF:
     puts("Visit mod def.");
@@ -1247,16 +1260,16 @@ void cg_visit_struct_definition(
     uint64_t unit_size;
 
     if (max_alignment >= 8) {
-      unit = LLVMInt64Type();
+      unit = LLVMInt64TypeInContext(code_generator->context);
       unit_size = 8;
     } else if (max_alignment == 4) {
-      unit = LLVMInt32Type();
+      unit = LLVMInt32TypeInContext(code_generator->context);
       unit_size = 4;
     } else if (max_alignment == 2) {
-      unit = LLVMInt16Type();
+      unit = LLVMInt16TypeInContext(code_generator->context);
       unit_size = 2;
     } else {
-      unit = LLVMInt8Type();
+      unit = LLVMInt8TypeInContext(code_generator->context);
       unit_size = 1;
     }
 
@@ -1271,7 +1284,8 @@ void cg_visit_struct_definition(
       field_types[field_index++] = cg_get_type(code_generator, field->type);
       field = field->next;
     }
-    type = LLVMStructType(field_types, field_count, false);
+    type = LLVMStructTypeInContext(code_generator->context, field_types,
+                                   field_count, false);
   }
 
   definition->llvm_structure_type = type;
@@ -1310,7 +1324,8 @@ void cg_visit_module_decl(struct CodeGenerator *code_generator,
         false, decl->symbol);
 
     LLVMBuildCall2(code_generator->builder,
-                   LLVMFunctionType(LLVMVoidType(), 0, 0, 0),
+                   LLVMFunctionType(
+                       LLVMVoidTypeInContext(code_generator->context), 0, 0, 0),
                    inner_module_initializer, NULL, 0, "");
 
     code_generator->current_symbol_table = old_symbol_table;
@@ -1330,7 +1345,9 @@ void cg_visit_module_decl(struct CodeGenerator *code_generator,
         decl->data_type->kind == DTK_POINTER) {
       LLVMSetInitializer(variable, LLVMConstPointerNull(type));
     } else {
-      LLVMSetInitializer(variable, LLVMConstInt(LLVMInt32Type(), 0, 0));
+      LLVMSetInitializer(
+          variable,
+          LLVMConstInt(LLVMInt32TypeInContext(code_generator->context), 0, 0));
     }
 
     entry->llvm_value = variable;
@@ -1424,16 +1441,20 @@ void cg_visit_else(struct CodeGenerator *code_generator,
 void cg_visit_while(struct CodeGenerator *code_generator,
                     struct WhileStatementNode *while_stmt) {
   LLVMValueRef fn = LLVMGetBasicBlockParent(code_generator->current_block);
-  LLVMBasicBlockRef cond_block = LLVMAppendBasicBlock(fn, "while.cond");
-  LLVMBasicBlockRef body_block = LLVMAppendBasicBlock(fn, "while.body");
-  LLVMBasicBlockRef end_block = LLVMAppendBasicBlock(fn, "while.end");
+  LLVMBasicBlockRef cond_block =
+      LLVMAppendBasicBlockInContext(code_generator->context, fn, "while.cond");
+  LLVMBasicBlockRef body_block =
+      LLVMAppendBasicBlockInContext(code_generator->context, fn, "while.body");
+  LLVMBasicBlockRef end_block =
+      LLVMAppendBasicBlockInContext(code_generator->context, fn, "while.end");
 
   LLVMBuildBr(code_generator->builder, cond_block);
   LLVMPositionBuilderAtEnd(code_generator->builder, cond_block);
 
   LLVMValueRef conditional =
       cg_visit_expr(code_generator, while_stmt->condition);
-  conditional = cg_coerce(code_generator, conditional, LLVMInt1Type());
+  conditional = cg_coerce(code_generator, conditional,
+                          LLVMInt1TypeInContext(code_generator->context));
 
   LLVMBuildCondBr(code_generator->builder, conditional, body_block, end_block);
   LLVMPositionBuilderAtEnd(code_generator->builder, body_block);
@@ -1459,15 +1480,19 @@ void cg_visit_if(struct CodeGenerator *code_generator,
                  struct IfStatementNode *if_stmt,
                  LLVMBasicBlockRef prev_merge_block) {
   LLVMValueRef conditional = cg_visit_expr(code_generator, if_stmt->condition);
-  conditional = cg_coerce(code_generator, conditional, LLVMInt1Type());
+  conditional = cg_coerce(code_generator, conditional,
+                          LLVMInt1TypeInContext(code_generator->context));
 
   LLVMValueRef fn = LLVMGetBasicBlockParent(code_generator->current_block);
-  LLVMBasicBlockRef then_block = LLVMAppendBasicBlock(fn, "if.then");
-  LLVMBasicBlockRef else_block = LLVMAppendBasicBlock(fn, "if.else");
+  LLVMBasicBlockRef then_block =
+      LLVMAppendBasicBlockInContext(code_generator->context, fn, "if.then");
+  LLVMBasicBlockRef else_block =
+      LLVMAppendBasicBlockInContext(code_generator->context, fn, "if.else");
   LLVMBasicBlockRef merge_block = NULL;
 
   if (prev_merge_block == NULL) {
-    merge_block = LLVMAppendBasicBlock(fn, "if.end");
+    merge_block =
+        LLVMAppendBasicBlockInContext(code_generator->context, fn, "if.end");
   } else {
     merge_block = prev_merge_block;
   }
@@ -1663,11 +1688,12 @@ LLVMValueRef cg_visit_module_statements(struct CodeGenerator *code_generator,
   char module_initializer_name[module_name.length + strlen(header)];
   sprintf((char *)&module_initializer_name, "%s%s", header, module_name.data);
 
-  LLVMValueRef module_initialization_function =
-      LLVMAddFunction(code_generator->module, module_initializer_name,
-                      LLVMFunctionType(LLVMVoidType(), NULL, 0, 0));
-  LLVMBasicBlockRef block =
-      LLVMAppendBasicBlock(module_initialization_function, "entry");
+  LLVMValueRef module_initialization_function = LLVMAddFunction(
+      code_generator->module, module_initializer_name,
+      LLVMFunctionType(LLVMVoidTypeInContext(code_generator->context), NULL, 0,
+                       0));
+  LLVMBasicBlockRef block = LLVMAppendBasicBlockInContext(
+      code_generator->context, module_initialization_function, "entry");
   LLVMPositionBuilderAtEnd(code_generator->builder, block);
 
   code_generator->current_block = block;
@@ -1690,19 +1716,24 @@ LLVMValueRef cg_visit_module_statements(struct CodeGenerator *code_generator,
 
 void cg_make_entrypoint(struct CodeGenerator *code_generator,
                         LLVMValueRef global_module_initializer) {
-  LLVMTypeRef param_types[] = {LLVMInt32Type(), // int argc
-                               LLVMPointerType( // char **argv
-                                   LLVMPointerType(LLVMInt8Type(), 0), 0)};
-  LLVMValueRef entrypoint_function =
-      LLVMAddFunction(code_generator->module, "main",
-                      LLVMFunctionType(LLVMInt32Type(), param_types, 2, 0));
+  LLVMTypeRef param_types[] = {
+      LLVMInt32TypeInContext(code_generator->context), // int argc
+      LLVMPointerType(                                 // char **argv
+          LLVMPointerType(LLVMInt8TypeInContext(code_generator->context), 0),
+          0)};
+  LLVMValueRef entrypoint_function = LLVMAddFunction(
+      code_generator->module, "main",
+      LLVMFunctionType(LLVMInt32TypeInContext(code_generator->context),
+                       param_types, 2, 0));
 
-  LLVMBasicBlockRef block = LLVMAppendBasicBlock(entrypoint_function, "entry");
+  LLVMBasicBlockRef block = LLVMAppendBasicBlockInContext(
+      code_generator->context, entrypoint_function, "entry");
   LLVMPositionBuilderAtEnd(code_generator->builder, block);
 
-  LLVMBuildCall2(code_generator->builder,
-                 LLVMFunctionType(LLVMVoidType(), 0, 0, 0),
-                 global_module_initializer, 0, 0, "");
+  LLVMBuildCall2(
+      code_generator->builder,
+      LLVMFunctionType(LLVMVoidTypeInContext(code_generator->context), 0, 0, 0),
+      global_module_initializer, 0, 0, "");
 
   struct SymbolTableEntry *main_symbol = NULL;
   struct LunaString main_symbol_name = string_make("main");
@@ -1763,7 +1794,9 @@ void cg_make_entrypoint(struct CodeGenerator *code_generator,
   }
 
   if (main_symbol->type->value.function.return_type->kind == DTK_VOID) {
-    LLVMBuildRet(code_generator->builder, LLVMConstInt(LLVMInt32Type(), 0, 0));
+    LLVMBuildRet(
+        code_generator->builder,
+        LLVMConstInt(LLVMInt32TypeInContext(code_generator->context), 0, 0));
   } else {
     LLVMBuildRet(code_generator->builder, main_ret);
   }
@@ -1818,7 +1851,10 @@ void cg_prepare_module(struct CodeGenerator *code_generator,
               stmt->node.decl->data_type->kind == DTK_POINTER) {
             LLVMSetInitializer(variable, LLVMConstPointerNull(type));
           } else {
-            LLVMSetInitializer(variable, LLVMConstInt(LLVMInt32Type(), 0, 0));
+            LLVMSetInitializer(
+                variable,
+                LLVMConstInt(LLVMInt32TypeInContext(code_generator->context), 0,
+                             0));
           }
           entry->llvm_value = variable;
         }

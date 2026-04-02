@@ -16,12 +16,13 @@ struct CodeGenerator {
   LLVMBuilderRef builder;
   LLVMBasicBlockRef current_block;
   LLVMTargetDataRef target_data;
+  LLVMContextRef context;
 };
 
 struct LLVMValueAndTypeRefs {
   LLVMValueRef value;
   LLVMTypeRef type;
-} ;
+};
 
 struct CodeGenerator cg_make(struct ArenaAllocator *allocator,
                              struct Annotator *annotator);
