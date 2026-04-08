@@ -29,16 +29,22 @@ int exec_test(void (*test)(void)) {
 static int PASS_COUNT = 0;
 static int TEST_COUNT = 0;
 
+#define RED "\033[31m"
+#define GREEN "\033[32m"
+#define RESET "\033[0m"
+
 void run_test(char *name, void (*test)(void)) {
   TEST_COUNT++;
   if (exec_test(test)) {
-    printf("[ PASSED ] %s\n", name);
+    printf("[ " GREEN "PASSED" RESET " ] %s\n", name);
     PASS_COUNT++;
   } else {
-    printf("[ FAILED ] %s\n", name);
+    printf("[ " RED "FAILED" RESET " ] %s\n", name);
   }
 }
 
 void print_results(void) {
-  printf("\n\n%d passed, %d failed, %d total\n", PASS_COUNT, TEST_COUNT-PASS_COUNT, TEST_COUNT);
+  printf("\n\n" GREEN "%d passed" RESET ", " RED "%d failed" RESET
+         ", %d total\n",
+         PASS_COUNT, TEST_COUNT - PASS_COUNT, TEST_COUNT);
 }
