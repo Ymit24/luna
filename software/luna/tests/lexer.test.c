@@ -5,6 +5,7 @@
 #include "lexer.h"
 #include "luna_string.h"
 #include "test.h"
+#include "token.h"
 
 struct Lexer setup_lexer(char *source) {
   char *arena = malloc(sizeof(char) * 10024);
@@ -67,8 +68,23 @@ void test_lexer_next(void) {
   teardown_lexer(lexer);
 }
 
+void test_lexer_operators(void) {
+  struct Lexer lexer = setup_lexer("+- = /* &");
+
+  struct Token out;
+  enum TokenType expected[] = {T_PLUS,  T_MINUS, T_EQUALS,
+                               T_SLASH, T_STAR,  T_AMPERSAND};
+  for (size_t i = 0; i < 6; i++) {
+    assert(lexer_next(&lexer, &out));
+    assert(out.type == expected[i]);
+  }
+
+  teardown_lexer(lexer);
+}
+
 void test_lexer(void) {
   run_test("lexer, it makes", &test_lexer_make);
   run_test("lexer, it peeks", &test_lexer_peek);
   run_test("lexer, it nexts", &test_lexer_next);
+  run_test("lexer, it lexes operators", &test_lexer_operators);
 }
