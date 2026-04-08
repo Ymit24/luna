@@ -11,11 +11,11 @@ int exec_test(void (*test)(void)) {
   int stat;
 
   if (fork() == 0) {
-    int dev_null = open("/dev/null", O_WRONLY);
-    if (dev_null != -1) {
-      dup2(dev_null, STDERR_FILENO);
-      close(dev_null);
-    }
+    // int dev_null = open("/dev/null", O_WRONLY);
+    // if (dev_null != -1) {
+    //   dup2(dev_null, STDERR_FILENO);
+    //   close(dev_null);
+    // }
     test();
     exit(0);
     return 0;
