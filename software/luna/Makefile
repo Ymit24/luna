@@ -17,7 +17,7 @@ CORE_SRC := src/compiler.c src/luna_string.c src/lexer.c src/parser.c src/ast.c 
 
 SRC := main.c $(CORE_SRC)
 
-TEST_SRC := tests/main.test.c $(CORE_SRC)
+TEST_SRC := tests/main.test.c tests/test.c $(CORE_SRC)
 
 LIB := lib.c \
 			 src/compiler.c \
@@ -33,7 +33,7 @@ lunac: $(SRC)
 	gcc -o bin/$@ $(SRC) $(CFLAGS) $(LDFLAGS)
 
 build_test: $(SRC)
-	gcc -o bin/test $(TEST_SRC) $(CFLAGS) $(LDFLAGS)
+	gcc -o bin/test $(TEST_SRC) $(CFLAGS) $(LDFLAGS) -I tests/include
 
 test: build_test
 	./bin/test
