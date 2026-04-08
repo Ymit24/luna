@@ -11,11 +11,13 @@ LLVM_LDFLAGS := $(shell $(LLVM_CONFIG) --ldflags) -Wl,-rpath,$(shell $(LLVM_CONF
 CFLAGS := -Wall -Wextra -Wpedantic -Werror -std=c99 -Iinclude $(LLVM_CFLAGS)
 LDFLAGS := $(LLVM_LDFLAGS) $(LLVM_LIBS)
 
-SRC := main.c \
-			 src/compiler.c \
-       src/luna_string.c src/lexer.c src/parser.c src/ast.c \
+CORE_SRC := src/compiler.c src/luna_string.c src/lexer.c src/parser.c src/ast.c \
        src/arena_allocator.c src/interpreter.c src/annotator.c \
        src/instruction_builder.c src/llvm-backend/code_generator.c src/module_symbol_table_builder.c
+
+SRC := main.c $(CORE_SRC)
+
+TEST_SRC := tests/main.test.c $(CORE_SRC)
 
 LIB := lib.c \
 			 src/compiler.c \
@@ -29,6 +31,12 @@ all: lunac
 
 lunac: $(SRC)
 	gcc -o bin/$@ $(SRC) $(CFLAGS) $(LDFLAGS)
+
+build_test: $(SRC)
+	gcc -o bin/test $(TEST_SRC) $(CFLAGS) $(LDFLAGS)
+
+test: build_test
+	./bin/test
 
 lib: $(LIB)
 	clang -S -emit-llvm -std=c99 lib.c -o out/source.ll -Iinclude
