@@ -1,7 +1,9 @@
 #include <assert.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "arena_allocator.h"
+#include "ast.h"
 #include "lexer.h"
 #include "luna_string.h"
 #include "test.h"
@@ -9,8 +11,11 @@
 
 struct Lexer setup_lexer(char *source) {
   char *arena = malloc(sizeof(char) * 10024);
-  struct ArenaAllocator alloc = arena_make(arena, 10024);
-  struct Lexer lexer = lexer_make(&alloc, string_make(source));
+
+  struct ArenaAllocator *alloc = malloc(sizeof(struct ArenaAllocator));
+  *alloc = arena_make(arena, 10024);
+
+  struct Lexer lexer = lexer_make(alloc, string_make(source));
   return lexer;
 }
 
@@ -68,6 +73,46 @@ void test_lexer_next(void) {
   teardown_lexer(lexer);
 }
 
+void it_lexes_numbers(void) {
+  struct Lexer lexer = setup_lexer("123");
+
+  struct Token out;
+  assert(lexer_next(&lexer, &out));
+
+  assert(out.type == T_INTEGER);
+  assert(out.value.integer == 123);
+
+  teardown_lexer(lexer);
+}
+
+void it_lexes_strings(void) {
+  struct Lexer lexer = setup_lexer("\"abc\n\\\"\"");
+
+  struct Token out;
+  assert(lexer_next(&lexer, &out));
+
+  assert(out.type == T_STRING);
+  assert(strings_equal(string_make("abc\n\""), out.value.symbol));
+
+  puts("got to end");
+
+  teardown_lexer(lexer);
+}
+
+void it_lexes_symbols(void) {
+  struct Lexer lexer = setup_lexer("_foobar123");
+
+  struct Token out;
+  assert(lexer_next(&lexer, &out));
+
+  assert(out.type == T_SYMBOL);
+  assert(strings_equal(string_make("_foobar123"), out.value.symbol));
+
+  puts("got to end");
+
+  teardown_lexer(lexer);
+}
+
 void test_lexer_operators(void) {
   struct Lexer lexer = setup_lexer("+- = /* &");
 
@@ -87,4 +132,7 @@ void test_lexer(void) {
   run_test("lexer, it peeks", &test_lexer_peek);
   run_test("lexer, it nexts", &test_lexer_next);
   run_test("lexer, it lexes operators", &test_lexer_operators);
+  run_test("lexer, it lexes numbers", &it_lexes_numbers);
+  run_test("lexer, it lexes strings", &it_lexes_strings);
+  run_test("lexer, it lexes symobls", &it_lexes_symbols);
 }
