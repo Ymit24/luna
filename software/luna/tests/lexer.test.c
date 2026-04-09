@@ -20,6 +20,15 @@ struct Lexer setup_lexer(char *source) {
 
 void teardown_lexer(struct Lexer lexer) { free(lexer.allocator->arena); }
 
+void expect_tokens(enum TokenType *expected_types, size_t expected_count,
+                   struct Lexer *lexer) {
+  struct Token out;
+  for (size_t i = 0; i < expected_count; i++) {
+    assert(lexer_next(lexer, &out));
+    assert(out.type == expected_types[i]);
+  }
+}
+
 void test_lexer_make(void) {
   struct Lexer lexer = setup_lexer("foo");
 
@@ -108,15 +117,6 @@ void it_lexes_symbols(void) {
   teardown_lexer(lexer);
 }
 
-void expect_tokens(enum TokenType *expected_types, size_t expected_count,
-                   struct Lexer *lexer) {
-  struct Token out;
-  for (size_t i = 0; i < expected_count; i++) {
-    assert(lexer_next(lexer, &out));
-    assert(out.type == expected_types[i]);
-  }
-}
-
 void it_lexes_keywords(void) {
   struct Lexer lexer =
       setup_lexer("fn return mod const let if while struct union");
@@ -142,13 +142,10 @@ void it_lexes_macros(void) {
 void test_lexer_operators(void) {
   struct Lexer lexer = setup_lexer("+- = /* &");
 
-  struct Token out;
-  enum TokenType expected[] = {T_PLUS,  T_MINUS, T_EQUALS,
-                               T_SLASH, T_STAR,  T_AMPERSAND};
-  for (size_t i = 0; i < 6; i++) {
-    assert(lexer_next(&lexer, &out));
-    assert(out.type == expected[i]);
-  }
+  enum TokenType expected_types[] = {T_PLUS,  T_MINUS, T_EQUALS,
+                                     T_SLASH, T_STAR,  T_AMPERSAND};
+
+  expect_tokens(expected_types, 6, &lexer);
 
   teardown_lexer(lexer);
 }
