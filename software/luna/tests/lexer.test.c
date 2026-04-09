@@ -3,7 +3,6 @@
 #include <stdlib.h>
 
 #include "arena_allocator.h"
-#include "ast.h"
 #include "lexer.h"
 #include "luna_string.h"
 #include "test.h"
@@ -129,6 +128,17 @@ void it_lexes_keywords(void) {
   teardown_lexer(lexer);
 }
 
+void it_lexes_macros(void) {
+  struct Lexer lexer =
+      setup_lexer("@cast @extern @variadic @valuesize @typesize");
+
+  enum TokenType expected_types[] = {T_CAST, T_EXTERN, T_VARIADIC, T_VALUESIZE,
+                                     T_TYPESIZE};
+  expect_tokens(expected_types, 5, &lexer);
+
+  teardown_lexer(lexer);
+}
+
 void test_lexer_operators(void) {
   struct Lexer lexer = setup_lexer("+- = /* &");
 
@@ -152,4 +162,5 @@ void test_lexer(void) {
   run_test("lexer, it lexes strings", &it_lexes_strings);
   run_test("lexer, it lexes symobls", &it_lexes_symbols);
   run_test("lexer, it lexes keywords", &it_lexes_keywords);
+  run_test("lexer, it lexes macros", &it_lexes_macros);
 }
