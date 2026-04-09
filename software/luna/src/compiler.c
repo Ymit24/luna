@@ -194,6 +194,7 @@ void compile(struct ArenaAllocator *allocator, char **source_file_paths,
       parse_files(allocator, source_file_paths, source_file_count);
 
   struct Annotator annotator = annotator_make(allocator);
+  annotator.current_symbol_table = &annotator.root_symbol_table;
   annotate(&annotator, root);
 
   struct CodeGenerator code_generator = cg_make(allocator, &annotator);

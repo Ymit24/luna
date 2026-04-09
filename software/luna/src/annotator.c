@@ -41,7 +41,6 @@ struct Annotator annotator_make(struct ArenaAllocator *allocator) {
                                                 .parent = NULL,
                                                 .current_index = 0},
   };
-  annotator.current_symbol_table = &annotator.root_symbol_table;
   return annotator;
 }
 
