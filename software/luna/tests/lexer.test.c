@@ -94,8 +94,6 @@ void it_lexes_strings(void) {
   assert(out.type == T_STRING);
   assert(strings_equal(string_make("abc\n\""), out.value.symbol));
 
-  puts("got to end");
-
   teardown_lexer(lexer);
 }
 
@@ -107,6 +105,26 @@ void it_lexes_symbols(void) {
 
   assert(out.type == T_SYMBOL);
   assert(strings_equal(string_make("_foobar123"), out.value.symbol));
+
+  teardown_lexer(lexer);
+}
+
+void expect_tokens(enum TokenType *expected_types, size_t expected_count,
+                   struct Lexer *lexer) {
+  struct Token out;
+  for (size_t i = 0; i < expected_count; i++) {
+    assert(lexer_next(lexer, &out));
+    assert(out.type == expected_types[i]);
+  }
+}
+
+void it_lexes_keywords(void) {
+  struct Lexer lexer =
+      setup_lexer("fn return mod const let if while struct union");
+
+  enum TokenType expected_types[] = {T_FN, T_RETURN, T_MOD,    T_CONST, T_LET,
+                                     T_IF, T_WHILE,  T_STRUCT, T_UNION};
+  expect_tokens(expected_types, 9, &lexer);
 
   teardown_lexer(lexer);
 }
@@ -133,4 +151,5 @@ void test_lexer(void) {
   run_test("lexer, it lexes numbers", &it_lexes_numbers);
   run_test("lexer, it lexes strings", &it_lexes_strings);
   run_test("lexer, it lexes symobls", &it_lexes_symbols);
+  run_test("lexer, it lexes keywords", &it_lexes_keywords);
 }
