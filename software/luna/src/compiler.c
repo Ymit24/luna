@@ -1,9 +1,9 @@
+#include <llvm-c/Types.h>
 #include <stdio.h>
 
 #include "annotator.h"
 #include "arena_allocator.h"
 #include "ast.h"
-#include "compiler.h"
 #include "lexer.h"
 #include "llvm-backend/code_generator.h"
 #include "luna_string.h"
@@ -58,21 +58,13 @@ struct ModuleStatementNode *parse_source_file(struct ArenaAllocator *allocator,
   struct Token toks[4096];
   uint16_t tok_index = 0;
 
-  puts("tokens:");
   while (lexer_next(&lexer, &toks[tok_index++])) {
-    if (false) {
-      printf("\t%d\n", toks[tok_index - 1].type);
-    }
   }
-  puts("");
-
-  printf("Found a total of %d tokens.\n", tok_index - 1);
 
   struct Parser parser = parser_make(allocator, toks, tok_index);
 
   struct ModuleStatementNode *stmt = parse_module_statements(&parser);
 
-  puts("done parsing");
   return stmt;
 }
 
@@ -135,14 +127,11 @@ struct LunaString get_module_name_from_file(struct ArenaAllocator *allocator,
 
 struct ModuleStatementNode *parse_files(struct ArenaAllocator *allocator,
                                         char **source_file_paths,
-                                        size_t source_file_count
-
-) {
+                                        size_t source_file_count) {
   struct ModuleStatementNode *new_root = NULL;
   struct ModuleStatementNode *current = NULL;
 
   for (int i = 1; i < (int)source_file_count; i++) {
-    printf("parsing file (%d)->(%s)\n", i, source_file_paths[i]);
     struct ModuleStatementNode *source_root =
         parse_source_file(allocator, source_file_paths[i]);
 
@@ -163,42 +152,52 @@ struct ModuleStatementNode *parse_files(struct ArenaAllocator *allocator,
   return new_root;
 }
 
+void code_gen(struct CodeGenerator *code_generator,
+              struct ModuleStatementNode *root) {
+  cg_prepare_module(code_generator, root);
+  LLVMValueRef global_module_initializer = cg_visit_module_statements(
+      code_generator, root, true, string_make("core"));
+  cg_make_entrypoint(code_generator, global_module_initializer);
+}
+
+void emit_module_to_file(LLVMModuleRef module, char *output_filepath) {
+  char *error = NULL;
+  if (LLVMPrintModuleToFile(module, output_filepath, &error) != 0) {
+    fprintf(stderr, "Failed to write module: %s", error);
+    LLVMDisposeMessage(error);
+  }
+}
+
+void annotate(struct Annotator *annotator, struct ModuleStatementNode *root) {
+  mstb_visit_module(annotator, root);
+  insert_symbol_entry(annotator, (struct SymbolTableEntry){
+                                     .symbol = string_make("src"),
+                                     .type = root->node.decl->data_type,
+                                     .llvm_value = NULL,
+                                     .next = NULL,
+                                     .symbol_location = SL_MODULE,
+                                     .index = 0,
+                                 });
+
+  mstb_infer_types(
+      annotator,
+      &root->node.decl->expression->node.module_definition->symbol_table);
+  annotator->current_symbol_table = &annotator->root_symbol_table;
+
+  annotator_initialize_primitives(annotator);
+  annotator_visit_module_statements(annotator, root);
+}
+
 void compile(struct ArenaAllocator *allocator, char **source_file_paths,
-             size_t source_file_count) {
+             size_t source_file_count, char *output_filepath) {
   struct ModuleStatementNode *root =
       parse_files(allocator, source_file_paths, source_file_count);
 
   struct Annotator annotator = annotator_make(allocator);
-  mstb_visit_module(&annotator, root);
-  insert_symbol_entry(&annotator, (struct SymbolTableEntry){
-                                      .symbol = string_make("src"),
-                                      .type = root->node.decl->data_type,
-                                      .llvm_value = NULL,
-                                      // .llvm_structure_type = NULL,
-                                      .next = NULL,
-                                      .symbol_location = SL_MODULE,
-                                      .index = 0,
-                                  });
-
-  mstb_infer_types(
-      &annotator,
-      &root->node.decl->expression->node.module_definition->symbol_table);
-  annotator.current_symbol_table = &annotator.root_symbol_table;
-
-  annotator_initialize_primitives(&annotator);
-  annotator_visit_module_statements(&annotator, root);
+  annotate(&annotator, root);
 
   struct CodeGenerator code_generator = cg_make(allocator, &annotator);
+  code_gen(&code_generator, root);
 
-  cg_prepare_module(&code_generator, root);
-  LLVMValueRef global_module_initializer = cg_visit_module_statements(
-      &code_generator, root, true, string_make("core"));
-  cg_make_entrypoint(&code_generator, global_module_initializer);
-
-  char *error = NULL;
-  if (LLVMPrintModuleToFile(code_generator.module, "out/compiled.ll", &error) !=
-      0) {
-    fprintf(stderr, "Failed to write module: %s", error);
-    LLVMDisposeMessage(error);
-  }
+  emit_module_to_file(code_generator.module, output_filepath);
 }

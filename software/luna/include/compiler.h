@@ -9,8 +9,8 @@
 void compile(
   struct ArenaAllocator *allocator,
   char **source_file_paths,
-             size_t source_file_count
-
+  size_t source_file_count,
+  char *output_filepath
 );
 
 #endif

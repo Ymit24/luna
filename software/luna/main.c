@@ -26,7 +26,7 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  compile(&allocator, argv, argc);
+  compile(&allocator, argv, argc, "out/compiled.ll");
 
   printf("Arena Allocator used %ld/%ld (%0.2f%%) memory\n", allocator.length,
          allocator.capacity,
