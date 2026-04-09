@@ -108,8 +108,6 @@ void it_lexes_symbols(void) {
   assert(out.type == T_SYMBOL);
   assert(strings_equal(string_make("_foobar123"), out.value.symbol));
 
-  puts("got to end");
-
   teardown_lexer(lexer);
 }
 
