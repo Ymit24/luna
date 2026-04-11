@@ -131,7 +131,7 @@ struct ModuleStatementNode *parse_files(struct ArenaAllocator *allocator,
   struct ModuleStatementNode *new_root = NULL;
   struct ModuleStatementNode *current = NULL;
 
-  for (int i = 1; i < (int)source_file_count; i++) {
+  for (int i = 0; i < (int)source_file_count; i++) {
     struct ModuleStatementNode *source_root =
         parse_source_file(allocator, source_file_paths[i]);
 
