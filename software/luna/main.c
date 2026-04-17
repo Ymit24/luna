@@ -7,7 +7,7 @@
 #include "arena_allocator.h"
 #include "compiler.h"
 
-const char *VERSION = "0.1.4";
+const char *VERSION = "0.1.5";
 
 int main(int argc, char **argv) {
   puts("Luna Compiler");
