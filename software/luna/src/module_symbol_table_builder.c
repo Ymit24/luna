@@ -2,6 +2,7 @@
 #include "annotator.h"
 #include "arena_allocator.h"
 #include "ast.h"
+#include "log.h"
 #include <assert.h>
 #include <stdio.h>
 
@@ -54,7 +55,7 @@ void mstb_visit_module(struct Annotator *annotator,
   assert(annotator != NULL);
   assert(root != NULL);
 
-  puts("Creating queue..");
+  DEBUG_LOG("Creating queue..");
   struct Queue *queue = queue_make(annotator->allocator);
 
   root->node.decl->expression->node.module_definition->symbol_table =
@@ -73,10 +74,10 @@ void mstb_visit_module(struct Annotator *annotator,
 
     assert(head != NULL);
     {
-      printf("[mstb_visit_module] Found mod decl: '%s' of type: '",
-             head->node.decl->symbol.data);
+      DEBUG_LOG("[mstb_visit_module] Found mod decl: '%s' of type: '",
+                head->node.decl->symbol.data);
       print_data_type(head->node.decl->data_type);
-      printf("'\n");
+      DEBUG_LOG("'\n");
     }
 
     if (head->node.decl->expression->type == EXPR_MOD_DEF) {
@@ -105,9 +106,9 @@ void mstb_visit_module(struct Annotator *annotator,
             infer_type(annotator, stmt->node.decl->expression);
         assert(inferred_type != NULL);
 
-        printf("inferred type: ");
+        DEBUG_LOG("inferred type: ");
         print_data_type(inferred_type);
-        puts("");
+        DEBUG_LOG("\n");
 
         insert_symbol_entry_in(
             annotator,
@@ -128,7 +129,7 @@ void mstb_visit_module(struct Annotator *annotator,
       }
     }
   }
-  puts("Finished queue.");
+  DEBUG_LOG("Finished queue.");
 }
 
 void mstb_resolve_types(struct Annotator *annotator, struct DataType *type) {
@@ -151,9 +152,9 @@ void mstb_resolve_types(struct Annotator *annotator, struct DataType *type) {
     assert(entry != NULL);
     assert(entry->type != NULL);
 
-    puts("Resolved type:");
+    DEBUG_LOG("Resolved type:");
     print_data_type(entry->type);
-    puts("");
+    DEBUG_LOG("\n");
 
     type->value.resolvable.resolved_type = entry->type;
     break;
@@ -165,7 +166,7 @@ void mstb_resolve_types(struct Annotator *annotator, struct DataType *type) {
     mstb_resolve_types(annotator, type->value.array.element_type);
     break;
   case DTK_STRUCTURE: {
-    puts("mstb_resolve_types: DTK_STRUCTURE. will remove this soon");
+    DEBUG_LOG("mstb_resolve_types: DTK_STRUCTURE. will remove this soon");
     struct SymbolTableEntry *entry = lookup_scoped_symbol_in(
         type->value.structure.name, annotator->current_symbol_table);
 
@@ -173,18 +174,18 @@ void mstb_resolve_types(struct Annotator *annotator, struct DataType *type) {
     assert(entry->type != NULL);
     assert(entry->type->kind == DTK_STRUCTURE_DEF);
 
-    printf("For (%s), resolved structure type:\n", entry->symbol.data);
+    DEBUG_LOG("For (%s), resolved structure type:\n", entry->symbol.data);
     print_data_type(entry->type);
-    puts("");
+    DEBUG_LOG("\n");
 
     type->value.structure.definition =
         entry->type->value.structure_definition.definition;
 
     assert(entry->type->value.structure_definition.definition != NULL);
 
-    printf("mstb_resolve_types: DTK_STRUCTURE. resolved structure type:\n");
+    DEBUG_LOG("mstb_resolve_types: DTK_STRUCTURE. resolved structure type:\n");
     print_data_type(type);
-    puts("");
+    DEBUG_LOG("\n");
 
     assert(type->value.structure.definition != NULL);
     break;
@@ -229,7 +230,7 @@ void mstb_infer_types(struct Annotator *annotator,
   struct SymbolTableEntry *entry = symbol_table->head;
 
   while (entry != NULL) {
-    printf("mstb_infer_types entry: %s\n", entry->symbol.data);
+    DEBUG_LOG("mstb_infer_types entry: %s\n", entry->symbol.data);
     assert(entry->type != NULL);
 
     struct SymbolTable *old_symbol_table = annotator->current_symbol_table;
@@ -237,9 +238,9 @@ void mstb_infer_types(struct Annotator *annotator,
 
     mstb_resolve_types(annotator, entry->type);
 
-    printf("mstb_infer_types resolved type: ");
+    DEBUG_LOG("mstb_infer_types resolved type: ");
     print_data_type(entry->type);
-    printf("\n");
+    DEBUG_LOG("\n");
 
     annotator->current_symbol_table = old_symbol_table;
 
