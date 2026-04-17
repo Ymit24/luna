@@ -2,11 +2,11 @@
 #include "annotator.h"
 #include "arena_allocator.h"
 #include "ast.h"
+#include "log.h"
 #include "luna_string.h"
 #include "token.h"
 #include <assert.h>
 #include <stdbool.h>
-#include <stdio.h>
 #include <string.h>
 
 struct IntegerLiteralNode *parse_integer_literal(struct Parser *parser);
@@ -43,7 +43,7 @@ parse_function_call_expression(struct Parser *parser,
 
   struct FunctionCallArgumentExpressionsNode *root_argument = NULL;
   if (parser_peek(parser).type != T_RPAREN) {
-    puts("function call may have arguments.");
+    DEBUG_LOG("function call may have arguments.");
     root_argument =
         ast_promote(parser->allocator,
                     &(struct FunctionCallArgumentExpressionsNode){
@@ -133,21 +133,21 @@ struct FunctionArgumentNode *parse_function_argument(struct Parser *parser) {
   struct SymbolLiteralNode *symbol = parse_symbol_literal(parser);
   assert(symbol != NULL);
 
-  puts("taking the colon.");
+  DEBUG_LOG("taking the colon.");
   assert(parser_peek(parser).type == T_COLON);
   parser->position++;
 
   struct DataType *type = parse_data_type(parser);
-  puts("took the type.");
+  DEBUG_LOG("took the type.");
 
   struct FunctionArgumentNode *next = NULL;
   if (parser_peek(parser).type == T_COMMA) {
-    puts("found comma");
+    DEBUG_LOG("found comma");
     parser->position++;
     next = parse_function_argument(parser);
   }
-  puts("done.");
-  printf("next token is type: %d\n", parser_peek(parser).type);
+  DEBUG_LOG("done.");
+  DEBUG_LOG("next token is type: %d\n", parser_peek(parser).type);
 
   return ast_promote(parser->allocator,
                      &(struct FunctionArgumentNode){.symbol = symbol->value,
@@ -158,13 +158,13 @@ struct FunctionArgumentNode *parse_function_argument(struct Parser *parser) {
 
 struct FunctionArgumentNode *parse_function_arguments(struct Parser *parser) {
   if (parser_peek(parser).type == T_RPAREN) {
-    puts("function had no arguments");
+    DEBUG_LOG("function had no arguments");
     return NULL;
   }
-  puts("Function may have arguments.");
+  DEBUG_LOG("Function may have arguments.");
 
   struct FunctionArgumentNode *arguments = parse_function_argument(parser);
-  puts("Found arguments.");
+  DEBUG_LOG("Found arguments.");
 
   return arguments;
 }
@@ -242,7 +242,7 @@ parse_struct_field_initializer(struct Parser *parser) {
 //
 //   assert(parser_peek(parser).type == T_SYMBOL);
 //   struct LunaString symbol = parser_peek(parser).value.symbol;
-//   printf("Got symbol: '%s'\n", symbol.data);
+//   DEBUG_LOG("Got symbol: '%s'\n", symbol.data);
 //   parser->position++;
 //
 //   return ast_promote(
@@ -346,7 +346,7 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
 
     switch (parser_peek(parser).type) {
     case T_LPAREN: {
-      puts("found lparen, is function call");
+      DEBUG_LOG("found lparen, is function call");
 
       struct FunctionCallExpressionNode *fn_call =
           parse_function_call_expression(parser, scoped_symbol);
@@ -359,10 +359,10 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
     }
     // case T_PERIOD: {
     //
-    //   puts("found period, so this is field accessor");
-    //   printf("scoped symbol: ");
+    //   DEBUG_LOG("found period, so this is field accessor");
+    //   DEBUG_LOG("scoped symbol: ");
     //   print_scoped_symbol(scoped_symbol);
-    //   puts("");
+    //   DEBUG_LOG("\n");
     //
     //   return ast_promote_expression_node(
     //       parser->allocator,
@@ -377,7 +377,7 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
     //                           StructFieldAccessExpressionNode))});
     // }
     // case T_LBRACK:
-    //   puts("Found index operation");
+    //   DEBUG_LOG("Found index operation");
     //   parser->position++;
     //
     //   struct ExpressionNode *indexing_expr = parse_expression(parser, 0);
@@ -403,8 +403,8 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
     //                       indexing_expr)})},
     //       sizeof(struct ExpressionNode));
     default:
-      printf("did not find lparen after symbol, found: %d\n",
-             parser_peek(parser).type);
+      DEBUG_LOG("did not find lparen after symbol, found: %d\n",
+                parser_peek(parser).type);
       return ast_promote_expression_node(
           parser->allocator,
           (struct ExpressionNode){.type = EXPR_SYMBOL_LITERAL,
@@ -412,7 +412,7 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
     };
   }
   case T_STAR: {
-    puts("parsing deref");
+    DEBUG_LOG("parsing deref");
     parser->position++;
 
     struct ExpressionNode *deref_expr = parse_expression(parser, 0);
@@ -549,16 +549,16 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
     struct FunctionArgumentNode *arguments = parse_function_arguments(parser);
     assert(parser_peek(parser).type == T_RPAREN);
     parser->position++;
-    printf("a. next token is: %d\n", parser_peek(parser).type);
+    DEBUG_LOG("a. next token is: %d\n", parser_peek(parser).type);
     if (parser_peek(parser).type == T_COLON) {
-      puts("Found colon in func");
+      DEBUG_LOG("Found colon in func");
       parser->position++;
       return_type = parse_data_type(parser);
     } else {
       return_type = make_void_data_type(parser->allocator);
-      puts("Found NO colon in func");
+      DEBUG_LOG("Found NO colon in func");
     }
-    printf("next token is: %d\n", parser_peek(parser).type);
+    DEBUG_LOG("next token is: %d\n", parser_peek(parser).type);
     if (extern_name != NULL) {
       return ast_promote(
           parser->allocator,
@@ -581,7 +581,7 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
     struct FunctionStatementNode *result = parse_function_statements(parser);
     assert(parser_peek(parser).type == T_RBRACE);
     parser->position++; // consume the close brace.
-    printf("return type IS NULL?: %d\n", return_type == NULL);
+    DEBUG_LOG("return type IS NULL?: %d\n", return_type == NULL);
     return ast_promote(parser->allocator,
                        &(struct ExpressionNode){
                            .type = EXPR_FN_DEF,
@@ -599,7 +599,7 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
   }
   case T_PERIOD: {
     parser->position++;
-    puts("found struct initialization");
+    DEBUG_LOG("found struct initialization");
 
     struct ScopedSymbolLiteralNode *scoped_symbol =
         parse_scoped_symbol_literal(parser);
@@ -673,7 +673,7 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
                        sizeof(struct ExpressionNode));
   }
   case T_MOD: {
-    puts("Found module definition");
+    DEBUG_LOG("Found module definition");
     parser->position++;
 
     assert(parser_peek(parser).type == T_LBRACE);
@@ -700,7 +700,7 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
     break;
   }
   case T_LBRACK:
-    puts("Found array initializer.");
+    DEBUG_LOG("Found array initializer.");
     parser->position++;
 
     struct ArrayInitializerExpressionNode *initializers =
@@ -715,7 +715,7 @@ struct ExpressionNode *parse_nud(struct Parser *parser, struct Token token) {
                                .node.array_initializers = initializers,
                            });
   default:
-    printf("Found type: %d\n", token.type);
+    DEBUG_LOG("Found type: %d\n", token.type);
     assert(false);
   }
 }
@@ -892,7 +892,7 @@ struct ExpressionNode *parse_expression(struct Parser *parser,
                   parse_expression(parser, precedence_for_token(T_GEQ)))});
       break;
     case T_PERIOD:
-      puts("Found field access operation.");
+      DEBUG_LOG("Found field access operation.");
       token = parser_peek(parser);
 
       assert(token.type == T_SYMBOL);
@@ -909,7 +909,7 @@ struct ExpressionNode *parse_expression(struct Parser *parser,
                   sizeof(struct StructFieldAccessExpressionNode))});
       break;
     default:
-      printf("Found unexpected token of type %d\n", token.type);
+      DEBUG_LOG("Found unexpected token of type %d\n", token.type);
       assert(0);
       return left;
     }
@@ -987,7 +987,7 @@ struct FunctionStatementNode *parse_function_statements(struct Parser *parser) {
   assert(parser_peek(parser).type != T_EOF);
 
   if (parser_peek(parser).type == T_RBRACE) {
-    puts("Found empty function");
+    DEBUG_LOG("Found empty function");
     return NULL;
   }
 
@@ -1007,7 +1007,7 @@ struct DataType *parse_data_type(struct Parser *parser) {
   struct Token token = parser_peek(parser);
   switch (token.type) {
   case T_STAR: {
-    puts("\n\t\tFOUND POINTER TYPE!\n");
+    DEBUG_LOG("\n\t\tFOUND POINTER TYPE!\n");
     parser->position++;
     struct DataType *inner = parse_data_type(parser);
 
@@ -1020,9 +1020,9 @@ struct DataType *parse_data_type(struct Parser *parser) {
                                                  .next = NULL,
                                              },
                                              sizeof(struct DataType));
-    printf("parsed data type: ");
+    DEBUG_LOG("parsed data type: ");
     print_data_type(data_type);
-    printf("\n");
+    DEBUG_LOG("\n");
     return data_type;
   }
   case T_SYMBOL: {
@@ -1054,7 +1054,7 @@ struct DataType *parse_data_type(struct Parser *parser) {
       parser->position++;
       return make_integer_primitive_data_type(parser->allocator, 1, 1);
     } else if (strncmp("void", token.value.symbol.data, 4) == 0) {
-      printf("\n\n\tVOID\n");
+      DEBUG_LOG("\n\n\tVOID\n");
       parser->position++;
 
       return ast_promote(parser->allocator,
@@ -1064,8 +1064,8 @@ struct DataType *parse_data_type(struct Parser *parser) {
                          },
                          sizeof(struct DataType));
     } else {
-      printf("assuming unknown symbol is structure: %s\n",
-             token.value.symbol.data);
+      DEBUG_LOG("assuming unknown symbol is structure: %s\n",
+                token.value.symbol.data);
       struct ScopedSymbolLiteralNode *scoped_symbol =
           parse_scoped_symbol_literal(parser);
 
@@ -1082,9 +1082,9 @@ struct DataType *parse_data_type(struct Parser *parser) {
                       },
                       sizeof(struct DataType));
 
-      printf("resolved type: ");
+      DEBUG_LOG("resolved type: ");
       print_data_type(data_type);
-      puts("");
+      DEBUG_LOG("\n");
 
       return data_type;
 
@@ -1126,23 +1126,23 @@ struct DataType *parse_data_type(struct Parser *parser) {
     parser->position++;
     struct DataType *return_type = NULL;
     if (parser_peek(parser).type == T_COLON) {
-      puts("function had return type");
+      DEBUG_LOG("function had return type");
       parser->position++;
       return_type = parse_data_type(parser);
-      printf("got return type: %d\n", return_type->kind);
+      DEBUG_LOG("got return type: %d\n", return_type->kind);
     } else {
-      puts("function had NO return type");
+      DEBUG_LOG("function had NO return type");
       return_type = make_void_data_type(parser->allocator);
     }
 
-    puts("parsed function type here");
+    DEBUG_LOG("parsed function type here");
     struct DataType *type = make_function_data_type(
         parser->allocator, arguments, return_type, extern_name, is_variadic);
-    printf("return type: is null: %d\n", type == NULL);
+    DEBUG_LOG("return type: is null: %d\n", type == NULL);
     return type;
   }
   case T_LBRACK:
-    puts("Found array type.");
+    DEBUG_LOG("Found array type.");
     parser->position++;
 
     struct DataType *element_type = parse_data_type(parser);
@@ -1150,8 +1150,9 @@ struct DataType *parse_data_type(struct Parser *parser) {
     assert(parser_peek(parser).type == T_SEMICOLON);
     parser->position++;
 
-    printf("About to parse integer for array length, next token is type: %d\n",
-           parser_peek(parser).type);
+    DEBUG_LOG(
+        "About to parse integer for array length, next token is type: %d\n",
+        parser_peek(parser).type);
 
     uint64_t length = parse_integer_literal(parser)->value;
 
@@ -1171,8 +1172,8 @@ struct DeclarationStatementNode *parse_decl_statement(struct Parser *parser,
   assert(parser_peek(parser).type == (is_const ? T_CONST : T_LET));
   parser->position++;
 
-  printf("[parse_decl_statement]: is_const: %d. Found: %d\n", is_const,
-         parser_peek(parser).type);
+  DEBUG_LOG("[parse_decl_statement]: is_const: %d. Found: %d\n", is_const,
+            parser_peek(parser).type);
 
   assert(parser_peek(parser).type == T_SYMBOL);
   struct LunaString symbol = parser_peek(parser).value.symbol;
@@ -1187,7 +1188,7 @@ struct DeclarationStatementNode *parse_decl_statement(struct Parser *parser,
     has_type = true;
   }
 
-  printf("next tok is now: %d\n", parser_peek(parser).type);
+  DEBUG_LOG("next tok is now: %d\n", parser_peek(parser).type);
 
   assert(parser_peek(parser).type == T_EQUALS);
   parser->position++;
@@ -1235,7 +1236,7 @@ parse_assignment_statement(struct Parser *parser, struct ExpressionNode *expr) {
   case T_CARETEQUALS:
     break;
   default:
-    puts("unexpected token for assignment. Expected =, +=, -=, etc");
+    DEBUG_LOG("unexpected token for assignment. Expected =, +=, -=, etc");
     assert(0);
     break;
   }
@@ -1272,7 +1273,7 @@ parse_assignment_statement(struct Parser *parser, struct ExpressionNode *expr) {
   case T_EQUALS:
     break;
   default:
-    puts("illegal code path.");
+    DEBUG_LOG("illegal code path.");
     assert(0);
     break;
   }
@@ -1314,7 +1315,7 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
                        sizeof(struct FunctionStatementNode));
   }
   case T_RETURN: {
-    puts("found return.");
+    DEBUG_LOG("found return.");
     parser->position++;
     struct ReturnStatementNode *ret = parse_ret_statement(parser);
 
@@ -1322,7 +1323,7 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
       parser->position++;
     }
 
-    puts("parsed ret");
+    DEBUG_LOG("parsed ret");
     return ast_promote(parser->allocator,
                        &(struct FunctionStatementNode){.type = FN_STMT_RETURN,
                                                        .node.ret = ret,
@@ -1330,9 +1331,10 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
                        sizeof(struct FunctionStatementNode));
   }
   case T_WHILE: {
-    puts("found while.");
-    printf("\n\n\n-------------------------------------------------------------"
-           "---\n\n");
+    DEBUG_LOG("found while.");
+    DEBUG_LOG(
+        "\n\n\n-------------------------------------------------------------"
+        "---\n\n");
     parser->position++;
 
     struct WhileStatementNode while_stmt =
@@ -1364,9 +1366,10 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
         sizeof(struct FunctionStatementNode));
   }
   case T_IF: {
-    puts("found if.");
-    printf("\n\n\n-------------------------------------------------------------"
-           "---\n\n");
+    DEBUG_LOG("found if.");
+    DEBUG_LOG(
+        "\n\n\n-------------------------------------------------------------"
+        "---\n\n");
     parser->position++;
 
     struct IfStatementNode if_stmt =
@@ -1374,9 +1377,9 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
 
     struct IfStatementNode *current = &if_stmt;
 
-    puts("about to check if statemtn stuff.");
+    DEBUG_LOG("about to check if statemtn stuff.");
     while (true) {
-      puts("starting layer");
+      DEBUG_LOG("starting layer");
       struct ExpressionNode *conditional = parse_expression(parser, 0);
 
       assert(parser_peek(parser).type == T_LBRACE);
@@ -1391,7 +1394,7 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
       if (parser_peek(parser).type == T_ELSE) {
         parser->position++;
         if (parser_peek(parser).type == T_IF) {
-          puts("found else if case");
+          DEBUG_LOG("found else if case");
           parser->position++;
           current->next =
               ast_promote(parser->allocator,
@@ -1401,7 +1404,7 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
           current = current->next;
           continue;
         } else {
-          puts("found else not if case");
+          DEBUG_LOG("found else not if case");
           assert(parser_peek(parser).type == T_LBRACE);
           parser->position++;
           struct FunctionStatementNode *body =
@@ -1419,7 +1422,7 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
         }
         break;
       } else {
-        puts("no else found.");
+        DEBUG_LOG("no else found.");
         break;
       }
     }
@@ -1438,12 +1441,12 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
         sizeof(struct FunctionStatementNode));
   }
   default: {
-    puts("[PARSER] In default case for function statement.");
-    printf("Looking at: %d\n", parser_peek(parser).type);
+    DEBUG_LOG("[PARSER] In default case for function statement.");
+    DEBUG_LOG("Looking at: %d\n", parser_peek(parser).type);
     struct ExpressionNode *expr = parse_expression(parser, 0);
 
     assert(expr != NULL);
-    printf("[PARSER] found expression of type: %d\n", expr->type);
+    DEBUG_LOG("[PARSER] found expression of type: %d\n", expr->type);
 
     switch (expr->type) {
     case EXPR_FN_CALL:
@@ -1484,14 +1487,14 @@ struct FunctionStatementNode *parse_function_statement(struct Parser *parser) {
     case EXPR_MOD_DEF:
     case EXPR_VALUESIZE:
     case EXPR_TYPESIZE:
-      printf("illegal expression type as function statement (%d).\n",
-             expr->type);
+      DEBUG_LOG("illegal expression type as function statement (%d).\n",
+                expr->type);
       assert(0);
       return NULL;
     }
   }
   };
-  puts("illegal function statement.");
+  DEBUG_LOG("illegal function statement.");
   assert(0);
   return NULL;
 }
@@ -1519,7 +1522,7 @@ struct ModuleStatementNode *parse_module_statement(struct Parser *parser) {
                        sizeof(struct ModuleStatementNode));
   }
   default: {
-    puts("Unexpected token in module.");
+    DEBUG_LOG("Unexpected token in module.");
     assert(0);
     break;
   }

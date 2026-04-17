@@ -1,11 +1,11 @@
 #include "lexer.h"
 #include "arena_allocator.h"
+#include "log.h"
 #include "luna_string.h"
 #include "token.h"
 
 #include <assert.h>
 #include <ctype.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -88,12 +88,12 @@ struct LunaString lexer_read_string(struct Lexer *lexer) {
   }
 
   if (index >= 256) {
-    puts("Lexer: string length surpassed 256.");
+    DEBUG_LOG("Lexer: string length surpassed 256.");
     assert(0);
   }
 
   buf[index] = 0;
-  printf("lexed string: (%s)\n", buf);
+  DEBUG_LOG("lexed string: (%s)\n", buf);
   return (struct LunaString){.data = &buf[0], .length = index};
 }
 
