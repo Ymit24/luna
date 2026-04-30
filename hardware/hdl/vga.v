@@ -6,7 +6,7 @@ module vga(
     output wire [3:0] blue,
     output wire hsync,
     output wire vsync,
-    
+
     input wire [15:0] bram_doutb,
     output reg [15:0] bram_addrb
 );
@@ -25,8 +25,8 @@ localparam V_SYNC_END   = V_SYNC_START + 2;                // 492
 localparam V_TOTAL      = V_SYNC_END + 33;                 // 525
 
 // Registers for counters and clock divider
-reg [9:0] h_counter = 10'd0;
-reg [9:0] v_counter = 10'd0;
+reg [9:0] h_counter;
+reg [9:0] v_counter;
 
 // Clock divider and counter logic with synchronous reset
 always @(posedge clk) begin
@@ -58,4 +58,3 @@ assign green = (h_counter < H_VISIBLE && v_counter < V_VISIBLE) ? 4'b0000 : 4'b0
 assign blue  = (h_counter < H_VISIBLE && v_counter < V_VISIBLE) ? 4'b0000 : 4'b0000;
 
 endmodule
-
