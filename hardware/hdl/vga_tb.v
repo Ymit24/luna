@@ -14,7 +14,7 @@ module vga_tb;
   wire vsync;
 
   // BRAM interface
-  reg [15:0] bram_doutb = 16'h0000;
+  reg [15:0] bram_doutb = 16'hFFFF;
   wire [15:0] bram_addrb;
 
   // Instantiate DUT

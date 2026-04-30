@@ -1,12 +1,11 @@
 #include "Vvga.h"
 #include "raylib.h"
-#include <vector>
 #include <verilated.h>
 
 int VGA_WIDTH = 640;
-int VGA_HEIGHT = 640;
+int VGA_HEIGHT = 480;
 
-int MARGIN = 50;
+int MARGIN = 0;
 
 int main(int argc, char **argv) {
   Verilated::commandArgs(argc, argv);
@@ -17,13 +16,38 @@ int main(int argc, char **argv) {
 
   Color *pixels = (Color *)MemAlloc(VGA_WIDTH * VGA_HEIGHT * sizeof(Color));
 
+  // !Verilated::gotFinish()
+
+  top->rst = 1;
+  for (int i = 0; i < 10; i++) {
+    top->clk = 0;
+    top->eval();
+    top->clk = 1;
+    top->eval();
+  }
+  top->rst = 0;
+
+  for (int i = 0; i < 100; i++) {
+    top->clk = 0;
+    top->eval();
+    top->clk = 1;
+    top->eval();
+  }
+
+  top->bram_doutb = (unsigned short)0x0FFF;
+  top->eval();
+
   for (int y = 0; y < VGA_HEIGHT; y++) {
     for (int x = 0; x < VGA_WIDTH; x++) {
-      if ((x / 32 + y / 32) % 2 == 0) {
-        pixels[x + y * VGA_WIDTH] = RED;
-      } else {
-        pixels[x + y * VGA_WIDTH] = GREEN;
-      }
+
+      top->bram_doutb = (unsigned short)(x + y);
+      top->eval(); // if ((x / 32 + y / 32) % 2 == 0) {
+      pixels[x + y * VGA_WIDTH] = (Color){(unsigned char)(top->red << 4),
+                                          (unsigned char)(top->green << 4),
+                                          (unsigned char)(top->blue << 4), 255};
+      // } else {
+      //   pixels[x + y * VGA_WIDTH] = GREEN;
+      // }
     }
   }
 
@@ -36,16 +60,22 @@ int main(int argc, char **argv) {
   };
 
   Texture2D checkeredTexture = LoadTextureFromImage(checkeredImage);
-  UnloadImage(checkeredImage);
+  // UnloadImage(checkeredImage);
 
   while (!WindowShouldClose()) {
-    BeginDrawing();
-    ClearBackground(BLACK);
+    top->clk = 0;
+    top->eval();
+    top->clk = 1;
+    top->eval();
 
+    BeginDrawing();
+    ClearBackground(GRAY);
     DrawTexture(checkeredTexture, MARGIN / 2, MARGIN / 2, WHITE);
+    UpdateTexture(checkeredTexture, pixels);
     EndDrawing();
   }
 
+  UnloadTexture(checkeredTexture);
   CloseWindow();
 
   delete top;
