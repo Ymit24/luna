@@ -2,3 +2,4 @@ obj_dir/
 *.vcd
 *.vvp
 *.out
+compile_commands.json
