@@ -7,6 +7,18 @@ int VGA_HEIGHT = 480;
 
 int MARGIN = 50;
 
+void step_raw_clock(Vtop *top, size_t n) {
+  for (size_t i = 0; i < n; i++) {
+    top->raw_clk = 0;
+    top->eval();
+    top->raw_clk = 1;
+    top->eval();
+  }
+}
+
+void step_logic_clock(Vtop *top) { step_raw_clock(top, 2); }
+void step_pixel_clock(Vtop *top) { step_raw_clock(top, 4); }
+
 int main(int argc, char **argv) {
   Verilated::commandArgs(argc, argv);
   Vtop *top = new Vtop;
@@ -74,6 +86,30 @@ int main(int argc, char **argv) {
       }
     }
 
+    int x = 0;
+    int y = 0;
+
+    while (top->vsync) {
+      while (top->hsync) {
+        DrawRectangle(x, y + MARGIN, 1, 1, BLUE);
+
+        step_pixel_clock(top);
+        printf("%d,%d\n", x, y);
+        x += 1;
+      }
+      // wait for hsync pulse?
+      while (!top->hsync) {
+        step_pixel_clock(top);
+      }
+      y += 1;
+    }
+
+    // wait for vsync pulse?
+    while (!top->vsync) {
+      step_pixel_clock(top);
+    }
+
+    DrawFPS(0, 0);
     EndDrawing();
   }
 

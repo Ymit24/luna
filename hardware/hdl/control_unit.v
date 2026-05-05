@@ -57,7 +57,6 @@ module control_unit(
 
     // Set should jump
     always @ (posedge wrbk_clk) begin
-        $display("set should jump");
         if (rst == 1'b1 || instr[15] == 1'b0) begin
             set_pc <= 1'h0;
         end else begin
