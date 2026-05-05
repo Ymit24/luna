@@ -7,6 +7,8 @@ module vga(
     output wire hsync,
     output wire vsync,
 
+    output reg pixel_active,
+
     input wire [15:0] bram_doutb,
     output reg [15:0] bram_addrb
 );
@@ -53,8 +55,8 @@ assign hsync = (h_counter >= H_SYNC_START && h_counter < H_SYNC_END) ? 1'b0 : 1'
 assign vsync = (v_counter >= V_SYNC_START && v_counter < V_SYNC_END) ? 1'b0 : 1'b1;
 
 // Generate RGB signals (white during visible area, off during blanking)
-assign red   = (h_counter < H_VISIBLE && v_counter < V_VISIBLE) ? bram_doutb[3:0] : 4'b0000;
-assign green = (h_counter < H_VISIBLE && v_counter < V_VISIBLE) ? 4'b0000 : 4'b0000;
-assign blue  = (h_counter < H_VISIBLE && v_counter < V_VISIBLE) ? 4'b0000 : 4'b0000;
+assign red   = (h_counter < H_VISIBLE && v_counter < V_VISIBLE) ? h_counter[7:4] : 4'b0000;
+assign green = (h_counter < H_VISIBLE && v_counter < V_VISIBLE) ? h_counter[7:4] : 4'b0000;
+assign blue  = (h_counter < H_VISIBLE && v_counter < V_VISIBLE) ? v_counter[7:4] : 4'b0000;
 
 endmodule
