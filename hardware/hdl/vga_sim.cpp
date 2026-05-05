@@ -107,15 +107,35 @@ void read_frame(Vtop *top, Color *pixels) {
   int x = 0;
   int y = 0;
 
+  while (top->vsync) {
+    step_pixel_clock(top);
+  }
   // wait for vsync pulse?
   while (!top->vsync) {
     step_pixel_clock(top);
   }
-  while (top->vsync) {
+  for (size_t i = 0; i < 33; i++) {
     while (top->hsync) {
-      if (x > 640) {
+      step_pixel_clock(top);
+    }
+    while (!top->hsync) {
+      step_pixel_clock(top);
+    }
+  }
+  while (top->vsync) {
+    if (y >= VGA_HEIGHT) {
+      step_pixel_clock(top);
+      continue;
+    }
+    for (size_t i = 0; i < 48; i++) {
+      step_pixel_clock(top);
+    }
+    while (top->hsync) {
+      if (x >= VGA_WIDTH) {
+        step_pixel_clock(top);
         continue;
       }
+
       Color pixel = {
           .r = (uint8_t)top->red,
           .g = (uint8_t)top->green,
@@ -137,7 +157,6 @@ void read_frame(Vtop *top, Color *pixels) {
       step_pixel_clock(top);
     }
 
-    printf("%d, %d\n", x, y);
     y += 1;
     x = 0;
   }
