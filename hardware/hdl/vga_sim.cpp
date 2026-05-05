@@ -88,7 +88,9 @@ int main(int argc, char **argv) {
     int w = ((VGA_WIDTH - 0) - (5 * 16)) / 16;
     for (size_t i = 0; i < 16; i++) {
       if ((top->top__02Eleds >> i) & 1) {
-        DrawRectangle(0 + i * (w + 5), 5, w, 40, WHITE);
+        DrawRectangle(0 + i * (w + 5), 5, w, 40, GREEN);
+      } else {
+        DrawRectangle(0 + i * (w + 5), 5, w, 40, RED);
       }
     }
 
