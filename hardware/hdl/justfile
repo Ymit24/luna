@@ -1,6 +1,6 @@
 # Project Settings
-MODULE := "vga"
-V_SRC := "vga.v"
+MODULE := "top"
+V_SRC := "top.v"
 CPP_SRC := "vga_sim.cpp"
 EXE := "vga_sim"
 

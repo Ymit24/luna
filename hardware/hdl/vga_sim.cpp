@@ -1,17 +1,17 @@
-#include "Vvga.h"
+#include "Vtop.h"
 #include "raylib.h"
 #include <verilated.h>
 
 int VGA_WIDTH = 640;
 int VGA_HEIGHT = 480;
 
-int MARGIN = 0;
+int MARGIN = 50;
 
 int main(int argc, char **argv) {
   Verilated::commandArgs(argc, argv);
-  Vvga *top = new Vvga;
+  Vtop *top = new Vtop;
 
-  InitWindow(VGA_WIDTH + MARGIN, VGA_HEIGHT + MARGIN, "VGA Viewer");
+  InitWindow(VGA_WIDTH, VGA_HEIGHT + MARGIN, "VGA Viewer");
   SetTargetFPS(60);
 
   Color *pixels = (Color *)MemAlloc(VGA_WIDTH * VGA_HEIGHT * sizeof(Color));
@@ -20,28 +20,22 @@ int main(int argc, char **argv) {
 
   top->rst = 1;
   for (int i = 0; i < 10; i++) {
-    top->clk = 0;
+    top->raw_clk = 0;
     top->eval();
-    top->clk = 1;
+    top->raw_clk = 1;
     top->eval();
   }
   top->rst = 0;
 
   for (int i = 0; i < 100; i++) {
-    top->clk = 0;
+    top->raw_clk = 0;
     top->eval();
-    top->clk = 1;
+    top->raw_clk = 1;
     top->eval();
   }
 
-  top->bram_doutb = (unsigned short)0x0FFF;
-  top->eval();
-
   for (int y = 0; y < VGA_HEIGHT; y++) {
     for (int x = 0; x < VGA_WIDTH; x++) {
-
-      top->bram_doutb = (unsigned short)(x + y);
-      top->eval(); // if ((x / 32 + y / 32) % 2 == 0) {
       pixels[x + y * VGA_WIDTH] = (Color){(unsigned char)(top->red << 4),
                                           (unsigned char)(top->green << 4),
                                           (unsigned char)(top->blue << 4), 255};
@@ -63,15 +57,23 @@ int main(int argc, char **argv) {
   // UnloadImage(checkeredImage);
 
   while (!WindowShouldClose()) {
-    top->clk = 0;
+    top->raw_clk = 0;
     top->eval();
-    top->clk = 1;
+    top->raw_clk = 1;
     top->eval();
 
     BeginDrawing();
     ClearBackground(GRAY);
-    DrawTexture(checkeredTexture, MARGIN / 2, MARGIN / 2, WHITE);
+    DrawTexture(checkeredTexture, 0, MARGIN, WHITE);
     UpdateTexture(checkeredTexture, pixels);
+
+    int w = ((VGA_WIDTH - 0) - (5 * 16)) / 16;
+    for (size_t i = 0; i < 16; i++) {
+      if ((top->top__02Eleds >> i) & 1) {
+        DrawRectangle(0 + i * (w + 5), 5, w, 40, WHITE);
+      }
+    }
+
     EndDrawing();
   }
 
