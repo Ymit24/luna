@@ -19,6 +19,8 @@ void step_raw_clock(Vtop *top, size_t n) {
 void step_logic_clock(Vtop *top) { step_raw_clock(top, 2); }
 void step_pixel_clock(Vtop *top) { step_raw_clock(top, 4); }
 
+void read_frame(Vtop *top, Color *pixels);
+
 int main(int argc, char **argv) {
   Verilated::commandArgs(argc, argv);
   Vtop *top = new Vtop;
@@ -76,37 +78,18 @@ int main(int argc, char **argv) {
 
     BeginDrawing();
     ClearBackground(GRAY);
-    DrawTexture(checkeredTexture, 0, MARGIN, WHITE);
-    UpdateTexture(checkeredTexture, pixels);
+
+    {
+      read_frame(top, pixels);
+      DrawTexture(checkeredTexture, 0, MARGIN, WHITE);
+      UpdateTexture(checkeredTexture, pixels);
+    }
 
     int w = ((VGA_WIDTH - 0) - (5 * 16)) / 16;
     for (size_t i = 0; i < 16; i++) {
       if ((top->top__02Eleds >> i) & 1) {
         DrawRectangle(0 + i * (w + 5), 5, w, 40, WHITE);
       }
-    }
-
-    int x = 0;
-    int y = 0;
-
-    while (top->vsync) {
-      while (top->hsync) {
-        DrawRectangle(x, y + MARGIN, 1, 1, BLUE);
-
-        step_pixel_clock(top);
-        printf("%d,%d\n", x, y);
-        x += 1;
-      }
-      // wait for hsync pulse?
-      while (!top->hsync) {
-        step_pixel_clock(top);
-      }
-      y += 1;
-    }
-
-    // wait for vsync pulse?
-    while (!top->vsync) {
-      step_pixel_clock(top);
     }
 
     DrawFPS(0, 0);
@@ -117,4 +100,45 @@ int main(int argc, char **argv) {
   CloseWindow();
 
   delete top;
+}
+
+// read a frame from vga and update pixels array
+void read_frame(Vtop *top, Color *pixels) {
+  int x = 0;
+  int y = 0;
+
+  // wait for vsync pulse?
+  while (!top->vsync) {
+    step_pixel_clock(top);
+  }
+  while (top->vsync) {
+    while (top->hsync) {
+      if (x > 640) {
+        continue;
+      }
+      Color pixel = {
+          .r = (uint8_t)top->red,
+          .g = (uint8_t)top->green,
+          .b = (uint8_t)top->blue,
+          .a = 255,
+      };
+
+      pixels[x + y * VGA_WIDTH] = (Color){(unsigned char)(top->red << 4),
+                                          (unsigned char)(top->green << 4),
+                                          (unsigned char)(top->blue << 4), 255};
+      // DrawRectangle(x, y + MARGIN, 1, 1, pixel);
+
+      step_pixel_clock(top);
+      x += 1;
+    }
+
+    // wait for hsync pulse?
+    while (!top->hsync) {
+      step_pixel_clock(top);
+    }
+
+    printf("%d, %d\n", x, y);
+    y += 1;
+    x = 0;
+  }
 }
