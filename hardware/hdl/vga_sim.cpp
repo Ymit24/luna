@@ -135,7 +135,7 @@ void read_frame(Vtop *top, Color *pixels) {
           .a = 255,
       };
 
-      pixels[x + y * VGA_WIDTH] = (Color){(unsigned char)(top->red << 4),
+      pixels[x + y * VGA_WIDTH] = (Color){(unsigned char)(( top->red << 4 ) | top->red << 4),
                                           (unsigned char)(top->green << 4),
                                           (unsigned char)(top->blue << 4), 255};
       // DrawRectangle(x, y + MARGIN, 1, 1, pixel);
