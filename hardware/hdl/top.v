@@ -4,13 +4,13 @@
 `include "alu.v"
 `include "control_unit.v"
 `include "control_fsm.v"
-`include "memory_mapped_io.v"
 `include "clock_divider.v"
 `include "vga.v"
 `include "blk_mem_gen_0.v"
 
 module top(
-    input raw_clk,
+    input clk,
+    input clk25,
     input rst,
     output [15:0] leds,
     output hsync,
@@ -19,26 +19,26 @@ module top(
     output [3:0] green,
     output [3:0] blue
 );
-    wire clk, clk25;
+    // wire clk, clk25;
     wire fetch_clk, decode_clk, exec_clk, wrbk_clk, jmp_clk;
     
-    // Artificially slow down the processor for debug
-    clock_divider #(
-        .INPUT_FREQ(100_000_000),
-        .TARGET_FREQ(50_000_000)
-    ) main_div(
-        .clk_in(raw_clk),
-        .clk_out(clk)
-    );
+    // // Artificially slow down the processor for debug
+    // clock_divider #(
+    //     .INPUT_FREQ(100_000_000),
+    //     .TARGET_FREQ(50_000_000)
+    // ) main_div(
+    //     .clk_in(raw_clk),
+    //     .clk_out(clk)
+    // );
 
     // Pixel clock 25MHz
-    clock_divider #(
-        .INPUT_FREQ(100_000_000),
-        .TARGET_FREQ(25_000_000)
-    ) px_div(
-        .clk_in(raw_clk),
-        .clk_out(clk25)
-    );
+    // clock_divider #(
+    //     .INPUT_FREQ(100_000_000),
+    //     .TARGET_FREQ(25_000_000)
+    // ) px_div(
+    //     .clk_in(raw_clk),
+    //     .clk_out(clk25)
+    // );
 
     wire [15:0] alu_out, addr_const;
     wire instr_type, set_pc; 

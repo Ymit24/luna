@@ -17,6 +17,7 @@ default: build
 [linux]
 build:
 	verilator -Wall -cc --trace --exe --build \
+		--top-module top \
 		-Wno-fatal \
 		{{RAYLIB_CFLAGS}} \
 		-LDFLAGS "{{RAYLIB_LDFLAGS}}" \
@@ -28,6 +29,7 @@ build:
 [macos]
 build:
 	verilator -Wall -cc --trace --exe --build \
+		--top-module top \
 		-Wno-fatal \
 		-CFLAGS {{RAYLIB_CFLAGS}} \
 		-LDFLAGS "{{RAYLIB_LDFLAGS}}" \

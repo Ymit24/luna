@@ -7,17 +7,26 @@ int VGA_HEIGHT = 480;
 
 int MARGIN = 50;
 
-void step_raw_clock(Vtop *top, size_t n) {
+void step_clock(Vtop *top, size_t n) {
   for (size_t i = 0; i < n; i++) {
-    top->raw_clk = 0;
+    top->clk = 0;
     top->eval();
-    top->raw_clk = 1;
+    top->clk = 1;
+    top->eval();
+    top->clk = 0;
     top->eval();
   }
 }
 
-void step_logic_clock(Vtop *top) { step_raw_clock(top, 2); }
-void step_pixel_clock(Vtop *top) { step_raw_clock(top, 4); }
+void step_logic_clock(Vtop *top) { step_clock(top, 1); }
+void step_pixel_clock(Vtop *top) {
+  top->clk25 = 0;
+  top->eval();
+  top->clk25 = 1;
+  top->eval();
+  top->clk25 = 0;
+  top->eval();
+}
 
 void read_frame(Vtop *top, Color *pixels);
 
@@ -33,29 +42,12 @@ int main(int argc, char **argv) {
   // !Verilated::gotFinish()
 
   top->rst = 1;
-  for (int i = 0; i < 10; i++) {
-    top->raw_clk = 0;
-    top->eval();
-    top->raw_clk = 1;
-    top->eval();
-  }
+  step_clock(top, 10);
   top->rst = 0;
-
-  for (int i = 0; i < 100; i++) {
-    top->raw_clk = 0;
-    top->eval();
-    top->raw_clk = 1;
-    top->eval();
-  }
 
   for (int y = 0; y < VGA_HEIGHT; y++) {
     for (int x = 0; x < VGA_WIDTH; x++) {
-      pixels[x + y * VGA_WIDTH] = (Color){(unsigned char)(top->red << 4),
-                                          (unsigned char)(top->green << 4),
-                                          (unsigned char)(top->blue << 4), 255};
-      // } else {
-      //   pixels[x + y * VGA_WIDTH] = GREEN;
-      // }
+      pixels[x + y * VGA_WIDTH] = BLACK;
     }
   }
 
@@ -71,13 +63,11 @@ int main(int argc, char **argv) {
   // UnloadImage(checkeredImage);
 
   while (!WindowShouldClose()) {
-    top->raw_clk = 0;
-    top->eval();
-    top->raw_clk = 1;
-    top->eval();
-
     BeginDrawing();
     ClearBackground(GRAY);
+
+    // advance cpu
+    step_logic_clock(top);
 
     {
       read_frame(top, pixels);
@@ -87,7 +77,7 @@ int main(int argc, char **argv) {
 
     int w = ((VGA_WIDTH - 0) - (5 * 16)) / 16;
     for (size_t i = 0; i < 16; i++) {
-      if ((top->top__02Eleds >> i) & 1) {
+      if ((top->leds >> i) & 1) {
         DrawRectangle(0 + i * (w + 5), 5, w, 40, GREEN);
       } else {
         DrawRectangle(0 + i * (w + 5), 5, w, 40, RED);
