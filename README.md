@@ -3,6 +3,8 @@
 Luna is both a hardware and software project. It's a custom ISA, processing core, and systems programming language.
 The programming language luna is not suitable for production use and is a toy language for this project.
 
+NOTE: This is an almost exclusively hand-written project done very informally so the repo is a bit messy.
+
 # Example Luna Code
 
 ## Hello World
