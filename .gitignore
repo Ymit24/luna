@@ -1,1 +1,7 @@
 **/target/
+lunac
+.cache/
+.mise.toml
+out/
+bin/
+compile_commands.json
