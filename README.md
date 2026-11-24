@@ -31,7 +31,7 @@ const main = fn() {
 }
 ```
 
-## Submodules and functions
+## Submodules
 
 ```luna
 const cstd = mod {
